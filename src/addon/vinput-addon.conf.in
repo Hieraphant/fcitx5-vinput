@@ -1,0 +1,11 @@
+[Addon]
+Name=Vinput
+Name[zh_CN]=语音输入
+Comment=Voice input engine for Fcitx5
+Comment[zh_CN]=Fcitx5 语音输入引擎
+Category=InputMethod
+Library=fcitx5-vinput
+Type=SharedLibrary
+OnDemand=True
+Configurable=True
+Version=@PROJECT_VERSION@
