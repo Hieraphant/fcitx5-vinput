@@ -44,6 +44,11 @@ set(VINPUT_DAEMON_EXECUTABLE
 install(FILES data/vinput-scenes.json
         DESTINATION "${FCITX_INSTALL_PKGDATADIR}/vinput")
 
+install(FILES
+        "${CMAKE_SOURCE_DIR}/LICENSE"
+        "${CMAKE_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/fcitx5-vinput")
+
 add_subdirectory(src/daemon)
 add_subdirectory(src/addon)
 

@@ -1,0 +1,47 @@
+# Third-Party Notices for fcitx5-vinput
+
+Generated: 2026-03-06
+
+This file lists third-party software that this project depends on or bundles, and the licenses they are available under. It is a best-effort summary for compliance and attribution. For full license texts, refer to the upstream projects.
+
+## Bundled (vendored) components in this repository
+
+1. **sherpa-onnx** (headers and shared libraries under `third_party/sherpa-onnx/`)
+   - License: Apache-2.0
+   - Upstream: https://github.com/k2-fsa/sherpa-onnx
+
+2. **ONNX Runtime** (shared library `libonnxruntime.so` under `third_party/sherpa-onnx/lib/`)
+   - License: MIT
+   - Upstream: https://github.com/microsoft/onnxruntime
+
+## Build/runtime dependencies (not bundled)
+
+1. **Fcitx5** (input method framework)
+   - License: LGPL-2.1-or-later AND Unicode-DFS-2016
+   - Upstream: https://github.com/fcitx/fcitx5
+
+2. **PipeWire** (media server / client libraries)
+   - License: MIT AND LGPL-2.1-or-later AND GPL-2.0-only (project contains multiple licenses)
+   - Upstream: https://pipewire.org
+
+3. **systemd / libsystemd**
+   - License: GPL-2.0 and LGPL-2.1 (project contains components under both licenses)
+   - Upstream: https://github.com/systemd/systemd
+
+4. **curl / libcurl**
+   - License: curl license (MIT/X derivative, SPDX identifier: `curl`)
+   - Upstream: https://curl.se/
+
+5. **nlohmann/json**
+   - License: MIT
+   - Upstream: https://github.com/nlohmann/json
+
+## Models / data downloaded by users (not bundled)
+
+1. **sherpa-onnx ASR models**
+   - Notes: Model licenses vary by model and are distributed separately from this repository. Users must review the specific model license terms when downloading from sherpa-onnx releases.
+   - Upstream: https://github.com/k2-fsa/sherpa-onnx (models linked from project documentation)
+
+---
+
+If you want full license texts included in this repository, we can add a `LICENSES/` folder and vendor the exact license files from each upstream project.
