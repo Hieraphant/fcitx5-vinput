@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/github/license/xifan2333/fcitx5-vinput)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/xifan2333/fcitx5-vinput)](https://github.com/xifan2333/fcitx5-vinput/releases)
-[![AUR](https://img.shields.io/aur/version/fcitx5-vinput)](https://aur.archlinux.org/packages/fcitx5-vinput)
+[![AUR](https://img.shields.io/aur/version/fcitx5-vinput-bin)](https://aur.archlinux.org/packages/fcitx5-vinput-bin)
 
 [English](README.md) | [中文](README_zh.md)
 
