@@ -63,6 +63,7 @@ private:
   std::unique_ptr<fcitx::dbus::Slot> llm_error_slot_;
   bool recording_ = false;
   bool command_mode_ = false;
+  bool awaiting_result_ = false;
   fcitx::InputContext *active_ic_ = nullptr;
   fcitx::InputContext *scene_menu_ic_ = nullptr;
   fcitx::InputContext *result_menu_ic_ = nullptr;
@@ -78,6 +79,7 @@ private:
       fcitx::Key(FcitxKey_KP_Page_Down),
   };
   fcitx::Key active_trigger_;
+  std::chrono::steady_clock::time_point press_time_;
   bool scene_menu_visible_ = false;
   bool result_menu_visible_ = false;
   std::string active_scene_id_;

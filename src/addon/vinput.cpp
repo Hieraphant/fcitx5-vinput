@@ -34,6 +34,7 @@ constexpr uint64_t kSystemdCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr const char *kDaemonUnitName = "vinput-daemon.service";
 constexpr const char *kReplaceMode = "replace";
 constexpr auto kReleaseDebounce = std::chrono::milliseconds(40);
+constexpr auto kToggleThreshold = std::chrono::milliseconds(300);
 constexpr int kMenuPageSize = 10;
 
 struct SceneOption {
@@ -342,76 +343,85 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
 
   if ((is_trigger || is_command) && !keyEvent.isRelease()) {
     cancelPendingStop();
-    if (!recording_) {
-      recording_ = true;
-      active_trigger_ = is_trigger ? trigger_keys_[trigger_index]
-                                   : command_keys_[command_index];
-      active_ic_ = keyEvent.inputContext();
-      hideResultMenu();
+    if (recording_) {
+      // Toggle off: second press while recording stops it
+      finishStopRecording();
+      keyEvent.filterAndAccept();
+      return;
+    }
+    recording_ = true;
+    press_time_ = std::chrono::steady_clock::now();
+    active_trigger_ = is_trigger ? trigger_keys_[trigger_index]
+                                 : command_keys_[command_index];
+    active_ic_ = keyEvent.inputContext();
+    hideResultMenu();
 
-      if (is_command) {
-        // Check LLM is enabled before proceeding
-        {
-          auto core_config = LoadCoreConfig();
-          if (!core_config.llm.enabled ||
-              ResolveActiveLlmProvider(core_config) == nullptr) {
-            recording_ = false;
-            updatePreedit(active_ic_, LlmNotEnabledPreeditText());
-            keyEvent.filterAndAccept();
-            return;
-          }
-        }
-        command_mode_ = true;
-        std::string selected_text;
-        auto &surrounding = active_ic_->surroundingText();
-        if (surrounding.isValid() && surrounding.cursor() != surrounding.anchor()) {
-          const auto &text = surrounding.text();
-          auto char_from = std::min(surrounding.cursor(), surrounding.anchor());
-          auto char_to = std::max(surrounding.cursor(), surrounding.anchor());
-          if (fcitx::utf8::validate(text)) {
-            auto byte_from = fcitx::utf8::ncharByteLength(text.begin(), char_from);
-            auto byte_len = fcitx::utf8::ncharByteLength(
-                std::next(text.begin(), byte_from), char_to - char_from);
-            selected_text = text.substr(byte_from, byte_len);
-          }
-        }
-        if (selected_text.empty()) {
-          if (auto *clipboard = instance_->addonManager().addon("clipboard")) {
-            auto primary = clipboard->call<fcitx::IClipboard::primary>(active_ic_);
-            if (fcitx::utf8::validate(primary)) {
-              selected_text = std::move(primary);
-            }
-          }
-        }
-        if (selected_text.empty()) {
-          command_mode_ = false;
+    if (is_command) {
+      // Check LLM is enabled before proceeding
+      {
+        auto core_config = LoadCoreConfig();
+        if (!core_config.llm.enabled ||
+            ResolveActiveLlmProvider(core_config) == nullptr) {
           recording_ = false;
-          updatePreedit(active_ic_, NoSelectionPreeditText());
+          updatePreedit(active_ic_, LlmNotEnabledPreeditText());
           keyEvent.filterAndAccept();
           return;
         }
-        FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
-        callStartCommandRecording(selected_text);
-        updatePreedit(active_ic_, CommandingPreeditText());
-      } else {
-        FCITX_LOG(Info) << "vinput: trigger key pressed";
-        callStartRecording();
-        updatePreedit(active_ic_, RecordingPreeditText());
       }
+      command_mode_ = true;
+      std::string selected_text;
+      auto &surrounding = active_ic_->surroundingText();
+      if (surrounding.isValid() && surrounding.cursor() != surrounding.anchor()) {
+        const auto &text = surrounding.text();
+        auto char_from = std::min(surrounding.cursor(), surrounding.anchor());
+        auto char_to = std::max(surrounding.cursor(), surrounding.anchor());
+        if (fcitx::utf8::validate(text)) {
+          auto byte_from = fcitx::utf8::ncharByteLength(text.begin(), char_from);
+          auto byte_len = fcitx::utf8::ncharByteLength(
+              std::next(text.begin(), byte_from), char_to - char_from);
+          selected_text = text.substr(byte_from, byte_len);
+        }
+      }
+      if (selected_text.empty()) {
+        if (auto *clipboard = instance_->addonManager().addon("clipboard")) {
+          auto primary = clipboard->call<fcitx::IClipboard::primary>(active_ic_);
+          if (fcitx::utf8::validate(primary)) {
+            selected_text = std::move(primary);
+          }
+        }
+      }
+      if (selected_text.empty()) {
+        command_mode_ = false;
+        recording_ = false;
+        updatePreedit(active_ic_, NoSelectionPreeditText());
+        keyEvent.filterAndAccept();
+        return;
+      }
+      FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
+      callStartCommandRecording(selected_text);
+      updatePreedit(active_ic_, CommandingPreeditText());
+    } else {
+      FCITX_LOG(Info) << "vinput: trigger key pressed";
+      callStartRecording();
+      updatePreedit(active_ic_, RecordingPreeditText());
     }
     keyEvent.filterAndAccept();
     return;
   }
 
+  // Push-to-talk: stop on release only if held longer than toggle threshold
   if (recording_ && keyEvent.isRelease() &&
       isReleaseOfActiveTrigger(keyEvent.key())) {
-    scheduleStopRecording();
+    auto held = std::chrono::steady_clock::now() - press_time_;
+    if (held >= kToggleThreshold) {
+      finishStopRecording();
+    }
     keyEvent.filterAndAccept();
     return;
   }
 
   if ((is_trigger || is_command) && keyEvent.isRelease()) {
-    if (!recording_ && active_ic_) {
+    if (!recording_ && !awaiting_result_ && active_ic_) {
       clearPreedit(active_ic_);
       active_ic_ = nullptr;
     }
@@ -873,6 +883,7 @@ void VinputEngine::finishStopRecording() {
   const auto &scene = vinput::scene::Resolve(scene_config_, active_scene_id_);
   active_scene_id_ = scene.id;
   recording_ = false;
+  awaiting_result_ = true;
   active_trigger_ = fcitx::Key();
   callStopRecording(scene.id);
   if (active_ic_) {
@@ -935,6 +946,8 @@ void VinputEngine::callStopRecording(const std::string &scene_id) {
 void VinputEngine::onRecognitionResult(fcitx::dbus::Message &msg) {
   std::string payload_text;
   msg >> payload_text;
+
+  awaiting_result_ = false;
 
   if (!active_ic_) {
     command_mode_ = false;
