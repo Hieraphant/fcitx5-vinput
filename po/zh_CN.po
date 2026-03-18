@@ -744,9 +744,8 @@ msgstr "录音已开始。"
 msgid "Recording stopped (scene: %s)."
 msgstr "录音已停止（场景：%s）。"
 
-#: src/cli/command_recording.cpp
-msgid "No active scene configured. Use 'vinput scene use <ID>' to set one."
-msgstr "未配置活跃场景。请使用 'vinput scene use <ID>' 设置。"
+msgid "Recording stopped."
+msgstr "录音已停止。"
 
 #: src/cli/command_recording.cpp
 #, c-format
