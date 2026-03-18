@@ -296,7 +296,8 @@ jobs:
       - name: Install rpmbuild and copr-cli
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm copr-cli
+          sudo apt-get install -y rpm
+          pip install copr-cli
 
       - name: Build SRPM
         shell: bash
