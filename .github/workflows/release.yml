@@ -324,6 +324,10 @@ jobs:
   ppa:
     needs: source_archive
     runs-on: ubuntu-latest
+    env:
+      DEBFULLNAME: "xifan233"
+      DEBEMAIL: "xifan2333@gmail.com"
+      GPG_KEY_ID: "E377996FF15A21371CC875F55D1938D94063BAAB"
     steps:
       - uses: actions/checkout@v4
 
@@ -332,12 +336,36 @@ jobs:
           name: source-archive
           path: dist
 
-      - uses: yuezk/publish-ppa-package@v2
-        with:
-          repository: "ppa:xifan233/ppa"
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          tarball: dist/${{ needs.source_archive.outputs.source_archive }}
-          debian_dir: packaging/debian
-          deb_email: "xifan2333@gmail.com"
-          deb_fullname: "xifan233"
-          series: "noble"
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y devscripts debhelper dput gnupg
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          gpg-connect-agent reloadagent /bye
+
+      - name: Build and upload source package
+        shell: bash
+        run: |
+          version="${{ needs.source_archive.outputs.package_version }}"
+          pkg="fcitx5-vinput_${version}-1ppa1~noble1"
+
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          cp "dist/${{ needs.source_archive.outputs.source_archive }}" \
+            "fcitx5-vinput_${version}.orig.tar.gz"
+
+          cd "fcitx5-vinput-${version}"
+          cp -r packaging/debian debian
+          dch --create --package fcitx5-vinput \
+            --newversion "${version}-1ppa1~noble1" \
+            --distribution noble \
+            "Release ${version}"
+
+          dpkg-buildpackage -S -sa -d -k"${GPG_KEY_ID}"
+
+          cd ..
+          dput ppa:xifan233/ppa "${pkg}_source.changes"
