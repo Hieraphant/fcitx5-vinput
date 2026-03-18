@@ -368,7 +368,7 @@ jobs:
           export GPG_TTY=$(tty) || true
 
           # Create GPG wrapper for headless signing
-          printf '#!/bin/bash\n/usr/bin/gpg --batch --no-tty --pinentry-mode loopback "$@"\n' > /tmp/gpg-wrapper.sh
+          printf '#!/bin/bash\n/usr/bin/gpg --no-tty --pinentry-mode loopback "$@"\n' > /tmp/gpg-wrapper.sh
           chmod +x /tmp/gpg-wrapper.sh
 
           debuild -S -sa -d -us -uc \
