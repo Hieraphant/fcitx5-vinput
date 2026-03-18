@@ -369,6 +369,6 @@ jobs:
 
           cd ..
           debsign -k"${GPG_KEY_ID}" \
-            -p"gpg --batch --pinentry-mode loopback" \
+            -p"gpg --no-tty --pinentry-mode loopback --passphrase ''" \
             "${pkg}_source.changes"
           dput ppa:xifan233/ppa "${pkg}_source.changes"
