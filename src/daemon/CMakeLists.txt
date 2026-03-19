@@ -1,15 +1,12 @@
-set(SHERPA_ONNX_DIR "${CMAKE_SOURCE_DIR}/third_party/sherpa-onnx")
+find_library(SHERPA_ONNX_CXX_LIB sherpa-onnx-cxx-api REQUIRED)
+find_library(SHERPA_ONNX_C_LIB sherpa-onnx-c-api REQUIRED)
+find_path(SHERPA_ONNX_INCLUDE_DIR sherpa-onnx/c-api/c-api.h REQUIRED)
+
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 set(VINPUT_SYSTEMD_SERVICE_FILE
     "${CMAKE_CURRENT_BINARY_DIR}/vinput-daemon.service")
 set(VINPUT_DBUS_SERVICE_FILE
     "${CMAKE_CURRENT_BINARY_DIR}/org.fcitx.Vinput.service")
-
-if(IS_ABSOLUTE "${VINPUT_RUNTIME_LIBDIR}")
-    set(VINPUT_DAEMON_INSTALL_RPATH "${VINPUT_RUNTIME_LIBDIR}")
-else()
-    set(VINPUT_DAEMON_INSTALL_RPATH "\$ORIGIN/../${VINPUT_RUNTIME_LIBDIR}")
-endif()
 
 set(VINPUT_VAD_MODEL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/fcitx5-vinput/vad")
 
@@ -30,11 +27,7 @@ target_compile_definitions(vinput-daemon PRIVATE
 target_include_directories(vinput-daemon PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${PIPEWIRE_INCLUDE_DIRS}
-    ${SHERPA_ONNX_DIR}/include
-)
-
-target_link_directories(vinput-daemon PRIVATE
-    ${SHERPA_ONNX_DIR}/lib
+    ${SHERPA_ONNX_INCLUDE_DIR}
 )
 
 target_link_libraries(vinput-daemon PRIVATE
@@ -42,14 +35,9 @@ target_link_libraries(vinput-daemon PRIVATE
     ${PIPEWIRE_LIBRARIES}
     ${SDBUS_LIBRARIES}
     CURL::libcurl
-    sherpa-onnx-cxx-api
-    sherpa-onnx-c-api
+    ${SHERPA_ONNX_CXX_LIB}
+    ${SHERPA_ONNX_C_LIB}
     pthread
-)
-
-set_target_properties(vinput-daemon PROPERTIES
-    INSTALL_RPATH "${VINPUT_DAEMON_INSTALL_RPATH}"
-    BUILD_RPATH "${SHERPA_ONNX_DIR}/lib"
 )
 
 configure_file("${CMAKE_SOURCE_DIR}/systemd/vinput-daemon.service.in"
@@ -67,12 +55,6 @@ install(FILES
 install(FILES
     "${VINPUT_DBUS_SERVICE_FILE}"
     DESTINATION "${VINPUT_DBUS_SERVICE_DIR}"
-)
-install(FILES
-    "${SHERPA_ONNX_DIR}/lib/libsherpa-onnx-cxx-api.so"
-    "${SHERPA_ONNX_DIR}/lib/libsherpa-onnx-c-api.so"
-    "${SHERPA_ONNX_DIR}/lib/libonnxruntime.so"
-    DESTINATION "${VINPUT_RUNTIME_LIBDIR}"
 )
 # VAD model (optional — daemon gracefully degrades if missing)
 if(EXISTS "${CMAKE_SOURCE_DIR}/data/vad/silero_vad.onnx")

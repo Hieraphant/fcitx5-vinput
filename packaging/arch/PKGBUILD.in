@@ -11,12 +11,19 @@ makedepends=('cli11' 'cmake' 'nlohmann-json' 'pkgconf' 'qt5-tools' 'systemd')
 source=('@VINPUT_SOURCE_ARCHIVE@')
 sha256sums=('@VINPUT_SOURCE_SHA256@')
 
+_sherpa_onnx_ver=1.12.28
+
 build() {
     local src_root="${srcdir}/${pkgname}-${pkgver}"
+
+    # Build sherpa-onnx from source
+    bash "${src_root}/scripts/build-sherpa-onnx.sh" \
+        "${_sherpa_onnx_ver}" "${srcdir}/sherpa-onnx-install"
 
     cmake -S "${src_root}" -B "${srcdir}/build" \
         -DCMAKE_BUILD_TYPE=None \
         -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_PREFIX_PATH="${srcdir}/sherpa-onnx-install" \
         -DVINPUT_PROJECT_VERSION="${pkgver}" \
         -DVINPUT_PACKAGE_RELEASE="${pkgrel}" \
         -DVINPUT_PACKAGE_HOMEPAGE_URL="${url}"

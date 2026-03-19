@@ -83,11 +83,15 @@ jobs:
           name: source-archive
           path: dist
 
+      - name: Build sherpa-onnx from source
+        run: |
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
+          sudo ldconfig
+
       - name: Build Debian package
         shell: bash
         run: |
-          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
-
           cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -152,11 +156,15 @@ jobs:
           name: source-archive
           path: dist
 
+      - name: Build sherpa-onnx from source
+        run: |
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
+          ldconfig
+
       - name: Build Debian package
         shell: bash
         run: |
-          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
-
           cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -255,12 +263,32 @@ jobs:
           path: dist/*.pkg.tar.zst
           if-no-files-found: error
 
+  build-flatpak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch manifest to use local source
+        run: |
+          sed -i '/- type: git/{N;N;s|- type: git\n.*url:.*\n.*tag:.*|- type: dir\n        path: ../../|;}' \
+            packaging/flatpak/org.fcitx.Fcitx5.Addon.Vinput.yaml
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: packaging/flatpak/org.fcitx.Fcitx5.Addon.Vinput.yaml
+          bundle: fcitx5-vinput.flatpak
+          repository-name: flathub
+          cache-key: flatpak-builder-${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: fcitx5-vinput.flatpak
+
   publish-release:
     needs:
       - source_archive
       - build-deb
       - build-deb-debian12
       - build-arch
+      - build-flatpak
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}

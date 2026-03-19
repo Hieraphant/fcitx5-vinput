@@ -4,19 +4,14 @@ Generated: 2026-03-06
 
 This file lists third-party software that this project depends on or bundles, and the licenses they are available under. It is a best-effort summary for compliance and attribution. For full license texts, refer to the upstream projects.
 
-## Bundled (vendored) components in this repository
-
-1. **sherpa-onnx** (headers and shared libraries under `third_party/sherpa-onnx/`)
-   - License: Apache-2.0
-   - Upstream: https://github.com/k2-fsa/sherpa-onnx
-
-2. **ONNX Runtime** (shared library `libonnxruntime.so` under `third_party/sherpa-onnx/lib/`)
-   - License: MIT
-   - Upstream: https://github.com/microsoft/onnxruntime
-
 ## Build/runtime dependencies (not bundled)
 
-1. **Fcitx5** (input method framework)
+1. **sherpa-onnx** (speech recognition engine)
+   - License: Apache-2.0
+   - Upstream: https://github.com/k2-fsa/sherpa-onnx
+   - Note: includes ONNX Runtime (MIT, https://github.com/microsoft/onnxruntime)
+
+2. **Fcitx5** (input method framework)
    - License: LGPL-2.1-or-later AND Unicode-DFS-2016
    - Upstream: https://github.com/fcitx/fcitx5
 

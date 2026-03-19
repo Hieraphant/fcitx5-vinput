@@ -35,11 +35,15 @@ Local offline voice input plugin for Fcitx5, powered by sherpa-onnx
 for on-device speech recognition with optional LLM post-processing
 via any OpenAI-compatible API.
 
+%define _sherpa_onnx_ver 1.12.28
+
 %prep
 %autosetup -n %{name}-%{version}
 
 %build
+bash scripts/build-sherpa-onnx.sh %{_sherpa_onnx_ver} %{_builddir}/sherpa-onnx-install
 %cmake -G Ninja \
+    -DCMAKE_PREFIX_PATH=%{_builddir}/sherpa-onnx-install \
     -DVINPUT_PROJECT_VERSION=%{version} \
     -DVINPUT_PACKAGE_RELEASE=%{release} \
     -DVINPUT_PACKAGE_HOMEPAGE_URL=%{url}
@@ -54,7 +58,6 @@ via any OpenAI-compatible API.
 %{_bindir}/vinput-daemon
 %{_bindir}/vinput-gui
 %{_libdir}/fcitx5/fcitx5-vinput.so
-%{_libdir}/fcitx5-vinput/
 %{_datadir}/fcitx5/addon/vinput.conf
 %{_datadir}/dbus-1/services/org.fcitx.Vinput.service
 %{_datadir}/systemd/user/vinput-daemon.service
