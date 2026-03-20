@@ -16,5 +16,7 @@ compile_commands.json
 *.orig
 *~
 *.mo
+__pycache__/
+*.pyc
 .vscode/
 .codex/
