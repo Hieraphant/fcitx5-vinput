@@ -45,6 +45,7 @@ modules:
         CMAKE_INCLUDE_PATH: /app/addons/Vinput/include
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
+      - -DVINPUT_BUNDLE_SHERPA_RUNTIME=OFF
       - -DVINPUT_FETCH_CLI11=OFF
     sources:
       - type: dir

@@ -1,5 +1,6 @@
 find_library(SHERPA_ONNX_CXX_LIB sherpa-onnx-cxx-api REQUIRED)
 find_library(SHERPA_ONNX_C_LIB sherpa-onnx-c-api REQUIRED)
+find_library(ONNXRUNTIME_LIB onnxruntime REQUIRED)
 find_path(SHERPA_ONNX_INCLUDE_DIR sherpa-onnx/c-api/c-api.h REQUIRED)
 
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
@@ -7,6 +8,15 @@ set(VINPUT_SYSTEMD_SERVICE_FILE
     "${CMAKE_CURRENT_BINARY_DIR}/vinput-daemon.service")
 set(VINPUT_DBUS_SERVICE_FILE
     "${CMAKE_CURRENT_BINARY_DIR}/org.fcitx.Vinput.service")
+
+get_filename_component(SHERPA_ONNX_RUNTIME_DIR "${SHERPA_ONNX_CXX_LIB}" DIRECTORY)
+if(VINPUT_BUNDLE_SHERPA_RUNTIME)
+    if(IS_ABSOLUTE "${VINPUT_RUNTIME_LIBDIR}")
+        set(VINPUT_DAEMON_INSTALL_RPATH "${VINPUT_RUNTIME_LIBDIR}")
+    else()
+        set(VINPUT_DAEMON_INSTALL_RPATH "\$ORIGIN/../${VINPUT_RUNTIME_LIBDIR}")
+    endif()
+endif()
 
 set(VINPUT_VAD_MODEL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/fcitx5-vinput/vad")
 
@@ -40,6 +50,15 @@ target_link_libraries(vinput-daemon PRIVATE
     pthread
 )
 
+set_target_properties(vinput-daemon PROPERTIES
+    BUILD_RPATH "${SHERPA_ONNX_RUNTIME_DIR}"
+)
+if(VINPUT_BUNDLE_SHERPA_RUNTIME)
+    set_target_properties(vinput-daemon PROPERTIES
+        INSTALL_RPATH "${VINPUT_DAEMON_INSTALL_RPATH}"
+    )
+endif()
+
 configure_file("${CMAKE_SOURCE_DIR}/systemd/vinput-daemon.service.in"
                "${VINPUT_SYSTEMD_SERVICE_FILE}"
                @ONLY)
@@ -56,6 +75,14 @@ install(FILES
     "${VINPUT_DBUS_SERVICE_FILE}"
     DESTINATION "${VINPUT_DBUS_SERVICE_DIR}"
 )
+if(VINPUT_BUNDLE_SHERPA_RUNTIME)
+    install(FILES
+        "${SHERPA_ONNX_CXX_LIB}"
+        "${SHERPA_ONNX_C_LIB}"
+        "${ONNXRUNTIME_LIB}"
+        DESTINATION "${VINPUT_RUNTIME_LIBDIR}"
+    )
+endif()
 # VAD model (optional — daemon gracefully degrades if missing)
 if(EXISTS "${CMAKE_SOURCE_DIR}/data/vad/silero_vad.onnx")
     install(FILES "${CMAKE_SOURCE_DIR}/data/vad/silero_vad.onnx"

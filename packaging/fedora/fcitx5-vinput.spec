@@ -59,6 +59,7 @@ bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-in
 %{_bindir}/vinput-daemon
 %{_bindir}/vinput-gui
 %{_libdir}/fcitx5/fcitx5-vinput.so
+%{_libdir}/fcitx5-vinput/
 %{_datadir}/fcitx5/addon/vinput.conf
 %{_datadir}/dbus-1/services/org.fcitx.Vinput.service
 %{_datadir}/systemd/user/vinput-daemon.service
