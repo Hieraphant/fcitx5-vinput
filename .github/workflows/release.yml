@@ -351,13 +351,22 @@ jobs:
         shell: bash
         run: |
           version="${{ needs.source_archive.outputs.package_version }}"
-          mkdir -p ~/rpmbuild/{SOURCES,SPECS}
-          cp dist/${{ needs.source_archive.outputs.source_archive }} ~/rpmbuild/SOURCES/
+          sherpa_version="$(sed -n 's/^%global sherpa_onnx_ver //p' packaging/fedora/fcitx5-vinput.spec)"
+          if [[ -z "${sherpa_version}" ]]; then
+            echo "Failed to read sherpa-onnx version from packaging/fedora/fcitx5-vinput.spec" >&2
+            exit 1
+          fi
+          sherpa_archive="sherpa-onnx-v${sherpa_version}-linux-x64-shared-no-tts.tar.bz2"
+          mkdir -p "${HOME}/rpmbuild/"{SOURCES,SPECS}
+          cp dist/${{ needs.source_archive.outputs.source_archive }} "${HOME}/rpmbuild/SOURCES/"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o "${HOME}/rpmbuild/SOURCES/${sherpa_archive}" \
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/v${sherpa_version}/${sherpa_archive}"
 
           sed "s/@VINPUT_VERSION@/${version}/" packaging/fedora/fcitx5-vinput.spec \
-            > ~/rpmbuild/SPECS/fcitx5-vinput.spec
+            > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
 
-          rpmbuild -bs ~/rpmbuild/SPECS/fcitx5-vinput.spec \
+          rpmbuild -bs "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec" \
             --define "_topdir $HOME/rpmbuild"
 
       - name: Submit to COPR

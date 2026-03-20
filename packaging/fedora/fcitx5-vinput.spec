@@ -1,3 +1,5 @@
+%global sherpa_onnx_ver 1.12.28
+
 Name:           fcitx5-vinput
 Version:        @VINPUT_VERSION@
 Release:        1%{?dist}
@@ -5,6 +7,7 @@ Summary:        Offline voice input addon for Fcitx5
 License:        GPL-3.0-only
 URL:            https://github.com/xifan2333/fcitx5-vinput
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
+Source1:        sherpa-onnx-v%{sherpa_onnx_ver}-linux-x64-shared-no-tts.tar.bz2
 
 BuildRequires:  cmake >= 3.16
 BuildRequires:  ninja-build
@@ -35,13 +38,11 @@ Local offline voice input plugin for Fcitx5, powered by sherpa-onnx
 for on-device speech recognition with optional LLM post-processing
 via any OpenAI-compatible API.
 
-%define _sherpa_onnx_ver 1.12.28
-
 %prep
 %autosetup -n %{name}-%{version}
 
 %build
-bash scripts/build-sherpa-onnx.sh %{_sherpa_onnx_ver} %{_builddir}/sherpa-onnx-install
+bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-install %{SOURCE1}
 %cmake -G Ninja \
     -DCMAKE_PREFIX_PATH=%{_builddir}/sherpa-onnx-install \
     -DVINPUT_PROJECT_VERSION=%{version} \
