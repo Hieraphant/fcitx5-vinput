@@ -199,7 +199,9 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
 
     UpdateAsrDialogFieldState(comboType, editModel, editCommand, textArgs,
                               textEnv, spinTimeout);
-    QObject::connect(comboType, &QComboBox::currentIndexChanged, &dialog,
+    QObject::connect(comboType,
+                     QOverload<int>::of(&QComboBox::currentIndexChanged),
+                     &dialog,
                      [comboType, editModel, editCommand, textArgs, textEnv,
                       spinTimeout]() {
                        UpdateAsrDialogFieldState(comboType, editModel,
