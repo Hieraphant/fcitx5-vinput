@@ -16,9 +16,10 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
     ModelManager mgr(base_dir.string());
+    const std::string active_model = ResolvePreferredBuiltinModel(config);
 
     if (!remote) {
-        auto models = mgr.ListDetailed(config.activeModel);
+        auto models = mgr.ListDetailed(active_model);
 
         if (ctx.json_output) {
             nlohmann::json arr = nlohmann::json::array();
@@ -75,7 +76,7 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     }
 
     // Get local model names for comparison
-    auto local_models = mgr.ListDetailed(config.activeModel);
+    auto local_models = mgr.ListDetailed(active_model);
     auto is_installed = [&](const std::string& name) {
         for (const auto& lm : local_models) {
             if (lm.name == name) return true;
@@ -178,7 +179,10 @@ int RunModelUse(const std::string& name, Formatter& fmt, const CliContext& /*ctx
         return 1;
     }
 
-    config.activeModel = name;
+    if (!SetPreferredBuiltinModel(&config, name, &err)) {
+        fmt.PrintError(err);
+        return 1;
+    }
     if (!SaveConfigOrFail(config, fmt)) return 1;
 
     const int restart_result = vinput::cli::SystemctlRestart();
@@ -198,8 +202,9 @@ int RunModelRemove(const std::string& name, bool force, Formatter& fmt, const Cl
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
+    const std::string active_model = ResolvePreferredBuiltinModel(config);
 
-    if (name == config.activeModel && !force) {
+    if (name == active_model && !force) {
         fmt.PrintError(vinput::str::FmtStr(_("Cannot remove active model '%s'. Use --force to override."), name));
         return 1;
     }

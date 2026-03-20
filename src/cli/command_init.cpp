@@ -20,14 +20,15 @@ int RunInit(bool force, Formatter& fmt, const CliContext& ctx) {
             vinput::str::FmtStr(_("Config already exists: %s"), config_path.string()));
     } else {
         CoreConfig config;
-        config.scenes.activeScene = "default";
+        config.scenes.activeScene = std::string(vinput::scene::kRawSceneId);
         config.scenes.definitions = {
             vinput::scene::Definition{
-                .id = "default",
+                .id = std::string(vinput::scene::kRawSceneId),
                 .label = "",
                 .prompt = "",
                 .provider_id = "",
                 .model = "",
+                .candidate_count = 0,
             },
         };
         if (SaveCoreConfig(config)) {

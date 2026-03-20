@@ -47,6 +47,24 @@ bool GetConfigStat(const std::filesystem::path &path,
   return true;
 }
 
+bool IsSupportedAsrProviderType(std::string_view type) {
+  return type == vinput::asr::kBuiltinProviderType ||
+         type == vinput::asr::kCommandProviderType;
+}
+
+bool IsBuiltinAsrProvider(const AsrProvider &provider) {
+  return provider.type == vinput::asr::kBuiltinProviderType;
+}
+
+AsrProvider DefaultBuiltinAsrProvider() {
+  AsrProvider provider;
+  provider.name = std::string(vinput::asr::kDefaultProviderName);
+  provider.type = std::string(vinput::asr::kBuiltinProviderType);
+  provider.model = std::string(vinput::asr::kDefaultBuiltinModel);
+  provider.timeoutMs = 15000;
+  return provider;
+}
+
 }  // namespace
 
 std::string GetCoreConfigPath() {
@@ -67,6 +85,34 @@ void from_json(const json &j, LlmProvider &p) {
   p.name = j.value("name", p.name);
   p.base_url = j.value("base_url", p.base_url);
   p.api_key = j.value("api_key", p.api_key);
+}
+
+// ---------------------------------------------------------------------------
+// AsrProvider serialization
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const AsrProvider &p) {
+  j = json{{"name", p.name},
+           {"type", p.type},
+           {"model", p.model},
+           {"command", p.command},
+           {"args", p.args},
+           {"env", p.env},
+           {"timeout_ms", p.timeoutMs}};
+}
+
+void from_json(const json &j, AsrProvider &p) {
+  p.name = j.value("name", p.name);
+  p.type = j.value("type", p.type);
+  p.model = j.value("model", p.model);
+  p.command = j.value("command", p.command);
+  if (j.contains("args") && j.at("args").is_array()) {
+    p.args = j.at("args").get<std::vector<std::string>>();
+  }
+  if (j.contains("env") && j.at("env").is_object()) {
+    p.env = j.at("env").get<std::map<std::string, std::string>>();
+  }
+  p.timeoutMs = j.value("timeout_ms", p.timeoutMs);
 }
 
 // ---------------------------------------------------------------------------
@@ -126,13 +172,20 @@ void from_json(const json &j, CoreConfig::Asr::Vad &v) {
 }
 
 void to_json(json &j, const CoreConfig::Asr &a) {
-  j = json{{"normalize_audio", a.normalizeAudio}, {"vad", a.vad}};
+  j = json{{"active_provider", a.activeProvider},
+           {"normalize_audio", a.normalizeAudio},
+           {"vad", a.vad},
+           {"providers", a.providers}};
 }
 
 void from_json(const json &j, CoreConfig::Asr &a) {
+  a.activeProvider = j.value("active_provider", a.activeProvider);
   a.normalizeAudio = j.value("normalize_audio", a.normalizeAudio);
   if (j.contains("vad")) {
     a.vad = j.at("vad").get<CoreConfig::Asr::Vad>();
+  }
+  if (j.contains("providers")) {
+    a.providers = j.at("providers").get<std::vector<AsrProvider>>();
   }
 }
 
@@ -161,7 +214,6 @@ void from_json(const json &j, CoreConfig::Scenes &s) {
 void to_json(json &j, const CoreConfig &p) {
   j = json::object();
   j["capture_device"] = p.captureDevice;
-  j["active_model"] = p.activeModel;
   j["model_base_dir"] = p.modelBaseDir;
   j["registry_url"] = p.registryUrl;
   j["llm"] = p.llm;
@@ -173,7 +225,6 @@ void to_json(json &j, const CoreConfig &p) {
 
 void from_json(const json &j, CoreConfig &p) {
   p.captureDevice = j.value("capture_device", p.captureDevice);
-  p.activeModel = j.value("active_model", p.activeModel);
   p.modelBaseDir = j.value("model_base_dir", p.modelBaseDir);
   if (auto v = j.value("registry_url", std::string{}); !v.empty()) {
     p.registryUrl = std::move(v);
@@ -193,14 +244,32 @@ void from_json(const json &j, CoreConfig &p) {
 
 namespace {
 
+void EnsureBuiltInRawScene(CoreConfig *config) {
+  if (!config) {
+    return;
+  }
+  if (vinput::scene::Find(vinput::scene::Config{
+                              .activeSceneId = config->scenes.activeScene,
+                              .scenes = config->scenes.definitions},
+                          vinput::scene::kRawSceneId)) {
+    return;
+  }
+
+  vinput::scene::Definition raw;
+  raw.id = std::string(vinput::scene::kRawSceneId);
+  raw.candidate_count = 0;
+  raw.builtin = true;
+  config->scenes.definitions.insert(config->scenes.definitions.begin(),
+                                    std::move(raw));
+}
+
 void EnsureBuiltInCommandScene(CoreConfig *config) {
   if (!config || FindCommandScene(*config)) {
     return;
   }
 
   vinput::scene::Definition cmd;
-  cmd.id = std::string(kCommandSceneId);
-  cmd.label = "Command";
+  cmd.id = std::string(vinput::scene::kCommandSceneId);
   cmd.prompt =
       "Execute the voice command on the given text. "
       "The command may contain speech recognition errors; infer the intent.";
@@ -250,7 +319,9 @@ CoreConfig LoadCoreConfig() {
   }
 
   CoreConfig config = LoadCoreConfigFromFile(path);
+  EnsureBuiltInRawScene(&config);
   EnsureBuiltInCommandScene(&config);
+  NormalizeCoreConfig(&config);
 
   cache.cached = config;
   cache.mtime = mtime;
@@ -273,23 +344,24 @@ bool SaveCoreConfig(const CoreConfig &config) {
   }
 
   try {
-    json j = config;
+    CoreConfig normalized = config;
+    EnsureBuiltInRawScene(&normalized);
+    EnsureBuiltInCommandScene(&normalized);
+    NormalizeCoreConfig(&normalized);
+
+    json j = normalized;
     std::string content = j.dump(4) + "\n";
     if (!vinput::file::AtomicWriteTextFile(path, content, &err)) {
       std::cerr << "Failed to write config: " << err << "\n";
       return false;
     }
 
-    CoreConfig cached = config;
-    NormalizeCoreConfig(&cached);
-    EnsureBuiltInCommandScene(&cached);
-
     auto &cache = GetConfigCache();
     std::lock_guard<std::mutex> lock(cache.mu);
     std::filesystem::file_time_type mtime;
     std::uintmax_t size = 0;
     if (GetConfigStat(path, &mtime, &size)) {
-      cache.cached = std::move(cached);
+      cache.cached = std::move(normalized);
       cache.mtime = mtime;
       cache.size = size;
       cache.has_cache = true;
@@ -312,6 +384,56 @@ void NormalizeCoreConfig(CoreConfig *config) {
   if (!config->modelBaseDir.empty()) {
     config->modelBaseDir =
         vinput::path::ExpandUserPath(config->modelBaseDir).string();
+  }
+
+  std::set<std::string> seen_provider_names;
+  std::vector<AsrProvider> normalized_providers;
+  normalized_providers.reserve(config->asr.providers.size());
+  for (auto provider : config->asr.providers) {
+    if (provider.name.empty()) {
+      std::cerr << "Ignoring ASR provider with empty name\n";
+      continue;
+    }
+    if (!IsSupportedAsrProviderType(provider.type)) {
+      std::cerr << "Ignoring ASR provider '" << provider.name
+                << "' with unsupported type '" << provider.type << "'\n";
+      continue;
+    }
+    if (!seen_provider_names.insert(provider.name).second) {
+      std::cerr << "Ignoring duplicate ASR provider '" << provider.name
+                << "'\n";
+      continue;
+    }
+    if (IsBuiltinAsrProvider(provider) && provider.model.empty()) {
+      provider.model = std::string(vinput::asr::kDefaultBuiltinModel);
+    }
+    if (provider.type == vinput::asr::kCommandProviderType &&
+        provider.command.empty()) {
+      std::cerr << "Ignoring command ASR provider '" << provider.name
+                << "' with empty command\n";
+      continue;
+    }
+    for (auto it = provider.env.begin(); it != provider.env.end();) {
+      if (it->first.empty()) {
+        it = provider.env.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    if (provider.timeoutMs <= 0) {
+      provider.timeoutMs = 15000;
+    }
+    normalized_providers.push_back(std::move(provider));
+  }
+  config->asr.providers = std::move(normalized_providers);
+
+  if (config->asr.providers.empty()) {
+    config->asr.providers.push_back(DefaultBuiltinAsrProvider());
+  }
+
+  if (config->asr.activeProvider.empty() ||
+      ResolveAsrProvider(*config, config->asr.activeProvider) == nullptr) {
+    config->asr.activeProvider = config->asr.providers.front().name;
   }
 
   std::set<std::string> seen_scene_ids;
@@ -361,9 +483,100 @@ const LlmProvider *ResolveLlmProvider(const CoreConfig &config,
   return nullptr;
 }
 
+const AsrProvider *ResolveAsrProvider(const CoreConfig &config,
+                                      const std::string &provider_id) {
+  if (provider_id.empty()) return nullptr;
+  for (const auto &p : config.asr.providers) {
+    if (p.name == provider_id) {
+      return &p;
+    }
+  }
+  return nullptr;
+}
+
+const AsrProvider *ResolveActiveAsrProvider(const CoreConfig &config) {
+  return ResolveAsrProvider(config, config.asr.activeProvider);
+}
+
+const AsrProvider *ResolveActiveBuiltinAsrProvider(const CoreConfig &config) {
+  const AsrProvider *provider = ResolveActiveAsrProvider(config);
+  if (!provider || !IsBuiltinAsrProvider(*provider)) {
+    return nullptr;
+  }
+  return provider;
+}
+
+const AsrProvider *ResolvePreferredBuiltinAsrProvider(const CoreConfig &config) {
+  if (const AsrProvider *provider = ResolveActiveBuiltinAsrProvider(config)) {
+    return provider;
+  }
+
+  const AsrProvider *local_provider =
+      ResolveAsrProvider(config, std::string(vinput::asr::kDefaultProviderName));
+  if (local_provider && IsBuiltinAsrProvider(*local_provider)) {
+    return local_provider;
+  }
+
+  for (const auto &provider : config.asr.providers) {
+    if (IsBuiltinAsrProvider(provider)) {
+      return &provider;
+    }
+  }
+
+  return nullptr;
+}
+
+std::string ResolveActiveBuiltinModel(const CoreConfig &config) {
+  const AsrProvider *provider = ResolveActiveBuiltinAsrProvider(config);
+  if (!provider) {
+    return {};
+  }
+  return provider->model;
+}
+
+std::string ResolvePreferredBuiltinModel(const CoreConfig &config) {
+  const AsrProvider *provider = ResolvePreferredBuiltinAsrProvider(config);
+  if (!provider) {
+    return {};
+  }
+  return provider->model;
+}
+
+bool SetPreferredBuiltinModel(CoreConfig *config, const std::string &model,
+                              std::string *error) {
+  if (!config) {
+    if (error) *error = "Config is null.";
+    return false;
+  }
+
+  const AsrProvider *provider = ResolvePreferredBuiltinAsrProvider(*config);
+  if (!provider) {
+    if (error) {
+      *error = "No builtin ASR provider configured.";
+    }
+    return false;
+  }
+
+  const std::string provider_name = provider->name;
+  for (auto &candidate : config->asr.providers) {
+    if (candidate.name != provider_name) {
+      continue;
+    }
+    candidate.model = model.empty()
+                          ? std::string(vinput::asr::kDefaultBuiltinModel)
+                          : model;
+    return true;
+  }
+
+  if (error) {
+    *error = "Builtin ASR provider not found.";
+  }
+  return false;
+}
+
 const vinput::scene::Definition *FindCommandScene(const CoreConfig &config) {
   for (const auto &scene : config.scenes.definitions) {
-    if (scene.id == kCommandSceneId) {
+    if (scene.id == vinput::scene::kCommandSceneId) {
       return &scene;
     }
   }

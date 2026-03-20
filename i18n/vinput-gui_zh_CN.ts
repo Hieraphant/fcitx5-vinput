@@ -338,6 +338,70 @@
         <source>Removing %1...</source>
         <translation>正在移除 %1...</translation>
     </message>
+    <message>
+        <source> *</source>
+        <translation> *</translation>
+    </message>
+    <message>
+        <source>ASR Providers</source>
+        <translation>ASR 提供商</translation>
+    </message>
+    <message>
+        <source>Add ASR Provider</source>
+        <translation>添加 ASR 提供商</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to remove ASR provider '%1'?</source>
+        <translation>确定要移除 ASR 提供商“%1”吗？</translation>
+    </message>
+    <message>
+        <source>Args:</source>
+        <translation>参数：</translation>
+    </message>
+    <message>
+        <source>Command providers require a command.</source>
+        <translation>命令型提供商必须填写命令。</translation>
+    </message>
+    <message>
+        <source>Command:</source>
+        <translation>命令：</translation>
+    </message>
+    <message>
+        <source>Edit ASR Provider</source>
+        <translation>编辑 ASR 提供商</translation>
+    </message>
+    <message>
+        <source>Env:</source>
+        <translation>环境变量：</translation>
+    </message>
+    <message>
+        <source>Failed to restart daemon automatically.</source>
+        <translation>自动重启守护进程失败。</translation>
+    </message>
+    <message>
+        <source>Invalid env entry '%1'. Use KEY=VALUE.</source>
+        <translation>无效的环境变量项“%1”，请使用 KEY=VALUE。</translation>
+    </message>
+    <message>
+        <source>One KEY=VALUE entry per line</source>
+        <translation>每行一个 KEY=VALUE</translation>
+    </message>
+    <message>
+        <source>One argument per line</source>
+        <translation>每行一个参数</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <translation>类型：</translation>
+    </message>
+    <message>
+        <source>builtin</source>
+        <translation>内置</translation>
+    </message>
+    <message>
+        <source>command</source>
+        <translation>命令</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>

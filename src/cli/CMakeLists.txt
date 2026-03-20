@@ -28,6 +28,7 @@ add_executable(vinput
     command_scene.cpp
     command_config.cpp
     command_llm.cpp
+    command_asr.cpp
     command_hotword.cpp
     command_device.cpp
     command_daemon.cpp

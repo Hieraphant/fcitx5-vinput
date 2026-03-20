@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "common/asr_defaults.h"
+
 struct ModelInfo {
   std::string model_type; // e.g. "paraformer", "sense_voice", "whisper"
   // All file paths (absolute), keyed by role:
@@ -47,7 +49,8 @@ struct ModelSummary {
 class ModelManager {
 public:
   explicit ModelManager(const std::string &base_dir = "",
-                        const std::string &model_name = "paraformer-zh");
+                        const std::string &model_name =
+                            vinput::asr::kDefaultBuiltinModel);
 
   bool EnsureModels();
   ModelInfo GetModelInfo() const;

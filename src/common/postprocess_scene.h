@@ -8,6 +8,8 @@ namespace vinput::scene {
 
 constexpr int kMinCandidateCount = 0;
 constexpr int kMaxCandidateCount = 9;
+constexpr std::string_view kRawSceneId = "__raw__";
+constexpr std::string_view kCommandSceneId = "__command__";
 
 struct Definition {
   std::string id;
@@ -26,6 +28,7 @@ struct Config {
 };
 
 int NormalizeCandidateCount(int candidate_count);
+bool IsBuiltinSceneId(std::string_view scene_id);
 void NormalizeDefinition(Definition *scene);
 bool ValidateDefinition(const Definition &scene, std::string *error,
                         bool require_id = true);

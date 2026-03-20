@@ -80,10 +80,6 @@ static bool SetTypedConfigValue(CoreConfig *config,
     config->captureDevice = value;
     return true;
   }
-  if (PathEquals(keys, {"active_model"})) {
-    config->activeModel = value;
-    return true;
-  }
   if (PathEquals(keys, {"model_base_dir"})) {
     config->modelBaseDir = value;
     return true;
@@ -107,6 +103,10 @@ static bool SetTypedConfigValue(CoreConfig *config,
   if (PathEquals(keys, {"asr", "normalize_audio"})) {
     return ParseBoolValue(value, &config->asr.normalizeAudio, error);
   }
+  if (PathEquals(keys, {"asr", "active_provider"})) {
+    config->asr.activeProvider = value;
+    return true;
+  }
   if (PathEquals(keys, {"asr", "vad", "enabled"})) {
     return ParseBoolValue(value, &config->asr.vad.enabled, error);
   }
@@ -124,10 +124,6 @@ static bool GetTypedConfigValue(const CoreConfig &config,
                                 std::string *value, std::string *error) {
   if (PathEquals(keys, {"capture_device"})) {
     *value = config.captureDevice;
-    return true;
-  }
-  if (PathEquals(keys, {"active_model"})) {
-    *value = config.activeModel;
     return true;
   }
   if (PathEquals(keys, {"model_base_dir"})) {
@@ -152,6 +148,10 @@ static bool GetTypedConfigValue(const CoreConfig &config,
   }
   if (PathEquals(keys, {"asr", "normalize_audio"})) {
     *value = config.asr.normalizeAudio ? "true" : "false";
+    return true;
+  }
+  if (PathEquals(keys, {"asr", "active_provider"})) {
+    *value = config.asr.activeProvider;
     return true;
   }
   if (PathEquals(keys, {"asr", "vad", "enabled"})) {

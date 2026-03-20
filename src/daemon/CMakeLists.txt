@@ -22,6 +22,7 @@ set(VINPUT_VAD_MODEL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/fcitx
 
 add_executable(vinput-daemon
     main.cpp
+    asr_provider.cpp
     audio_capture.cpp
     asr_engine.cpp
     audio_utils.cpp

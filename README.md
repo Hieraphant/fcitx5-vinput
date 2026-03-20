@@ -252,6 +252,99 @@ vinput llm use ollama
 vinput llm enable
 ```
 
+## Extension Scripts And Provider Contracts
+
+Optional integration scripts now live under `extensions/`:
+
+- `extensions/asr/`: external ASR provider scripts
+- `extensions/llm/`: LLM proxy or bridge scripts
+
+The `scripts/` directory is reserved for project maintenance tasks such as
+build, packaging, and checks.
+
+### ASR Command Provider Contract
+
+External ASR scripts should follow normal Unix command semantics:
+
+- `stdin`: one complete utterance audio stream
+- `stdout`: final transcript text
+- `stderr`: human-readable error output
+- exit code `0`: success
+- non-zero exit code: failure
+
+Today `vinput` sends audio to command providers as:
+
+- PCM `S16_LE`
+- mono
+- `16000 Hz`
+
+That means the script receives raw PCM bytes and is responsible for wrapping
+them as WAV or forwarding them to a cloud API if needed.
+
+A minimal provider config looks like this:
+
+```json
+{
+  "name": "elevenlabs",
+  "type": "command",
+  "command": "python3",
+  "args": [
+    "/path/to/extensions/asr/elevenlabs_speech_to_text.py"
+  ],
+  "env": {
+    "ELEVENLABS_API_KEY": "..."
+  },
+  "timeout_ms": 60000
+}
+```
+
+### LLM Proxy Contract
+
+If you want to write your own LLM proxy, it should expose an OpenAI-compatible
+API and implement at least:
+
+- `GET /v1/models`
+- `POST /v1/chat/completions`
+
+For `POST /v1/chat/completions`, `vinput` currently expects:
+
+- non-streaming responses: `"stream": false`
+- a standard OpenAI chat completion JSON envelope
+- `choices[0].message.content` must be a string
+- that string itself must be JSON in this shape:
+
+```json
+{
+  "candidates": [
+    "candidate 1",
+    "candidate 2"
+  ]
+}
+```
+
+So the outer response is OpenAI-compatible, while the inner `content` string is
+the structured payload currently consumed by `vinput`.
+
+`GET /v1/models` only needs to return the usual OpenAI list shape, for example:
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "my-proxy-model",
+      "object": "model",
+      "owned_by": "my-proxy"
+    }
+  ]
+}
+```
+
+Reference implementations:
+
+- `extensions/llm/mtranserver_proxy.py`
+- `extensions/asr/elevenlabs_speech_to_text.py`
+
 ## Configuration Files
 
 | File | Path |

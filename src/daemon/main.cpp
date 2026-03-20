@@ -1,9 +1,8 @@
-#include "asr_engine.h"
+#include "asr_provider.h"
 #include "audio_capture.h"
 #include "common/core_config.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
-#include "common/model_manager.h"
 #include "common/recognition_result.h"
 #include "dbus_service.h"
 #include "post_processor.h"
@@ -27,6 +26,44 @@ static void signal_handler(int sig) {
   g_running = false;
 }
 
+namespace {
+
+void LogActiveAsrProvider(const CoreConfig &config) {
+  const AsrProvider *provider = ResolveActiveAsrProvider(config);
+  if (!provider) {
+    fprintf(stderr, "vinput-daemon: ASR provider=(missing)\n");
+    return;
+  }
+
+  if (provider->type == "builtin") {
+    fprintf(stderr,
+            "vinput-daemon: ASR provider=%s type=%s model=%s lang=%s\n",
+            provider->name.c_str(), provider->type.c_str(),
+            provider->model.c_str(), config.defaultLanguage.c_str());
+    return;
+  }
+
+  fprintf(stderr,
+          "vinput-daemon: ASR provider=%s type=%s command=%s timeout=%dms\n",
+          provider->name.c_str(), provider->type.c_str(),
+          provider->command.c_str(), provider->timeoutMs);
+}
+
+void LogAsrRequest(const CoreConfig &config, std::size_t sample_count) {
+  const AsrProvider *provider = ResolveActiveAsrProvider(config);
+  if (!provider) {
+    fprintf(stderr, "vinput-daemon: ASR request provider=(missing) samples=%zu\n",
+            sample_count);
+    return;
+  }
+
+  fprintf(stderr,
+          "vinput-daemon: ASR request provider=%s type=%s samples=%zu\n",
+          provider->name.c_str(), provider->type.c_str(), sample_count);
+}
+
+}  // namespace
+
 int main(int argc, char *argv[]) {
   vinput::i18n::Init();
   signal(SIGTERM, signal_handler);
@@ -41,31 +78,17 @@ int main(int argc, char *argv[]) {
 
   auto startup_settings = LoadCoreConfig();
   NormalizeCoreConfig(&startup_settings);
-  ModelManager model_mgr(ResolveModelBaseDir(startup_settings).string(),
-                         startup_settings.activeModel);
-  auto model_info = model_mgr.GetModelInfo();
-
-  if (!disable_asr && !model_mgr.EnsureModels()) {
-    fprintf(stderr, "vinput-daemon: model check failed, exiting\n");
-    return 1;
-  }
-
+  std::unique_ptr<vinput::asr::Provider> asr;
   if (!disable_asr) {
-    fprintf(stderr, "vinput-daemon: using model '%s' (type: %s, lang: %s)\n",
-            model_mgr.GetModelName().c_str(), model_info.model_type.c_str(),
-            startup_settings.defaultLanguage.c_str());
-  }
-
-  AsrEngine asr;
-  if (!disable_asr) {
-    AsrConfig asr_config;
-    asr_config.language = startup_settings.defaultLanguage;
-    asr_config.hotwords_file = startup_settings.hotwordsFile;
-    asr_config.normalize_audio = startup_settings.asr.normalizeAudio;
-    asr_config.vad_enabled = startup_settings.asr.vad.enabled;
-    asr_config.vad_model_path = VINPUT_VAD_MODEL_PATH;
-    if (!asr.Init(model_info, asr_config)) {
-      fprintf(stderr, "vinput-daemon: ASR engine init failed, exiting\n");
+    LogActiveAsrProvider(startup_settings);
+    std::string asr_error;
+    asr = vinput::asr::CreateProvider(startup_settings, &asr_error);
+    if (!asr) {
+      fprintf(stderr, "vinput-daemon: %s\n", asr_error.c_str());
+      return 1;
+    }
+    if (!asr->Init(startup_settings, &asr_error)) {
+      fprintf(stderr, "vinput-daemon: %s\n", asr_error.c_str());
       return 1;
     }
   }
@@ -172,7 +195,7 @@ int main(int argc, char *argv[]) {
       return DbusService::MethodResult::Success();
     }
 
-    if (pcm.size() < AsrEngine::kMinSamplesForInference) {
+    if (pcm.size() < vinput::asr::kMinSamplesForInference) {
       fprintf(stderr,
               "vinput-daemon: recording too short, skipping inference: "
               "%zu samples (%.1f ms)\n",
@@ -225,7 +248,14 @@ int main(int argc, char *argv[]) {
 
       std::string text;
       if (!disable_asr) {
-        text = asr.Infer(job.pcm);
+        LogAsrRequest(startup_settings, job.pcm.size());
+        auto asr_result = asr->Infer(job.pcm);
+        if (!asr_result.ok && !asr_result.error.empty()) {
+          fprintf(stderr, "vinput-daemon: ASR provider error: %s\n",
+                  asr_result.error.c_str());
+          dbus.EmitError(asr_result.error);
+        }
+        text = std::move(asr_result.text);
       }
 
       vinput::result::Payload result;
@@ -244,7 +274,7 @@ int main(int argc, char *argv[]) {
             dbus.EmitStatusChanged(StatusToString(Status::Postprocessing));
           }
           vinput::scene::Definition fallback_cmd;
-          fallback_cmd.id = std::string(kCommandSceneId);
+          fallback_cmd.id = std::string(vinput::scene::kCommandSceneId);
           fallback_cmd.builtin = true;
           const auto &command_scene = cmd_scene ? *cmd_scene : fallback_cmd;
           std::string llm_error;
@@ -252,7 +282,7 @@ int main(int argc, char *argv[]) {
                                                  command_scene,
                                                  runtime_settings, &llm_error);
           if (!llm_error.empty()) {
-            dbus.EmitLlmError(llm_error);
+            dbus.EmitError(llm_error);
           }
           text = result.commitText;
         } else {
@@ -268,7 +298,7 @@ int main(int argc, char *argv[]) {
           result = post_processor.Process(text, scene, runtime_settings,
                                           &llm_error);
           if (!llm_error.empty()) {
-            dbus.EmitLlmError(llm_error);
+            dbus.EmitError(llm_error);
           }
           text = result.commitText;
         }
@@ -330,6 +360,8 @@ int main(int argc, char *argv[]) {
   if (worker.joinable()) {
     worker.join();
   }
-  asr.Shutdown();
+  if (asr) {
+    asr->Shutdown();
+  }
   return 0;
 }

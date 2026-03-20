@@ -298,12 +298,12 @@ void VinputEngine::setupDBusWatcher() {
     return true;
   });
 
-  fcitx::dbus::MatchRule llm_error_rule(kBusName, kObjectPath, kInterface,
-                                        kSignalLlmError);
+  fcitx::dbus::MatchRule error_rule(kBusName, kObjectPath, kInterface,
+                                    kSignalDaemonError);
 
-  llm_error_slot_ =
-      bus_->addMatch(llm_error_rule, [this](fcitx::dbus::Message &msg) {
-        onLlmError(msg);
+  error_slot_ =
+      bus_->addMatch(error_rule, [this](fcitx::dbus::Message &msg) {
+        onDaemonError(msg);
         return true;
       });
 }
@@ -1022,12 +1022,22 @@ void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
   }
 }
 
-void VinputEngine::onLlmError(fcitx::dbus::Message &msg) {
+void VinputEngine::onDaemonError(fcitx::dbus::Message &msg) {
   std::string error_message;
   msg >> error_message;
 
   if (error_message.empty()) {
     return;
+  }
+
+  awaiting_result_ = false;
+  recording_ = false;
+  command_mode_ = false;
+  active_trigger_ = fcitx::Key();
+  hideResultMenu();
+  if (active_ic_) {
+    clearPreedit(active_ic_);
+    active_ic_ = nullptr;
   }
 
   notifyError(error_message);

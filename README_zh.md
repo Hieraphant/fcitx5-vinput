@@ -250,6 +250,95 @@ vinput llm use ollama
 vinput llm enable
 ```
 
+## 扩展脚本与 Provider 约定
+
+仓库里的可选扩展脚本统一放在 `extensions/`：
+
+- `extensions/asr/`：外部 ASR provider 脚本
+- `extensions/llm/`：LLM provider 代理或桥接脚本
+
+`scripts/` 目录只保留构建、检查、打包之类的项目维护脚本。
+
+### ASR command provider 协议
+
+外部 ASR 脚本应遵循传统 Unix 命令语义：
+
+- `stdin`：一段完整语音的原始音频流
+- `stdout`：最终识别文本
+- `stderr`：可读的错误信息
+- 退出码 `0`：成功
+- 非 `0` 退出码：失败
+
+当前 `vinput` 传给 command provider 的音频格式是：
+
+- PCM `S16_LE`
+- 单声道
+- `16000 Hz`
+
+也就是脚本收到的是裸 PCM 字节流，需要脚本自己决定是否封装成 WAV 或转发到云接口。
+
+一个最小的 provider 配置示例：
+
+```json
+{
+  "name": "elevenlabs",
+  "type": "command",
+  "command": "python3",
+  "args": [
+    "/path/to/extensions/asr/elevenlabs_speech_to_text.py"
+  ],
+  "env": {
+    "ELEVENLABS_API_KEY": "..."
+  },
+  "timeout_ms": 60000
+}
+```
+
+### LLM 代理脚本协议
+
+如果你要自己写 LLM 代理，它需要提供 OpenAI 兼容接口，至少实现：
+
+- `GET /v1/models`
+- `POST /v1/chat/completions`
+
+`vinput` 当前对 `POST /v1/chat/completions` 的要求是：
+
+- 非流式：`"stream": false`
+- 返回标准的 OpenAI chat completion JSON
+- `choices[0].message.content` 必须是一个字符串
+- 这个字符串本身必须是 JSON，格式如下：
+
+```json
+{
+  "candidates": [
+    "候选结果 1",
+    "候选结果 2"
+  ]
+}
+```
+
+也就是说，外层是 OpenAI 兼容响应，内层 `content` 是 `vinput` 目前消费的结构化 JSON 字符串。
+
+`GET /v1/models` 只需要返回 OpenAI 常见格式即可，例如：
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "my-proxy-model",
+      "object": "model",
+      "owned_by": "my-proxy"
+    }
+  ]
+}
+```
+
+参考实现：
+
+- `extensions/llm/mtranserver_proxy.py`
+- `extensions/asr/elevenlabs_speech_to_text.py`
+
 ## 配置文件位置
 
 | 文件 | 路径 |

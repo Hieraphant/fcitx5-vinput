@@ -39,7 +39,7 @@ public:
   void FlushEmitQueue(); // main thread only
   void EmitRecognitionResult(const std::string &text);
   void EmitStatusChanged(const std::string &status);
-  void EmitLlmError(const std::string &message);
+  void EmitError(const std::string &message);
 
   void SetStartHandler(std::function<MethodResult()> handler);
   void SetStartCommandHandler(
@@ -63,7 +63,7 @@ private:
   int notify_fd_ = -1;
 
   struct PendingEmit {
-    enum class Type { Result, Status, LlmError };
+    enum class Type { Result, Status, Error };
     Type type;
     std::string payload;
   };

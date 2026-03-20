@@ -113,6 +113,14 @@ msgstr ""
 msgid "Clear hotwords file path"
 msgstr ""
 
+#: src/common/postprocess_scene.cpp:31
+msgid "Command"
+msgstr ""
+
+#: src/common/postprocess_scene.cpp:28
+msgid "Raw"
+msgstr ""
+
 #: src/common/vinput_config.cpp:48
 msgid "Command Keys"
 msgstr ""

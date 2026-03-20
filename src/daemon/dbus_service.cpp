@@ -53,7 +53,7 @@ static const sd_bus_vtable vtable[] = {
                   SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_SIGNAL("RecognitionResult", "s", 0),
     SD_BUS_SIGNAL("StatusChanged", "s", 0),
-    SD_BUS_SIGNAL("LlmError", "s", 0),
+    SD_BUS_SIGNAL("DaemonError", "s", 0),
     SD_BUS_VTABLE_END,
 };
 
@@ -119,7 +119,7 @@ void DbusService::FlushEmitQueue() {
       sd_bus_emit_signal(bus_, kObjectPath, kInterface, kSignalStatusChanged,
                          "s", item.payload.c_str());
     } else {
-      sd_bus_emit_signal(bus_, kObjectPath, kInterface, kSignalLlmError,
+      sd_bus_emit_signal(bus_, kObjectPath, kInterface, kSignalDaemonError,
                          "s", item.payload.c_str());
     }
   }
@@ -143,10 +143,10 @@ void DbusService::EmitStatusChanged(const std::string &status) {
   (void)write(notify_fd_, &val, sizeof(val));
 }
 
-void DbusService::EmitLlmError(const std::string &message) {
+void DbusService::EmitError(const std::string &message) {
   {
     std::lock_guard<std::mutex> lock(emit_mutex_);
-    emit_queue_.push_back({PendingEmit::Type::LlmError, message});
+    emit_queue_.push_back({PendingEmit::Type::Error, message});
   }
   uint64_t val = 1;
   (void)write(notify_fd_, &val, sizeof(val));

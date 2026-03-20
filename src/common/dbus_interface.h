@@ -15,7 +15,7 @@ constexpr const char *kMethodGetStatus = "GetStatus";
 
 constexpr const char *kSignalRecognitionResult = "RecognitionResult";
 constexpr const char *kSignalStatusChanged = "StatusChanged";
-constexpr const char *kSignalLlmError = "LlmError";
+constexpr const char *kSignalDaemonError = "DaemonError";
 
 constexpr const char *kErrorOperationFailed =
     "org.fcitx.Vinput.Error.OperationFailed";

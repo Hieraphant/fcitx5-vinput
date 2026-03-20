@@ -1,8 +1,9 @@
 #include "common/postprocess_scene.h"
 
-#include <set>
 #include <string>
 #include <string_view>
+
+#include "common/i18n.h"
 
 namespace vinput::scene {
 
@@ -23,6 +24,16 @@ bool SetValidationError(std::string *error, std::string message) {
   return false;
 }
 
+const char *BuiltinSceneLabel(std::string_view scene_id) {
+  if (scene_id == kRawSceneId) {
+    return _("Raw");
+  }
+  if (scene_id == kCommandSceneId) {
+    return _("Command");
+  }
+  return nullptr;
+}
+
 } // namespace
 
 int NormalizeCandidateCount(int candidate_count) {
@@ -35,9 +46,16 @@ int NormalizeCandidateCount(int candidate_count) {
   return candidate_count;
 }
 
+bool IsBuiltinSceneId(std::string_view scene_id) {
+  return scene_id == kRawSceneId || scene_id == kCommandSceneId;
+}
+
 void NormalizeDefinition(Definition *scene) {
   if (!scene) {
     return;
+  }
+  if (IsBuiltinSceneId(scene->id)) {
+    scene->builtin = true;
   }
   scene->candidate_count = NormalizeCandidateCount(scene->candidate_count);
   if (scene->timeout_ms <= 0) {
@@ -92,6 +110,9 @@ const Definition &Resolve(const Config &config, std::string_view scene_id) {
 }
 
 std::string DisplayLabel(const Definition &scene) {
+  if (const char *builtin_label = BuiltinSceneLabel(scene.id)) {
+    return builtin_label;
+  }
   if (!scene.label.empty()) {
     return scene.label;
   }

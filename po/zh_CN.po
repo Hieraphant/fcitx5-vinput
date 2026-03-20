@@ -114,6 +114,10 @@ msgstr "已清空所有热词。"
 msgid "Command"
 msgstr "命令"
 
+#: src/common/postprocess_scene.cpp:28
+msgid "Raw"
+msgstr "原始"
+
 #: src/common/vinput_config.cpp:48
 msgid "Command Keys"
 msgstr "命令键"
@@ -831,3 +835,152 @@ msgstr "未配置热词文件。请先使用 'hotword set <路径>'。"
 #: src/cli/command_hotword.cpp
 msgid "Hotwords file updated."
 msgstr "热词文件已更新。"
+
+#: src/cli/command_asr.cpp
+msgid "ACTIVE"
+msgstr "当前"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "ASR provider '%s' added."
+msgstr "ASR 提供商 '%s' 已添加。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "ASR provider '%s' already exists."
+msgstr "ASR 提供商 '%s' 已存在。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "ASR provider '%s' does not reference an editable script file."
+msgstr "ASR 提供商 '%s' 没有引用可编辑的脚本文件。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "ASR provider '%s' is builtin and cannot be edited."
+msgstr "ASR 提供商 '%s' 是内置提供商，不能编辑。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "ASR provider '%s' not found."
+msgstr "未找到 ASR 提供商 '%s'。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "ASR provider '%s' removed."
+msgstr "ASR 提供商 '%s' 已移除。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "ASR provider '%s' removed. Active provider is now '%s'."
+msgstr "ASR 提供商 '%s' 已移除，当前提供商现为 '%s'。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "Active ASR provider set to '%s'. Daemon restarted."
+msgstr "当前 ASR 提供商已设为 '%s'，守护进程已重启。"
+
+#: src/cli/main.cpp
+msgid "Add an ASR provider"
+msgstr "添加 ASR 提供商"
+
+#: src/cli/command_asr.cpp
+msgid "Builtin ASR providers do not accept command or env fields."
+msgstr "内置 ASR 提供商不接受 command 或 env 字段。"
+
+#: src/cli/main.cpp
+msgid "Builtin model name"
+msgstr "内置模型名称"
+
+#: src/cli/command_asr.cpp
+msgid "COMMAND"
+msgstr "命令"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "Cannot remove active ASR provider '%s'. Use --force to override."
+msgstr "不能移除当前 ASR 提供商 '%s'，请用 --force 强制执行。"
+
+#: src/cli/command_asr.cpp
+msgid "Command ASR providers do not accept a model field."
+msgstr "命令型 ASR 提供商不接受 model 字段。"
+
+#: src/cli/command_asr.cpp
+msgid "Command ASR providers require --command."
+msgstr "命令型 ASR 提供商需要指定 --command。"
+
+#: src/cli/main.cpp
+msgid "Command argument"
+msgstr "命令参数"
+
+#: src/cli/main.cpp
+msgid "Command or executable path for command providers"
+msgstr "命令型提供商的命令或可执行文件路径"
+
+#: src/cli/main.cpp
+msgid "Environment entry as KEY=VALUE"
+msgstr "以 KEY=VALUE 形式传入环境变量"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "Invalid env entry '%s'. Use KEY=VALUE."
+msgstr "无效的环境变量项 '%s'，请使用 KEY=VALUE。"
+
+#: src/cli/main.cpp
+msgid "List configured ASR providers"
+msgstr "列出已配置的 ASR 提供商"
+
+#: src/cli/main.cpp
+msgid "Manage ASR providers"
+msgstr "管理 ASR 提供商"
+
+#: src/cli/main.cpp
+msgid "Open an external ASR provider script"
+msgstr "打开外部 ASR 提供商脚本"
+
+#: src/cli/main.cpp
+msgid "Provider timeout in milliseconds"
+msgstr "提供商超时时间（毫秒）"
+
+#: src/cli/main.cpp
+msgid "Provider type: builtin or command"
+msgstr "提供商类型：builtin 或 command"
+
+#: src/cli/main.cpp
+msgid "Remove an ASR provider"
+msgstr "移除 ASR 提供商"
+
+#: src/cli/command_asr.cpp
+msgid "Restart the daemon manually to apply the new provider."
+msgstr "请手动重启守护进程以应用新的提供商。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "Run `vinput asr use %s` to activate"
+msgstr "运行 `vinput asr use %s` 以启用该提供商"
+
+#: src/cli/main.cpp
+msgid "Set active ASR provider"
+msgstr "设置当前 ASR 提供商"
+
+#: src/cli/main.cpp
+msgid "Skip active-provider protection"
+msgstr "跳过当前提供商保护"
+
+#: src/cli/command_asr.cpp
+msgid "TIMEOUT"
+msgstr "超时"
+
+#: src/cli/command_asr.cpp
+msgid "Timeout must be greater than zero."
+msgstr "超时时间必须大于 0。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "Unsupported ASR provider type '%s'."
+msgstr "不支持的 ASR 提供商类型 '%s'。"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "Updated ASR provider script: %s"
+msgstr "已更新 ASR 提供商脚本：%s"

@@ -9,6 +9,7 @@
 #include "cli/command_device.h"
 #include "cli/command_hotword.h"
 #include "cli/command_init.h"
+#include "cli/command_asr.h"
 #include "cli/command_llm.h"
 #include "cli/command_model.h"
 #include "cli/command_recording.h"
@@ -120,6 +121,54 @@ int main(int argc, char *argv[]) {
   llm_remove->alias("rm");
   llm_remove->add_option("name", llm_remove_name, _("Provider name"))->required();
   llm_remove->add_flag("-f,--force", llm_remove_force, _("Skip confirmation"));
+
+  // ---- asr subcommand ----
+  auto *asr_cmd = app.add_subcommand("asr", _("Manage ASR providers"));
+  asr_cmd->require_subcommand(1);
+
+  auto *asr_list =
+      asr_cmd->add_subcommand("list", _("List configured ASR providers"));
+  asr_list->alias("ls");
+
+  std::string asr_add_name;
+  std::string asr_add_type = "builtin";
+  std::string asr_add_model;
+  std::string asr_add_command;
+  std::vector<std::string> asr_add_args;
+  std::vector<std::string> asr_add_env;
+  int asr_add_timeout_ms = 15000;
+  auto *asr_add = asr_cmd->add_subcommand("add", _("Add an ASR provider"));
+  asr_add->add_option("name", asr_add_name, _("Provider name"))->required();
+  asr_add->add_option("--type", asr_add_type, _("Provider type: builtin or command"))
+      ->default_val("builtin");
+  asr_add->add_option("-m,--model", asr_add_model, _("Builtin model name"));
+  asr_add->add_option("-c,--command", asr_add_command,
+                      _("Command or executable path for command providers"));
+  asr_add->add_option("--arg", asr_add_args, _("Command argument"))
+      ->expected(0, -1);
+  asr_add->add_option("--env", asr_add_env, _("Environment entry as KEY=VALUE"))
+      ->expected(0, -1);
+  asr_add
+      ->add_option("--timeout", asr_add_timeout_ms,
+                   _("Provider timeout in milliseconds"))
+      ->default_val(15000);
+
+  std::string asr_remove_name;
+  bool asr_remove_force = false;
+  auto *asr_remove =
+      asr_cmd->add_subcommand("remove", _("Remove an ASR provider"));
+  asr_remove->alias("rm");
+  asr_remove->add_option("name", asr_remove_name, _("Provider name"))->required();
+  asr_remove->add_flag("-f,--force", asr_remove_force, _("Skip active-provider protection"));
+
+  std::string asr_use_name;
+  auto *asr_use = asr_cmd->add_subcommand("use", _("Set active ASR provider"));
+  asr_use->add_option("name", asr_use_name, _("Provider name"))->required();
+
+  std::string asr_edit_name;
+  auto *asr_edit =
+      asr_cmd->add_subcommand("edit", _("Open an external ASR provider script"));
+  asr_edit->add_option("name", asr_edit_name, _("Provider name"))->required();
 
   // ---- config subcommand ----
   auto *config_cmd =
@@ -283,6 +332,21 @@ int main(int argc, char *argv[]) {
                      llm_add_api_key, *fmt, ctx);
   } else if (llm_remove->parsed()) {
     return RunLlmRemove(llm_remove_name, llm_remove_force, *fmt, ctx);
+  }
+
+  // asr
+  else if (asr_list->parsed()) {
+    return RunAsrList(*fmt, ctx);
+  } else if (asr_add->parsed()) {
+    return RunAsrAdd(asr_add_name, asr_add_type, asr_add_model,
+                     asr_add_command, asr_add_args, asr_add_env,
+                     asr_add_timeout_ms, *fmt, ctx);
+  } else if (asr_remove->parsed()) {
+    return RunAsrRemove(asr_remove_name, asr_remove_force, *fmt, ctx);
+  } else if (asr_use->parsed()) {
+    return RunAsrUse(asr_use_name, *fmt, ctx);
+  } else if (asr_edit->parsed()) {
+    return RunAsrEdit(asr_edit_name, *fmt, ctx);
   }
 
   // hotword

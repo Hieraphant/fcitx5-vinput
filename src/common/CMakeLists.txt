@@ -7,6 +7,7 @@ add_library(vinput-common STATIC
     model_repository.cpp
     path_utils.cpp
     file_utils.cpp
+    process_utils.cpp
     config_path.cpp
     i18n.cpp
 )

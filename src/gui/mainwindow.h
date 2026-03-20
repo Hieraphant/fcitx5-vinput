@@ -50,6 +50,12 @@ private slots:
   void onLlmEdit();
   void onLlmRemove();
 
+  // ASR Provider Management
+  void onAsrAdd();
+  void onAsrEdit();
+  void onAsrRemove();
+  void onAsrSetActive();
+
   // Hotword Management
   void onBrowseHotwordsClicked();
 
@@ -65,15 +71,18 @@ private:
   void setupModelTab();
   void setupSceneTab();
   void setupLlmTab();
+  void setupAsrTab();
   void setupHotwordTab();
   void refreshSceneList();
   void refreshLlmList();
+  void refreshAsrList();
 
   QTabWidget *tabWidget;
   QWidget *generalTab;
   QWidget *modelTab;
   QWidget *sceneTab;
   QWidget *llmTab;
+  QWidget *asrTab;
   QWidget *hotwordTab;
 
   // General Tab
@@ -104,6 +113,13 @@ private:
   QPushButton *btnLlmAdd;
   QPushButton *btnLlmEdit;
   QPushButton *btnLlmRemove;
+
+  // ASR Tab
+  QListWidget *listAsrProviders;
+  QPushButton *btnAsrAdd;
+  QPushButton *btnAsrEdit;
+  QPushButton *btnAsrRemove;
+  QPushButton *btnAsrSetActive;
 
   // Hotword Tab
   QLineEdit *editHotwordsFile;
