@@ -278,7 +278,7 @@ jobs:
           cp packaging/flatpak/org.fcitx.Fcitx5.Addon.Vinput.yaml \
             packaging/flatpak/release-manifest.yaml
           sed -i \
-            -e "s|@FCITX5_RUNTIME_VERSION@|6.10|g" \
+            -e "s|@FCITX5_RUNTIME_VERSION@|stable|g" \
             -e "s|@VINPUT_RELEASE_TAG@|${GITHUB_REF_NAME}|g" \
             -e "s|@VINPUT_RELEASE_COMMIT@|${GITHUB_SHA}|g" \
             packaging/flatpak/release-manifest.yaml
