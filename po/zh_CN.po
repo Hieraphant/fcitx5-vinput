@@ -73,6 +73,11 @@ msgstr "活跃 LLM 提供商已设为 '%s'。"
 msgid "Active model set to '%s'. Daemon restarted."
 msgstr "活跃模型已设为 '%s'，守护进程已重启。"
 
+#: src/cli/command_model.cpp:187
+#, c-format
+msgid "Active model set to '%s', but daemon restart failed (exit code: %d)."
+msgstr "活跃模型已设为 '%s'，但守护进程重启失败（退出码：%d）。"
+
 #: src/cli/command_model.cpp:91
 msgid "Broken"
 msgstr "损坏"
@@ -227,6 +232,10 @@ msgstr "保存配置失败。"
 msgid "Hotwords updated from editor."
 msgstr "热词已从编辑器更新。"
 
+#: src/addon/vinput.cpp:790
+msgid "Failed to save active scene."
+msgstr "保存当前活跃场景失败。"
+
 #: src/cli/command_model.cpp:93
 msgid "Installed"
 msgstr "已安装"
@@ -257,6 +266,10 @@ msgstr "LLM 功能已启用，请重启守护进程生效。"
 #: src/cli/command_llm.cpp:154
 msgid "LLM is already disabled."
 msgstr "LLM 已经是禁用状态。"
+
+#: src/cli/command_model.cpp:189
+msgid "Restart the daemon manually to apply the new model."
+msgstr "请手动重启守护进程以应用新模型。"
 
 #: src/cli/command_llm.cpp:138
 msgid "LLM is already enabled."

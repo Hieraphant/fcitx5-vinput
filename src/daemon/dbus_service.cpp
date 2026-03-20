@@ -23,6 +23,23 @@ DbusService::~DbusService() {
   }
 }
 
+namespace {
+
+int ReplyWithMethodResult(sd_bus_message *m, sd_bus_error *error,
+                          const DbusService::MethodResult &result,
+                          const char *reply_signature) {
+  if (!result.ok) {
+    return sd_bus_error_set(error, kErrorOperationFailed, result.message.c_str());
+  }
+
+  if (!reply_signature || reply_signature[0] == '\0') {
+    return sd_bus_reply_method_return(m, "");
+  }
+  return sd_bus_reply_method_return(m, reply_signature, result.payload.c_str());
+}
+
+} // namespace
+
 static const sd_bus_vtable vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("StartRecording", "", "", &DbusService::handleStartRecording,
@@ -135,17 +152,17 @@ void DbusService::EmitLlmError(const std::string &message) {
   (void)write(notify_fd_, &val, sizeof(val));
 }
 
-void DbusService::SetStartHandler(std::function<void()> handler) {
+void DbusService::SetStartHandler(std::function<MethodResult()> handler) {
   start_handler_ = std::move(handler);
 }
 
 void DbusService::SetStartCommandHandler(
-    std::function<void(const std::string &)> handler) {
+    std::function<MethodResult(const std::string &)> handler) {
   start_command_handler_ = std::move(handler);
 }
 
 void DbusService::SetStopHandler(
-    std::function<std::string(const std::string &scene_id)> handler) {
+    std::function<MethodResult(const std::string &scene_id)> handler) {
   stop_handler_ = std::move(handler);
 }
 
@@ -155,17 +172,16 @@ void DbusService::SetStatusHandler(std::function<std::string()> handler) {
 
 int DbusService::handleStartRecording(sd_bus_message *m, void *userdata,
                                       sd_bus_error *error) {
-  (void)error;
   auto *self = static_cast<DbusService *>(userdata);
+  MethodResult result;
   if (self->start_handler_) {
-    self->start_handler_();
+    result = self->start_handler_();
   }
-  return sd_bus_reply_method_return(m, "");
+  return ReplyWithMethodResult(m, error, result, "");
 }
 
 int DbusService::handleStartCommandRecording(sd_bus_message *m, void *userdata,
                                              sd_bus_error *error) {
-  (void)error;
   auto *self = static_cast<DbusService *>(userdata);
   const char *selected_text = "";
   int ret = sd_bus_message_read(m, "s", &selected_text);
@@ -175,15 +191,15 @@ int DbusService::handleStartCommandRecording(sd_bus_message *m, void *userdata,
     return ret;
   }
 
+  MethodResult result;
   if (self->start_command_handler_) {
-    self->start_command_handler_(selected_text ? selected_text : "");
+    result = self->start_command_handler_(selected_text ? selected_text : "");
   }
-  return sd_bus_reply_method_return(m, "");
+  return ReplyWithMethodResult(m, error, result, "");
 }
 
 int DbusService::handleStopRecording(sd_bus_message *m, void *userdata,
                                      sd_bus_error *error) {
-  (void)error;
   auto *self = static_cast<DbusService *>(userdata);
   const char *scene_id = "";
   int ret = sd_bus_message_read(m, "s", &scene_id);
@@ -193,11 +209,11 @@ int DbusService::handleStopRecording(sd_bus_message *m, void *userdata,
     return ret;
   }
 
-  std::string result;
+  MethodResult result;
   if (self->stop_handler_) {
     result = self->stop_handler_(scene_id ? scene_id : "");
   }
-  return sd_bus_reply_method_return(m, "s", result.c_str());
+  return ReplyWithMethodResult(m, error, result, "s");
 }
 
 int DbusService::handleGetStatus(sd_bus_message *m, void *userdata,

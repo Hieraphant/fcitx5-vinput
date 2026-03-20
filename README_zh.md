@@ -64,10 +64,14 @@ sudo apt-get install -f
 **依赖：** `cmake` `fcitx5` `sherpa-onnx` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
 
 ```bash
+sudo bash scripts/build-sherpa-onnx.sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 sudo cmake --install build
 ```
+
+如果你的机器已经以系统级方式安装好了 `sherpa-onnx`，可以跳过第一步。
+本地和 CI 现在都默认使用同一种系统级依赖布局。
 
 ## 快速开始
 
@@ -220,6 +224,10 @@ vinput daemon logs              # 查看日志
 ## 命令模式
 
 选中文本 → 按住命令键 → 说出指令 → 松开 → 完成。
+
+如果当前没有可用的 surrounding-text 选区，命令模式会回退到当前的
+primary selection 剪贴板内容。这样操作上更顺手，但也意味着如果 primary
+selection 里残留的是旧文本或无关文本，它也可能被送入命令改写流程。
 
 **示例：**
 - 选中中文 → 说 *"翻译成英文"* → 替换为英文译文

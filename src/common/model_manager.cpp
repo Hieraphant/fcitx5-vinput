@@ -17,19 +17,74 @@ using json = nlohmann::json;
 
 namespace {
 
+bool IsPathWithinRoot(const fs::path &path, const fs::path &root) {
+  auto path_it = path.begin();
+  auto root_it = root.begin();
+  for (; root_it != root.end(); ++root_it, ++path_it) {
+    if (path_it == path.end() || *path_it != *root_it) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ResolveModelMetadataPath(const fs::path &model_dir,
+                              const fs::path &model_root,
+                              const std::string &raw_path, fs::path *resolved,
+                              std::string *error) {
+  std::error_code ec;
+  fs::path candidate = fs::weakly_canonical(model_dir / fs::path(raw_path), ec);
+  if (ec) {
+    if (error) {
+      *error = "failed to resolve path '" + raw_path + "': " + ec.message();
+    }
+    return false;
+  }
+  if (!IsPathWithinRoot(candidate, model_root)) {
+    if (error) {
+      *error = "path escapes model directory: " + raw_path;
+    }
+    return false;
+  }
+  if (resolved) {
+    *resolved = std::move(candidate);
+  }
+  return true;
+}
+
 ModelInfo ParseModelJson(const fs::path &dir, const fs::path &json_path) {
   ModelInfo info;
   try {
     std::ifstream file(json_path);
     json j;
     file >> j;
+    std::error_code root_ec;
+    const fs::path model_root = fs::weakly_canonical(dir, root_ec);
+    if (root_ec) {
+      fprintf(stderr, "vinput: failed to resolve model root %s: %s\n",
+              dir.string().c_str(), root_ec.message().c_str());
+      return info;
+    }
 
     info.model_type = j.value("model_type", "");
 
     if (j.contains("files") && j["files"].is_object()) {
       for (const auto &[key, val] : j["files"].items()) {
         if (val.is_string() && !val.get<std::string>().empty()) {
-          info.files[key] = (dir / val.get<std::string>()).string();
+          const std::string raw_path = val.get<std::string>();
+          fs::path resolved_path;
+          std::string path_error;
+          if (!ResolveModelMetadataPath(dir, model_root, raw_path,
+                                        &resolved_path, &path_error)) {
+            info.rejected_files[key] = raw_path;
+            fprintf(stderr,
+                    "vinput: rejected metadata file path for key '%s' in %s: "
+                    "%s\n",
+                    key.c_str(), json_path.string().c_str(),
+                    path_error.c_str());
+            continue;
+          }
+          info.files[key] = resolved_path.string();
         }
       }
     }
@@ -110,6 +165,15 @@ bool ModelManager::EnsureModels() {
         stderr,
         "vinput: 'vinput-model.json' for '%s' is missing model_type.\n",
         model_name_.c_str());
+    return false;
+  }
+
+  if (!info.rejected_files.empty()) {
+    const auto &[key, raw_path] = *info.rejected_files.begin();
+    fprintf(stderr,
+            "vinput: 'vinput-model.json' for '%s' contains invalid file path "
+            "for '%s': %s\n",
+            model_name_.c_str(), key.c_str(), raw_path.c_str());
     return false;
   }
 
@@ -240,6 +304,15 @@ bool ModelManager::Validate(const std::string &model_name,
 
   if (info.model_type.empty()) {
     if (error) *error = "vinput-model.json missing required field: model_type";
+    return false;
+  }
+
+  if (!info.rejected_files.empty()) {
+    const auto &[key, raw_path] = *info.rejected_files.begin();
+    if (error) {
+      *error = "vinput-model.json contains out-of-bounds file path for '" +
+               key + "': " + raw_path;
+    }
     return false;
   }
 

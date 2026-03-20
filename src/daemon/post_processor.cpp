@@ -3,6 +3,7 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+#include <cstdlib>
 #include <cstdio>
 #include <optional>
 
@@ -14,6 +15,7 @@ namespace {
 using json = nlohmann::json;
 constexpr std::size_t kMaxLoggedResponseBytes = 2048;
 constexpr std::size_t kMaxResponseBytes = 1 * 1024 * 1024; // 1 MB limit
+constexpr const char *kDebugRawLlmResponsesEnv = "VINPUT_DEBUG_LLM_RESPONSES";
 
 struct CurlGuard {
   CURL *curl = nullptr;
@@ -47,10 +49,6 @@ std::string TrimAsciiWhitespace(std::string text) {
 
   const auto end = text.find_last_not_of(" \t\r\n");
   return text.substr(begin, end - begin + 1);
-}
-
-int NormalizeCandidateCount(int n) {
-  return n <= 0 ? 0 : n;
 }
 
 json BuildCandidatesSchema(int candidate_count) {
@@ -103,6 +101,23 @@ std::string QuoteForLog(std::string_view text) {
     return truncated;
   }
   return std::string(text);
+}
+
+bool DebugRawLlmResponsesEnabled() {
+  const char *value = std::getenv(kDebugRawLlmResponsesEnv);
+  if (!value) {
+    return false;
+  }
+  return value[0] == '1' || value[0] == 't' || value[0] == 'T' ||
+         value[0] == 'y' || value[0] == 'Y';
+}
+
+void LogResponseSummary(const LlmProvider &provider, const std::string &url,
+                        long status_code, double total_time_ms) {
+  fprintf(stderr,
+          "vinput-daemon: LLM request provider=%s url=%s status=%ld time=%.1fms\n",
+          provider.name.empty() ? "(unnamed)" : provider.name.c_str(),
+          url.c_str(), status_code, total_time_ms);
 }
 
 void LogResponseBody(const char *prefix, const std::string &url,
@@ -220,27 +235,37 @@ RewriteWithOpenAiCompatible(const std::string &text,
 
   CURLcode curl_code = curl_easy_perform(guard.curl);
   long status_code = 0;
+  double total_time_sec = 0.0;
   curl_easy_getinfo(guard.curl, CURLINFO_RESPONSE_CODE, &status_code);
+  curl_easy_getinfo(guard.curl, CURLINFO_TOTAL_TIME, &total_time_sec);
+  const double total_time_ms = total_time_sec * 1000.0;
 
   if (curl_code != CURLE_OK) {
     const std::string msg =
         std::string("LLM request failed: ") + curl_easy_strerror(curl_code);
-    fprintf(stderr, "vinput-daemon: LLM request to %s failed: %s\n",
-            url.c_str(), curl_easy_strerror(curl_code));
+    fprintf(stderr,
+            "vinput-daemon: LLM request provider=%s url=%s failed after %.1fms: %s\n",
+            provider.name.empty() ? "(unnamed)" : provider.name.c_str(),
+            url.c_str(), total_time_ms, curl_easy_strerror(curl_code));
     if (error_out) *error_out = msg;
     return std::nullopt;
   }
+
+  LogResponseSummary(provider, url, status_code, total_time_ms);
 
   if (status_code < 200 || status_code >= 300) {
     const std::string msg =
         "HTTP " + std::to_string(status_code) + ": " + response_body;
-    fprintf(stderr, "vinput-daemon: LLM request to %s returned HTTP %ld: %s\n",
-            url.c_str(), status_code, response_body.c_str());
+    if (DebugRawLlmResponsesEnabled()) {
+      LogResponseBody("LLM error response from", url, response_body);
+    }
     if (error_out) *error_out = msg;
     return std::nullopt;
   }
 
-  LogResponseBody("LLM raw response from", url, response_body);
+  if (DebugRawLlmResponsesEnabled()) {
+    LogResponseBody("LLM raw response from", url, response_body);
+  }
 
   json response;
   try {
@@ -254,8 +279,11 @@ RewriteWithOpenAiCompatible(const std::string &text,
 
   const auto error_it = response.find("error");
   if (error_it != response.end()) {
-    fprintf(stderr, "vinput-daemon: LLM response from %s contains error: %s\n",
-            url.c_str(), error_it->dump().c_str());
+    fprintf(stderr, "vinput-daemon: LLM response from %s contains error\n",
+            url.c_str());
+    if (DebugRawLlmResponsesEnabled()) {
+      LogResponseBody("LLM parsed error payload from", url, error_it->dump());
+    }
     return std::nullopt;
   }
 
@@ -305,7 +333,8 @@ PostProcessor::Process(const std::string &raw_text,
     return {};
   }
 
-  const int candidate_count = NormalizeCandidateCount(scene.candidate_count);
+  const int candidate_count =
+      vinput::scene::NormalizeCandidateCount(scene.candidate_count);
 
   vinput::result::Payload fallback;
   std::set<std::string> fallback_seen;
@@ -365,7 +394,7 @@ PostProcessor::ProcessCommand(const std::string &asr_text,
   }
 
   const int command_candidate_count =
-      NormalizeCandidateCount(command_scene.candidate_count);
+      vinput::scene::NormalizeCandidateCount(command_scene.candidate_count);
 
   const LlmProvider *provider =
       ResolveLlmProvider(settings, command_scene.provider_id);

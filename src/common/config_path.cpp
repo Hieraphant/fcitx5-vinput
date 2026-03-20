@@ -1,13 +1,10 @@
 #include "common/config_path.h"
 
-#include <fstream>
-#include <nlohmann/json.hpp>
 #include <sstream>
 
+#include "common/core_config.h"
 #include "common/file_utils.h"
 #include "common/path_utils.h"
-
-using json = nlohmann::json;
 
 namespace vinput::config {
 
@@ -43,17 +40,131 @@ static bool ParseExtraDotpath(const std::string &dotpath,
   return true;
 }
 
-static json LoadRawJson(const std::filesystem::path &path) {
-  std::ifstream f(path);
-  if (!f.is_open())
-    return json::object();
-  try {
-    json j;
-    f >> j;
-    return j;
-  } catch (...) {
-    return json::object();
+static bool PathEquals(const std::vector<std::string> &keys,
+                       std::initializer_list<std::string_view> expected) {
+  if (keys.size() != expected.size()) {
+    return false;
   }
+
+  auto it = keys.begin();
+  for (std::string_view value : expected) {
+    if (*it != value) {
+      return false;
+    }
+    ++it;
+  }
+  return true;
+}
+
+static bool ParseBoolValue(const std::string &value, bool *out,
+                           std::string *error) {
+  if (value == "true") {
+    *out = true;
+    return true;
+  }
+  if (value == "false") {
+    *out = false;
+    return true;
+  }
+  if (error) {
+    *error = "Expected boolean value 'true' or 'false'.";
+  }
+  return false;
+}
+
+static bool SetTypedConfigValue(CoreConfig *config,
+                                const std::vector<std::string> &keys,
+                                const std::string &value,
+                                std::string *error) {
+  if (PathEquals(keys, {"capture_device"})) {
+    config->captureDevice = value;
+    return true;
+  }
+  if (PathEquals(keys, {"active_model"})) {
+    config->activeModel = value;
+    return true;
+  }
+  if (PathEquals(keys, {"model_base_dir"})) {
+    config->modelBaseDir = value;
+    return true;
+  }
+  if (PathEquals(keys, {"registry_url"})) {
+    config->registryUrl = value;
+    return true;
+  }
+  if (PathEquals(keys, {"default_language"})) {
+    config->defaultLanguage = value;
+    return true;
+  }
+  if (PathEquals(keys, {"hotwords_file"})) {
+    config->hotwordsFile = value;
+    return true;
+  }
+  if (PathEquals(keys, {"scenes", "active_scene"})) {
+    config->scenes.activeScene = value;
+    return true;
+  }
+  if (PathEquals(keys, {"asr", "normalize_audio"})) {
+    return ParseBoolValue(value, &config->asr.normalizeAudio, error);
+  }
+  if (PathEquals(keys, {"asr", "vad", "enabled"})) {
+    return ParseBoolValue(value, &config->asr.vad.enabled, error);
+  }
+
+  if (error) {
+    *error =
+        "Unsupported config path for 'config set'. Use a dedicated command "
+        "or edit the extra config file directly.";
+  }
+  return false;
+}
+
+static bool GetTypedConfigValue(const CoreConfig &config,
+                                const std::vector<std::string> &keys,
+                                std::string *value, std::string *error) {
+  if (PathEquals(keys, {"capture_device"})) {
+    *value = config.captureDevice;
+    return true;
+  }
+  if (PathEquals(keys, {"active_model"})) {
+    *value = config.activeModel;
+    return true;
+  }
+  if (PathEquals(keys, {"model_base_dir"})) {
+    *value = config.modelBaseDir;
+    return true;
+  }
+  if (PathEquals(keys, {"registry_url"})) {
+    *value = config.registryUrl;
+    return true;
+  }
+  if (PathEquals(keys, {"default_language"})) {
+    *value = config.defaultLanguage;
+    return true;
+  }
+  if (PathEquals(keys, {"hotwords_file"})) {
+    *value = config.hotwordsFile;
+    return true;
+  }
+  if (PathEquals(keys, {"scenes", "active_scene"})) {
+    *value = config.scenes.activeScene;
+    return true;
+  }
+  if (PathEquals(keys, {"asr", "normalize_audio"})) {
+    *value = config.asr.normalizeAudio ? "true" : "false";
+    return true;
+  }
+  if (PathEquals(keys, {"asr", "vad", "enabled"})) {
+    *value = config.asr.vad.enabled ? "true" : "false";
+    return true;
+  }
+
+  if (error) {
+    *error =
+        "Unsupported config path for 'config get'. Use a dedicated command "
+        "or edit the extra config file directly.";
+  }
+  return false;
 }
 
 bool GetConfigValue(const std::string &dotpath, std::string *value,
@@ -62,31 +173,9 @@ bool GetConfigValue(const std::string &dotpath, std::string *value,
   if (!ParseExtraDotpath(dotpath, &keys, error))
     return false;
 
-  auto path = vinput::path::CoreConfigPath();
-  json j = LoadRawJson(path);
-
-  const json *cur = &j;
-  for (const auto &key : keys) {
-    if (!cur->is_object() || !cur->contains(key)) {
-      if (error)
-        *error = "Key not found: " + key;
-      return false;
-    }
-    cur = &(*cur)[key];
-  }
-
-  if (cur->is_string()) {
-    *value = cur->get<std::string>();
-  } else if (cur->is_boolean()) {
-    *value = cur->get<bool>() ? "true" : "false";
-  } else if (cur->is_number_integer()) {
-    *value = std::to_string(cur->get<int64_t>());
-  } else if (cur->is_number_float()) {
-    *value = std::to_string(cur->get<double>());
-  } else {
-    *value = cur->dump();
-  }
-  return true;
+  CoreConfig config = LoadCoreConfig();
+  NormalizeCoreConfig(&config);
+  return GetTypedConfigValue(config, keys, value, error);
 }
 
 bool SetConfigValue(const std::string &dotpath, const std::string &value,
@@ -95,52 +184,16 @@ bool SetConfigValue(const std::string &dotpath, const std::string &value,
   if (!ParseExtraDotpath(dotpath, &keys, error))
     return false;
 
-  auto path = vinput::path::CoreConfigPath();
-  json j = LoadRawJson(path);
+  CoreConfig config = LoadCoreConfig();
+  NormalizeCoreConfig(&config);
 
-  // Navigate to parent and set the leaf
-  json *cur = &j;
-  for (size_t i = 0; i + 1 < keys.size(); ++i) {
-    const auto &key = keys[i];
-    if (!cur->is_object())
-      *cur = json::object();
-    if (!cur->contains(key) || !(*cur)[key].is_object()) {
-      (*cur)[key] = json::object();
-    }
-    cur = &(*cur)[key];
-  }
-
-  const std::string &leaf = keys.back();
-  // Type inference: bool, int, or string
-  if (value == "true") {
-    (*cur)[leaf] = true;
-  } else if (value == "false") {
-    (*cur)[leaf] = false;
-  } else {
-    try {
-      size_t pos = 0;
-      long long ival = std::stoll(value, &pos);
-      if (pos == value.size()) {
-        (*cur)[leaf] = static_cast<int64_t>(ival);
-      } else {
-        (*cur)[leaf] = value;
-      }
-    } catch (...) {
-      (*cur)[leaf] = value;
-    }
-  }
-
-  std::string err;
-  if (!vinput::file::EnsureParentDirectory(path, &err)) {
-    if (error)
-      *error = "Failed to create config directory: " + err;
+  if (!SetTypedConfigValue(&config, keys, value, error)) {
     return false;
   }
-
-  std::string content = j.dump(4) + "\n";
-  if (!vinput::file::AtomicWriteTextFile(path, content, &err)) {
-    if (error)
-      *error = "Failed to write config: " + err;
+  if (!SaveCoreConfig(config)) {
+    if (error) {
+      *error = "Failed to save config.";
+    }
     return false;
   }
   return true;

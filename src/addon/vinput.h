@@ -51,6 +51,7 @@ private:
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
   void onLlmError(fcitx::dbus::Message &msg);
+  void notifyError(const std::string &message);
   void updatePreedit(fcitx::InputContext *ic, const std::string &text);
   void clearPreedit(fcitx::InputContext *ic);
 

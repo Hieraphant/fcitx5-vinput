@@ -181,8 +181,14 @@ int RunModelUse(const std::string& name, Formatter& fmt, const CliContext& /*ctx
     config.activeModel = name;
     if (!SaveConfigOrFail(config, fmt)) return 1;
 
-    // Restart daemon via systemctl
-    vinput::cli::SystemctlRestart();
+    const int restart_result = vinput::cli::SystemctlRestart();
+    if (restart_result != 0) {
+        fmt.PrintWarning(vinput::str::FmtStr(
+            _("Active model set to '%s', but daemon restart failed (exit code: %d)."),
+            name, restart_result));
+        fmt.PrintInfo(_("Restart the daemon manually to apply the new model."));
+        return 1;
+    }
 
     fmt.PrintSuccess(vinput::str::FmtStr(_("Active model set to '%s'. Daemon restarted."), name));
     return 0;

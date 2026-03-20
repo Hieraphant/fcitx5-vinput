@@ -6,6 +6,9 @@
 
 namespace vinput::scene {
 
+constexpr int kMinCandidateCount = 0;
+constexpr int kMaxCandidateCount = 9;
+
 struct Definition {
   std::string id;
   std::string label;
@@ -21,6 +24,11 @@ struct Config {
   std::string activeSceneId;
   std::vector<Definition> scenes;
 };
+
+int NormalizeCandidateCount(int candidate_count);
+void NormalizeDefinition(Definition *scene);
+bool ValidateDefinition(const Definition &scene, std::string *error,
+                        bool require_id = true);
 
 const Definition *Find(const Config &config, std::string_view scene_id);
 const Definition &Resolve(const Config &config, std::string_view scene_id);

@@ -227,6 +227,14 @@
         <translation>地址：</translation>
     </message>
     <message>
+        <source>Provider name must not be empty.</source>
+        <translation>提供商名称不能为空。</translation>
+    </message>
+    <message>
+        <source>Base URL must be a valid http:// or https:// URL.</source>
+        <translation>地址必须是有效的 http:// 或 https:// URL。</translation>
+    </message>
+    <message>
         <source>Timeout (ms):</source>
         <translation>超时（毫秒）：</translation>
     </message>
@@ -277,6 +285,22 @@
     <message>
         <source>Provider '%1' already exists.</source>
         <translation>提供商“%1”已存在。</translation>
+    </message>
+    <message>
+        <source>No models returned. You can type one manually.</source>
+        <translation>没有返回任何模型。你也可以手动输入模型名。</translation>
+    </message>
+    <message>
+        <source>Failed to load models. Type one manually or reselect the provider to retry.</source>
+        <translation>加载模型失败。你可以手动输入模型名，或重新选择提供商后重试。</translation>
+    </message>
+    <message>
+        <source>Loading models...</source>
+        <translation>正在加载模型...</translation>
+    </message>
+    <message>
+        <source>Provider returned invalid JSON for /v1/models.</source>
+        <translation>提供商为 /v1/models 返回了无效的 JSON。</translation>
     </message>
     <message>
         <source>Path to hotwords file...</source>

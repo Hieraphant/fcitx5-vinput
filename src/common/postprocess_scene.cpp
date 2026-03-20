@@ -1,9 +1,75 @@
 #include "common/postprocess_scene.h"
 
+#include <set>
 #include <string>
 #include <string_view>
 
 namespace vinput::scene {
+
+namespace {
+
+constexpr int kDefaultSceneTimeoutMs = 4000;
+
+bool HasProvider(const Definition &scene) { return !scene.provider_id.empty(); }
+
+bool HasModel(const Definition &scene) { return !scene.model.empty(); }
+
+bool HasPrompt(const Definition &scene) { return !scene.prompt.empty(); }
+
+bool SetValidationError(std::string *error, std::string message) {
+  if (error) {
+    *error = std::move(message);
+  }
+  return false;
+}
+
+} // namespace
+
+int NormalizeCandidateCount(int candidate_count) {
+  if (candidate_count < kMinCandidateCount) {
+    return kMinCandidateCount;
+  }
+  if (candidate_count > kMaxCandidateCount) {
+    return kMaxCandidateCount;
+  }
+  return candidate_count;
+}
+
+void NormalizeDefinition(Definition *scene) {
+  if (!scene) {
+    return;
+  }
+  scene->candidate_count = NormalizeCandidateCount(scene->candidate_count);
+  if (scene->timeout_ms <= 0) {
+    scene->timeout_ms = kDefaultSceneTimeoutMs;
+  }
+}
+
+bool ValidateDefinition(const Definition &scene, std::string *error,
+                        bool require_id) {
+  if (require_id && scene.id.empty()) {
+    return SetValidationError(error, "Scene id must not be empty.");
+  }
+  if (scene.candidate_count < 0) {
+    return SetValidationError(error,
+                              "Scene candidate count must be 0 or greater.");
+  }
+  if (scene.timeout_ms <= 0) {
+    return SetValidationError(error, "Scene timeout must be greater than 0.");
+  }
+
+  const bool has_provider = HasProvider(scene);
+  const bool has_model = HasModel(scene);
+  if (has_provider != has_model) {
+    return SetValidationError(
+        error, "Scene provider and model must be configured together.");
+  }
+  if ((has_provider || has_model) && !HasPrompt(scene)) {
+    return SetValidationError(
+        error, "Scene prompt must not be empty when provider/model is set.");
+  }
+  return true;
+}
 
 const Definition *Find(const Config &config, std::string_view scene_id) {
   for (const auto &scene : config.scenes) {
@@ -33,17 +99,17 @@ std::string DisplayLabel(const Definition &scene) {
 }
 
 bool AddScene(Config *config, const Definition &def, std::string *error) {
-  if (def.id.empty()) {
-    if (error)
-      *error = "Scene id must not be empty.";
+  Definition normalized = def;
+  NormalizeDefinition(&normalized);
+  if (!ValidateDefinition(normalized, error)) {
     return false;
   }
-  if (Find(*config, def.id)) {
+  if (Find(*config, normalized.id)) {
     if (error)
-      *error = "Scene id '" + def.id + "' already exists.";
+      *error = "Scene id '" + normalized.id + "' already exists.";
     return false;
   }
-  config->scenes.push_back(def);
+  config->scenes.push_back(std::move(normalized));
   return true;
 }
 
@@ -51,12 +117,18 @@ bool UpdateScene(Config *config, const std::string &id, const Definition &def,
                  std::string *error) {
   for (auto &scene : config->scenes) {
     if (scene.id == id) {
-      scene.label = def.label;
-      scene.prompt = def.prompt;
-      scene.provider_id = def.provider_id;
-      scene.model = def.model;
-      scene.candidate_count = def.candidate_count;
-      scene.timeout_ms = def.timeout_ms;
+      Definition updated = scene;
+      updated.label = def.label;
+      updated.prompt = def.prompt;
+      updated.provider_id = def.provider_id;
+      updated.model = def.model;
+      updated.candidate_count = def.candidate_count;
+      updated.timeout_ms = def.timeout_ms;
+      NormalizeDefinition(&updated);
+      if (!ValidateDefinition(updated, error)) {
+        return false;
+      }
+      scene = std::move(updated);
       return true;
     }
   }

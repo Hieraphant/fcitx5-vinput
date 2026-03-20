@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFormLayout>
+#include <QHash>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QJsonArray>
@@ -31,6 +32,32 @@
 #include <QEventLoop>
 #include <QPalette>
 #include <algorithm>
+
+namespace {
+
+bool ValidateProviderInput(const QString &name, const QString &base_url,
+                           QString *error_out) {
+  if (name.trimmed().isEmpty()) {
+    if (error_out) {
+      *error_out = QObject::tr("Provider name must not be empty.");
+    }
+    return false;
+  }
+
+  const QUrl url = QUrl::fromUserInput(base_url.trimmed());
+  if (!url.isValid() || url.scheme().isEmpty() || url.host().isEmpty() ||
+      (url.scheme() != "http" && url.scheme() != "https")) {
+    if (error_out) {
+      *error_out = QObject::tr(
+          "Base URL must be a valid http:// or https:// URL.");
+    }
+    return false;
+  }
+
+  return true;
+}
+
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   setWindowTitle(tr("Vinput Configuration"));
@@ -653,50 +680,157 @@ void MainWindow::refreshSceneList() {
   }
 }
 
-// Fetch model list from an OpenAI-compatible /v1/models endpoint.
-// Blocks with a local event loop (OK for a dialog context).
-static QStringList FetchModelsFromProvider(const LlmProvider &provider) {
-  QStringList models;
-  if (provider.base_url.empty())
-    return models;
+QString ProviderModelCacheKey(const LlmProvider &provider) {
+  return QString::fromStdString(provider.base_url) + "\n" +
+         QString::fromStdString(provider.api_key);
+}
 
-  // Cache by base_url + api_key to avoid repeated HTTP requests
+void ApplyFetchedProviderModels(QComboBox *comboModel,
+                                const QStringList &models) {
+  comboModel->setEnabled(true);
+  comboModel->clear();
+  comboModel->setToolTip(QString());
+  if (auto *lineEdit = comboModel->lineEdit()) {
+    lineEdit->setPlaceholderText(
+        models.isEmpty()
+            ? QObject::tr("No models returned. You can type one manually.")
+            : QString());
+  }
+  comboModel->addItems(models);
+
+  const QString desiredModel =
+      comboModel->property("vinput_desired_model").toString();
+  if (!desiredModel.isEmpty()) {
+    comboModel->setCurrentText(desiredModel);
+  }
+  comboModel->setProperty("vinput_desired_model", QString());
+}
+
+void ApplyProviderModelFetchError(QComboBox *comboModel,
+                                  const QString &error) {
+  comboModel->setEnabled(true);
+  comboModel->clear();
+  comboModel->setToolTip(error);
+  if (auto *lineEdit = comboModel->lineEdit()) {
+    lineEdit->setPlaceholderText(
+        QObject::tr("Failed to load models. Type one manually or reselect the "
+                    "provider to retry."));
+  }
+
+  const QString desiredModel =
+      comboModel->property("vinput_desired_model").toString();
+  if (!desiredModel.isEmpty()) {
+    comboModel->setCurrentText(desiredModel);
+  }
+  comboModel->setProperty("vinput_desired_model", QString());
+}
+
+void FetchModelsFromProviderAsync(const LlmProvider &provider,
+                                  QComboBox *comboModel) {
   static QHash<QString, QStringList> cache;
-  QString cacheKey = QString::fromStdString(provider.base_url) + "\n" +
-                     QString::fromStdString(provider.api_key);
-  if (cache.contains(cacheKey))
-    return cache.value(cacheKey);
+
+  if (provider.base_url.empty()) {
+    comboModel->setEnabled(true);
+    comboModel->clear();
+    comboModel->setToolTip(QString());
+    if (auto *lineEdit = comboModel->lineEdit()) {
+      lineEdit->setPlaceholderText(QString());
+    }
+    return;
+  }
+
+  const QString cacheKey = ProviderModelCacheKey(provider);
+  const int generation =
+      comboModel->property("vinput_provider_fetch_generation").toInt() + 1;
+  comboModel->setProperty("vinput_provider_fetch_generation", generation);
+  comboModel->setProperty("vinput_provider_fetch_key", cacheKey);
+
+  if (cache.contains(cacheKey)) {
+    ApplyFetchedProviderModels(comboModel, cache.value(cacheKey));
+    return;
+  }
+
+  comboModel->setEnabled(false);
+  comboModel->clear();
+  comboModel->setToolTip(QString());
+  if (auto *lineEdit = comboModel->lineEdit()) {
+    lineEdit->setPlaceholderText(QObject::tr("Loading models..."));
+  }
 
   QString url = QString::fromStdString(provider.base_url);
   if (!url.endsWith('/'))
     url += '/';
   url += "models";
 
-  QNetworkAccessManager nam;
+  auto *nam = new QNetworkAccessManager(comboModel);
   QNetworkRequest req{QUrl(url)};
   req.setRawHeader("Authorization",
-                    QByteArray("Bearer ") +
-                        QByteArray::fromStdString(provider.api_key));
+                   QByteArray("Bearer ") +
+                       QByteArray::fromStdString(provider.api_key));
 
-  QNetworkReply *reply = nam.get(req);
-  QEventLoop loop;
-  QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-  QTimer::singleShot(5000, &loop, &QEventLoop::quit);
-  loop.exec();
-
-  if (reply->error() == QNetworkReply::NoError) {
-    QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-    QJsonArray data = doc.object().value("data").toArray();
-    for (const auto &v : data) {
-      QString id = v.toObject().value("id").toString();
-      if (!id.isEmpty())
-        models.append(id);
+  QNetworkReply *reply = nam->get(req);
+  auto *timeout = new QTimer(reply);
+  timeout->setSingleShot(true);
+  QObject::connect(timeout, &QTimer::timeout, reply, [reply]() {
+    if (!reply->isFinished()) {
+      reply->abort();
     }
-    models.sort();
-  }
-  reply->deleteLater();
-  cache.insert(cacheKey, models);
-  return models;
+  });
+  timeout->start(5000);
+
+  QObject::connect(reply, &QNetworkReply::finished, comboModel,
+                   [comboModel, reply, timeout, cacheKey, generation]() {
+                     timeout->stop();
+
+                     const bool stale =
+                         comboModel->property("vinput_provider_fetch_generation")
+                             .toInt() != generation ||
+                         comboModel->property("vinput_provider_fetch_key")
+                             .toString() != cacheKey;
+
+                     QStringList models;
+                     QString error;
+                     bool success = false;
+                     if (reply->error() == QNetworkReply::NoError) {
+                       QJsonParseError parseError;
+                       const QJsonDocument doc =
+                           QJsonDocument::fromJson(reply->readAll(),
+                                                   &parseError);
+                       if (parseError.error != QJsonParseError::NoError ||
+                           !doc.isObject() ||
+                           !doc.object().value("data").isArray()) {
+                         error = QObject::tr(
+                             "Provider returned invalid JSON for /v1/models.");
+                       } else {
+                         const QJsonArray data =
+                             doc.object().value("data").toArray();
+                         for (const auto &v : data) {
+                           const QString id =
+                               v.toObject().value("id").toString();
+                           if (!id.isEmpty()) {
+                             models.append(id);
+                           }
+                         }
+                         models.removeDuplicates();
+                         models.sort();
+                         success = true;
+                       }
+                     } else {
+                       error = reply->errorString();
+                     }
+
+                     if (!stale) {
+                       if (success) {
+                         cache.insert(cacheKey, models);
+                         ApplyFetchedProviderModels(comboModel, models);
+                       } else {
+                         ApplyProviderModelFetchError(comboModel, error);
+                       }
+                     }
+
+                     reply->deleteLater();
+                     reply->manager()->deleteLater();
+                   });
 }
 
 // Populate provider combo from config, wire it to refresh model combo.
@@ -711,30 +845,35 @@ static void SetupProviderModelCombos(QComboBox *comboProvider,
     comboProvider->addItem(QString::fromStdString(p.name));
 
   comboModel->setEditable(true);
+  comboModel->setProperty("vinput_desired_model", currentModel);
 
   // Copy providers so the lambda is self-contained.
   auto providers = config.llm.providers;
   auto refreshModels = [comboModel, comboProvider, providers]() {
     QString selected = comboProvider->currentText();
-    comboModel->clear();
-    if (selected.isEmpty())
+    if (selected.isEmpty()) {
+      comboModel->setEnabled(true);
+      comboModel->clear();
+      comboModel->setToolTip(QString());
+      if (auto *lineEdit = comboModel->lineEdit()) {
+        lineEdit->setPlaceholderText(QString());
+      }
       return;
+    }
     for (const auto &p : providers) {
       if (p.name == selected.toStdString()) {
-        comboModel->addItems(FetchModelsFromProvider(p));
+        FetchModelsFromProviderAsync(p, comboModel);
         break;
       }
     }
   };
 
-  QObject::connect(comboProvider, QOverload<int>::of(&QComboBox::currentIndexChanged),
+  QObject::connect(comboProvider, QOverload<int>::of(&QComboBox::activated),
                    comboProvider, refreshModels);
 
   if (!currentProvider.isEmpty()) {
     comboProvider->setCurrentText(currentProvider);
     refreshModels();
-    if (!currentModel.isEmpty())
-      comboModel->setCurrentText(currentModel);
   }
 }
 
@@ -755,7 +894,8 @@ void MainWindow::onSceneAdd() {
   spinTimeout->setValue(4000);
   spinTimeout->setSuffix(" ms");
   auto *spinCandidates = new QSpinBox();
-  spinCandidates->setRange(0, 10);
+  spinCandidates->setRange(vinput::scene::kMinCandidateCount,
+                           vinput::scene::kMaxCandidateCount);
   spinCandidates->setValue(1);
 
   CoreConfig config = LoadCoreConfig();
@@ -846,7 +986,8 @@ void MainWindow::onSceneEdit() {
   spinTimeout->setValue(found->timeout_ms);
   spinTimeout->setSuffix(" ms");
   auto *spinCandidates = new QSpinBox();
-  spinCandidates->setRange(0, 10);
+  spinCandidates->setRange(vinput::scene::kMinCandidateCount,
+                           vinput::scene::kMaxCandidateCount);
   spinCandidates->setValue(found->candidate_count);
 
   SetupProviderModelCombos(comboProvider, comboModel, config,
@@ -1037,7 +1178,15 @@ void MainWindow::onLlmAdd() {
 
   CoreConfig config = LoadCoreConfig();
 
-  std::string name = editName->text().trimmed().toStdString();
+  const QString name_text = editName->text().trimmed();
+  const QString base_url_text = editBaseUrl->text().trimmed();
+  QString validation_error;
+  if (!ValidateProviderInput(name_text, base_url_text, &validation_error)) {
+    QMessageBox::warning(this, tr("Error"), validation_error);
+    return;
+  }
+
+  std::string name = name_text.toStdString();
   for (const auto &p : config.llm.providers) {
     if (p.name == name) {
       QMessageBox::warning(this, tr("Error"),
@@ -1049,7 +1198,7 @@ void MainWindow::onLlmAdd() {
 
   LlmProvider provider;
   provider.name = name;
-  provider.base_url = editBaseUrl->text().trimmed().toStdString();
+  provider.base_url = base_url_text.toStdString();
   provider.api_key = editApiKey->text().toStdString();
   config.llm.providers.push_back(provider);
 
@@ -1105,7 +1254,14 @@ void MainWindow::onLlmEdit() {
   if (dialog.exec() != QDialog::Accepted)
     return;
 
-  found->base_url = editBaseUrl->text().trimmed().toStdString();
+  const QString base_url_text = editBaseUrl->text().trimmed();
+  QString validation_error;
+  if (!ValidateProviderInput(provider_name, base_url_text, &validation_error)) {
+    QMessageBox::warning(this, tr("Error"), validation_error);
+    return;
+  }
+
+  found->base_url = base_url_text.toStdString();
   found->api_key = editApiKey->text().toStdString();
 
   if (!SaveCoreConfig(config)) {

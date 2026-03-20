@@ -17,6 +17,9 @@ constexpr const char *kSignalRecognitionResult = "RecognitionResult";
 constexpr const char *kSignalStatusChanged = "StatusChanged";
 constexpr const char *kSignalLlmError = "LlmError";
 
+constexpr const char *kErrorOperationFailed =
+    "org.fcitx.Vinput.Error.OperationFailed";
+
 enum class Status { Idle, Recording, Inferring, Postprocessing, Error };
 
 inline const char *StatusToString(Status s) {

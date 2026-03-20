@@ -11,6 +11,8 @@ struct ModelInfo {
   //   "model", "tokens", "encoder", "decoder", "joiner",
   //   "preprocessor", "uncached_decoder", "cached_decoder", "merged_decoder"
   std::map<std::string, std::string> files;
+  // Rejected file paths from metadata that resolved outside the model root.
+  std::map<std::string, std::string> rejected_files;
   // Model-specific parameters from vinput-model.json "params"
   std::map<std::string, std::string> params;
 

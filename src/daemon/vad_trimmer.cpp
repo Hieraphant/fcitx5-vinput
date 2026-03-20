@@ -44,8 +44,18 @@ std::vector<float> VadTrimmer::Trim(const std::vector<float> &samples,
   // Feed audio in window_size chunks
   const int window_size = 512;
   const int n = static_cast<int>(samples.size());
-  for (int offset = 0; offset + window_size <= n; offset += window_size) {
+  int offset = 0;
+  for (; offset + window_size <= n; offset += window_size) {
     SherpaOnnxVoiceActivityDetectorAcceptWaveform(vad_, samples.data() + offset,
+                                                  window_size);
+  }
+  if (offset < n) {
+    std::vector<float> padded_tail(window_size, 0.0f);
+    const int remaining = n - offset;
+    for (int i = 0; i < remaining; ++i) {
+      padded_tail[i] = samples[offset + i];
+    }
+    SherpaOnnxVoiceActivityDetectorAcceptWaveform(vad_, padded_tail.data(),
                                                   window_size);
   }
   SherpaOnnxVoiceActivityDetectorFlush(vad_);

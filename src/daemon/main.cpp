@@ -99,7 +99,114 @@ int main(int argc, char *argv[]) {
   std::deque<InferenceJob> jobs;
   std::atomic<bool> worker_running{true};
 
-  std::thread worker([&]() {
+  std::thread worker;
+
+  bool current_is_command = false;
+  std::string current_selected_text;
+
+  dbus.SetStartHandler([&]() {
+    if (current_status == Status::Recording) {
+      fprintf(stderr, "vinput-daemon: already recording, ignoring duplicate start request\n");
+      return DbusService::MethodResult::Failure(
+          "Recording is already in progress.");
+    }
+    current_is_command = false;
+    current_selected_text.clear();
+    auto runtime_settings = LoadCoreConfig();
+    capture.SetTargetObject(runtime_settings.captureDevice);
+    if (!capture.BeginRecording()) {
+      current_status = Status::Error;
+      dbus.EmitStatusChanged(StatusToString(Status::Error));
+      fprintf(stderr, "vinput-daemon: failed to start recording\n");
+      return DbusService::MethodResult::Failure("Failed to start recording.");
+    }
+    current_status = Status::Recording;
+    dbus.EmitStatusChanged(StatusToString(Status::Recording));
+    fprintf(stderr, "vinput-daemon: recording started\n");
+    return DbusService::MethodResult::Success();
+  });
+
+  dbus.SetStartCommandHandler([&](const std::string &selected_text) {
+    if (current_status == Status::Recording) {
+      fprintf(stderr, "vinput-daemon: already recording, ignoring duplicate command start request\n");
+      return DbusService::MethodResult::Failure(
+          "Recording is already in progress.");
+    }
+    current_is_command = true;
+    current_selected_text = selected_text;
+    auto runtime_settings = LoadCoreConfig();
+    capture.SetTargetObject(runtime_settings.captureDevice);
+    if (!capture.BeginRecording()) {
+      current_status = Status::Error;
+      dbus.EmitStatusChanged(StatusToString(Status::Error));
+      fprintf(stderr, "vinput-daemon: failed to start command recording\n");
+      return DbusService::MethodResult::Failure(
+          "Failed to start command recording.");
+    }
+    current_status = Status::Recording;
+    dbus.EmitStatusChanged(StatusToString(Status::Recording));
+    fprintf(stderr,
+            "vinput-daemon: command recording started (selected_text length: "
+            "%zu chars)\n",
+            selected_text.size());
+    return DbusService::MethodResult::Success();
+  });
+
+  dbus.SetStopHandler(
+      [&](const std::string &scene_id) -> DbusService::MethodResult {
+    if (current_status != Status::Recording) {
+      fprintf(stderr, "vinput-daemon: stop requested while not recording (status: %s)\n",
+              StatusToString(current_status.load()));
+      return DbusService::MethodResult::Failure("Recording is not active.");
+    }
+
+    capture.EndRecording();
+    auto pcm = capture.StopAndGetBuffer();
+    if (pcm.empty()) {
+      fprintf(stderr,
+              "vinput-daemon: recording stopped with empty audio buffer\n");
+      current_is_command = false;
+      current_selected_text.clear();
+      current_status = Status::Idle;
+      dbus.EmitStatusChanged(StatusToString(Status::Idle));
+      return DbusService::MethodResult::Success();
+    }
+
+    if (pcm.size() < AsrEngine::kMinSamplesForInference) {
+      fprintf(stderr,
+              "vinput-daemon: recording too short, skipping inference: "
+              "%zu samples (%.1f ms)\n",
+              pcm.size(), static_cast<double>(pcm.size()) * 1000.0 / 16000.0);
+      current_is_command = false;
+      current_selected_text.clear();
+      current_status = Status::Idle;
+      dbus.EmitStatusChanged(StatusToString(Status::Idle));
+      return DbusService::MethodResult::Success();
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(job_mutex);
+      jobs.push_back({std::move(pcm), scene_id, current_is_command,
+                      current_selected_text});
+    }
+    current_is_command = false;
+    current_selected_text.clear();
+    current_status = Status::Inferring;
+    dbus.EmitStatusChanged(StatusToString(Status::Inferring));
+    job_cv.notify_one();
+    fprintf(stderr, "vinput-daemon: recording stopped, queued inference\n");
+    return DbusService::MethodResult::Success();
+  });
+
+  dbus.SetStatusHandler(
+      [&]() -> std::string { return StatusToString(current_status.load()); });
+
+  if (!dbus.Start()) {
+    fprintf(stderr, "vinput-daemon: DBus service start failed, exiting\n");
+    return 1;
+  }
+
+  worker = std::thread([&]() {
     while (worker_running) {
       InferenceJob job;
       {
@@ -185,99 +292,6 @@ int main(int argc, char *argv[]) {
       }
     }
   });
-
-  bool current_is_command = false;
-  std::string current_selected_text;
-
-  dbus.SetStartHandler([&]() {
-    if (current_status == Status::Recording) {
-      fprintf(stderr, "vinput-daemon: already recording, ignoring duplicate start request\n");
-      return;
-    }
-    current_is_command = false;
-    current_selected_text.clear();
-    auto runtime_settings = LoadCoreConfig();
-    capture.SetTargetObject(runtime_settings.captureDevice);
-    if (!capture.BeginRecording()) {
-      current_status = Status::Error;
-      dbus.EmitStatusChanged(StatusToString(Status::Error));
-      fprintf(stderr, "vinput-daemon: failed to start recording\n");
-      return;
-    }
-    current_status = Status::Recording;
-    dbus.EmitStatusChanged(StatusToString(Status::Recording));
-    fprintf(stderr, "vinput-daemon: recording started\n");
-  });
-
-  dbus.SetStartCommandHandler([&](const std::string &selected_text) {
-    if (current_status == Status::Recording) {
-      fprintf(stderr, "vinput-daemon: already recording, ignoring duplicate command start request\n");
-      return;
-    }
-    current_is_command = true;
-    current_selected_text = selected_text;
-    auto runtime_settings = LoadCoreConfig();
-    capture.SetTargetObject(runtime_settings.captureDevice);
-    if (!capture.BeginRecording()) {
-      current_status = Status::Error;
-      dbus.EmitStatusChanged(StatusToString(Status::Error));
-      fprintf(stderr, "vinput-daemon: failed to start command recording\n");
-      return;
-    }
-    current_status = Status::Recording;
-    dbus.EmitStatusChanged(StatusToString(Status::Recording));
-    fprintf(stderr,
-            "vinput-daemon: command recording started (selected_text length: "
-            "%zu chars)\n",
-            selected_text.size());
-  });
-
-  dbus.SetStopHandler([&](const std::string &scene_id) -> std::string {
-    capture.EndRecording();
-    auto pcm = capture.StopAndGetBuffer();
-    if (pcm.empty()) {
-      fprintf(stderr,
-              "vinput-daemon: recording stopped with empty audio buffer\n");
-      current_is_command = false;
-      current_selected_text.clear();
-      current_status = Status::Idle;
-      dbus.EmitStatusChanged(StatusToString(Status::Idle));
-      return "";
-    }
-
-    if (pcm.size() < AsrEngine::kMinSamplesForInference) {
-      fprintf(stderr,
-              "vinput-daemon: recording too short, skipping inference: "
-              "%zu samples (%.1f ms)\n",
-              pcm.size(), static_cast<double>(pcm.size()) * 1000.0 / 16000.0);
-      current_is_command = false;
-      current_selected_text.clear();
-      current_status = Status::Idle;
-      dbus.EmitStatusChanged(StatusToString(Status::Idle));
-      return "";
-    }
-
-    {
-      std::lock_guard<std::mutex> lock(job_mutex);
-      jobs.push_back({std::move(pcm), scene_id, current_is_command,
-                      current_selected_text});
-    }
-    current_is_command = false;
-    current_selected_text.clear();
-    current_status = Status::Inferring;
-    dbus.EmitStatusChanged(StatusToString(Status::Inferring));
-    job_cv.notify_one();
-    fprintf(stderr, "vinput-daemon: recording stopped, queued inference\n");
-    return "";
-  });
-
-  dbus.SetStatusHandler(
-      [&]() -> std::string { return StatusToString(current_status.load()); });
-
-  if (!dbus.Start()) {
-    fprintf(stderr, "vinput-daemon: DBus service start failed, exiting\n");
-    return 1;
-  }
 
   fprintf(stderr, "vinput-daemon: running\n");
 

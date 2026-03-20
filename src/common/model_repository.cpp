@@ -69,6 +69,17 @@ int CurlXferInfoCallback(void *userdata, curl_off_t dltotal, curl_off_t dlnow,
   return 0;
 }
 
+bool IsPathWithinRoot(const fs::path &path, const fs::path &root) {
+  auto path_it = path.begin();
+  auto root_it = root.begin();
+  for (; root_it != root.end(); ++root_it, ++path_it) {
+    if (path_it == path.end() || *path_it != *root_it) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -283,21 +294,49 @@ bool ModelRepository::InstallModel(const std::string &registry_url,
     }
   }
 
-  // Atomic rename to final destination
+  // Replace the destination by rename so the old model stays intact until
+  // the new one is fully extracted and ready.
   const fs::path dest_dir = base_dir_ / model_name;
-  fs::remove_all(dest_dir, ec); // remove existing if any
-  fs::rename(extracted_dir, dest_dir, ec);
-  if (ec) {
-    // rename may fail across filesystems; try copy + remove
-    std::error_code copy_ec;
-    fs::copy(extracted_dir, dest_dir,
-             fs::copy_options::recursive | fs::copy_options::overwrite_existing,
-             copy_ec);
-    if (copy_ec) {
+  const fs::path backup_dir = tmp_dir / "previous-install";
+  std::error_code exists_ec;
+  const bool had_existing = fs::exists(dest_dir, exists_ec);
+  if (exists_ec) {
+    fs::remove_all(tmp_dir, ec);
+    if (error)
+      *error = "failed to inspect existing model installation: " +
+               exists_ec.message();
+    return false;
+  }
+
+  if (had_existing) {
+    fs::rename(dest_dir, backup_dir, ec);
+    if (ec) {
       fs::remove_all(tmp_dir, ec);
-      if (error) *error = "failed to install model: " + copy_ec.message();
+      if (error)
+        *error = "failed to stage existing model for replacement: " +
+                 ec.message();
       return false;
     }
+  }
+
+  fs::rename(extracted_dir, dest_dir, ec);
+  if (ec) {
+    std::string install_error =
+        "failed to activate new model installation: " + ec.message();
+    if (had_existing) {
+      std::error_code rollback_ec;
+      fs::rename(backup_dir, dest_dir, rollback_ec);
+      if (rollback_ec) {
+        if (error) {
+          *error = install_error + "; rollback also failed: " +
+                   rollback_ec.message();
+        }
+        return false;
+      }
+    }
+    fs::remove_all(tmp_dir, ec);
+    if (error) *error = install_error;
+    return false;
   }
 
   // Clean up temp dir
@@ -444,6 +483,7 @@ bool ModelRepository::ExtractArchive(const fs::path &archive,
     return false;
   }
 
+  const fs::path dest_root = fs::weakly_canonical(dest);
   bool success = true;
   struct archive_entry *entry;
   while ((r = archive_read_next_header(a, &entry)) == ARCHIVE_OK) {
@@ -453,6 +493,7 @@ bool ModelRepository::ExtractArchive(const fs::path &archive,
     }
 
     std::string entry_path(raw_path);
+    const mode_t entry_type = archive_entry_filetype(entry);
 
     // Security: reject absolute paths
     if (!entry_path.empty() && entry_path[0] == '/') {
@@ -480,8 +521,45 @@ bool ModelRepository::ExtractArchive(const fs::path &archive,
       }
     }
 
-    // Set the destination path
     const fs::path full_dest = dest / entry_path;
+    if (archive_entry_symlink(entry) != nullptr ||
+        archive_entry_hardlink(entry) != nullptr) {
+      if (error)
+        *error = "archive contains link entry: " + entry_path;
+      success = false;
+      break;
+    }
+
+    if (entry_type != AE_IFREG && entry_type != AE_IFDIR) {
+      if (error)
+        *error = "archive contains unsupported entry type: " + entry_path;
+      success = false;
+      break;
+    }
+
+    std::error_code create_ec;
+    fs::path check_path = full_dest;
+    if (entry_type == AE_IFDIR) {
+      fs::create_directories(full_dest, create_ec);
+    } else {
+      fs::create_directories(full_dest.parent_path(), create_ec);
+      check_path = full_dest.parent_path();
+    }
+    if (create_ec) {
+      if (error)
+        *error = "failed to prepare extraction path: " + create_ec.message();
+      success = false;
+      break;
+    }
+
+    if (!IsPathWithinRoot(fs::weakly_canonical(check_path), dest_root)) {
+      if (error)
+        *error = "archive entry escapes extraction root: " + entry_path;
+      success = false;
+      break;
+    }
+
+    // Set the destination path
     archive_entry_set_pathname(entry, full_dest.c_str());
 
     r = archive_write_header(out, entry);

@@ -782,11 +782,16 @@ void VinputEngine::selectScene(std::size_t index, fcitx::InputContext *ic) {
     return;
   }
 
-  active_scene_id_ = scene_config_.scenes[index].id;
+  const std::string selected_scene_id = scene_config_.scenes[index].id;
   // Persist the active scene to config
   auto core_config = LoadCoreConfig();
-  core_config.scenes.activeScene = active_scene_id_;
-  SaveCoreConfig(core_config);
+  core_config.scenes.activeScene = selected_scene_id;
+  if (!SaveCoreConfig(core_config)) {
+    notifyError(_("Failed to save active scene."));
+    return;
+  }
+  active_scene_id_ = selected_scene_id;
+  scene_config_.activeSceneId = selected_scene_id;
   hideSceneMenu();
   (void)ic;
 }
@@ -1025,16 +1030,24 @@ void VinputEngine::onLlmError(fcitx::dbus::Message &msg) {
     return;
   }
 
+  notifyError(error_message);
+}
+
+void VinputEngine::notifyError(const std::string &message) {
+  if (message.empty()) {
+    return;
+  }
+
   auto *notifications =
       instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
         "fcitx5-vinput", 0, "dialog-error",
-        _("Voice Input"), error_message, std::vector<std::string>{},
+        _("Voice Input"), message, std::vector<std::string>{},
         5000, fcitx::NotificationActionCallback{},
         fcitx::NotificationClosedCallback{});
   } else {
-    fprintf(stderr, "vinput: LLM error: %s\n", error_message.c_str());
+    fprintf(stderr, "vinput: %s\n", message.c_str());
   }
 }
 

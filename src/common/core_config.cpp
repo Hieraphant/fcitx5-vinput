@@ -4,6 +4,7 @@
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <system_error>
 
 #include "common/file_utils.h"
@@ -192,6 +193,21 @@ void from_json(const json &j, CoreConfig &p) {
 
 namespace {
 
+void EnsureBuiltInCommandScene(CoreConfig *config) {
+  if (!config || FindCommandScene(*config)) {
+    return;
+  }
+
+  vinput::scene::Definition cmd;
+  cmd.id = std::string(kCommandSceneId);
+  cmd.label = "Command";
+  cmd.prompt =
+      "Execute the voice command on the given text. "
+      "The command may contain speech recognition errors; infer the intent.";
+  cmd.builtin = true;
+  config->scenes.definitions.push_back(std::move(cmd));
+}
+
 CoreConfig LoadCoreConfigFromFile(const std::filesystem::path &path) {
   CoreConfig config;
   std::ifstream f(path);
@@ -234,18 +250,7 @@ CoreConfig LoadCoreConfig() {
   }
 
   CoreConfig config = LoadCoreConfigFromFile(path);
-
-  // Auto-inject built-in __command__ scene if missing
-  if (!FindCommandScene(config)) {
-    vinput::scene::Definition cmd;
-    cmd.id = std::string(kCommandSceneId);
-    cmd.label = "Command";
-    cmd.prompt =
-        "Execute the voice command on the given text. "
-        "The command may contain speech recognition errors; infer the intent.";
-    cmd.builtin = true;
-    config.scenes.definitions.push_back(std::move(cmd));
-  }
+  EnsureBuiltInCommandScene(&config);
 
   cache.cached = config;
   cache.mtime = mtime;
@@ -274,6 +279,23 @@ bool SaveCoreConfig(const CoreConfig &config) {
       std::cerr << "Failed to write config: " << err << "\n";
       return false;
     }
+
+    CoreConfig cached = config;
+    NormalizeCoreConfig(&cached);
+    EnsureBuiltInCommandScene(&cached);
+
+    auto &cache = GetConfigCache();
+    std::lock_guard<std::mutex> lock(cache.mu);
+    std::filesystem::file_time_type mtime;
+    std::uintmax_t size = 0;
+    if (GetConfigStat(path, &mtime, &size)) {
+      cache.cached = std::move(cached);
+      cache.mtime = mtime;
+      cache.size = size;
+      cache.has_cache = true;
+    } else {
+      cache.has_cache = false;
+    }
     return true;
   } catch (const json::exception &e) {
     std::cerr << "Failed to serialize vinput config: " << e.what() << "\n";
@@ -290,6 +312,41 @@ void NormalizeCoreConfig(CoreConfig *config) {
   if (!config->modelBaseDir.empty()) {
     config->modelBaseDir =
         vinput::path::ExpandUserPath(config->modelBaseDir).string();
+  }
+
+  std::set<std::string> seen_scene_ids;
+  std::vector<vinput::scene::Definition> normalized_scenes;
+  normalized_scenes.reserve(config->scenes.definitions.size());
+  for (auto scene : config->scenes.definitions) {
+    vinput::scene::NormalizeDefinition(&scene);
+
+    std::string error;
+    if (!vinput::scene::ValidateDefinition(scene, &error)) {
+      std::cerr << "Ignoring invalid scene '" << scene.id << "': " << error
+                << "\n";
+      continue;
+    }
+    if (!seen_scene_ids.insert(scene.id).second) {
+      std::cerr << "Ignoring duplicate scene id '" << scene.id << "'\n";
+      continue;
+    }
+
+    normalized_scenes.push_back(std::move(scene));
+  }
+  config->scenes.definitions = std::move(normalized_scenes);
+
+  if (!vinput::scene::Find(vinput::scene::Config{
+                               .activeSceneId = config->scenes.activeScene,
+                               .scenes = config->scenes.definitions},
+                           config->scenes.activeScene)) {
+    for (const auto &scene : config->scenes.definitions) {
+      if (!scene.builtin) {
+        config->scenes.activeScene = scene.id;
+        return;
+      }
+    }
+    config->scenes.activeScene =
+        config->scenes.definitions.empty() ? "" : config->scenes.definitions.front().id;
   }
 }
 

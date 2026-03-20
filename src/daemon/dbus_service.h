@@ -10,6 +10,25 @@
 
 class DbusService {
 public:
+  struct MethodResult {
+    bool ok = true;
+    std::string message;
+    std::string payload;
+
+    static MethodResult Success(std::string payload = {}) {
+      MethodResult result;
+      result.payload = std::move(payload);
+      return result;
+    }
+
+    static MethodResult Failure(std::string message) {
+      MethodResult result;
+      result.ok = false;
+      result.message = std::move(message);
+      return result;
+    }
+  };
+
   DbusService();
   ~DbusService();
 
@@ -22,10 +41,11 @@ public:
   void EmitStatusChanged(const std::string &status);
   void EmitLlmError(const std::string &message);
 
-  void SetStartHandler(std::function<void()> handler);
-  void SetStartCommandHandler(std::function<void(const std::string &)> handler);
+  void SetStartHandler(std::function<MethodResult()> handler);
+  void SetStartCommandHandler(
+      std::function<MethodResult(const std::string &)> handler);
   void SetStopHandler(
-      std::function<std::string(const std::string &scene_id)> handler);
+      std::function<MethodResult(const std::string &scene_id)> handler);
   void SetStatusHandler(std::function<std::string()> handler);
 
   static int handleStartRecording(sd_bus_message *m, void *userdata,
@@ -50,8 +70,8 @@ private:
   std::mutex emit_mutex_;
   std::vector<PendingEmit> emit_queue_;
 
-  std::function<void()> start_handler_;
-  std::function<void(const std::string &)> start_command_handler_;
-  std::function<std::string(const std::string &scene_id)> stop_handler_;
+  std::function<MethodResult()> start_handler_;
+  std::function<MethodResult(const std::string &)> start_command_handler_;
+  std::function<MethodResult(const std::string &scene_id)> stop_handler_;
   std::function<std::string()> status_handler_;
 };

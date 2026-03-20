@@ -1,7 +1,7 @@
 app-id: org.fcitx.Fcitx5.Addon.Vinput
 branch: stable
 runtime: org.fcitx.Fcitx5
-runtime-version: stable
+runtime-version: '@FCITX5_RUNTIME_VERSION@'
 sdk: org.kde.Sdk//6.10
 build-extension: true
 separate-locales: false
@@ -50,4 +50,5 @@ modules:
     sources:
       - type: git
         url: https://github.com/xifan2333/fcitx5-vinput
-        tag: <release-tag>
+        tag: '@VINPUT_RELEASE_TAG@'
+        commit: '@VINPUT_RELEASE_COMMIT@'

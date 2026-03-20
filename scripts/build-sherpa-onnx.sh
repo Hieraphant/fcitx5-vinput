@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Install pre-built sherpa-onnx shared libraries from a local archive or
-# directly from the upstream release.
+# from the upstream release after checksum verification.
 # Usage: build-sherpa-onnx.sh [version] [prefix] [archive_path]
+# Override SHERPA_ONNX_SHA256 when using a version that is not pinned here.
 set -euo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -20,6 +21,17 @@ trap 'rm -rf "${workdir}"' EXIT
 if [[ -z "${archive_path}" ]]; then
     archive_path="${workdir}/${SHERPA_ONNX_ARCHIVE}"
     curl -fL --retry 3 --retry-delay 2 -o "${archive_path}" "${SHERPA_ONNX_URL}"
+fi
+
+if [[ -z "${SHERPA_ONNX_SHA256:-}" ]]; then
+    echo "Missing SHERPA_ONNX_SHA256 for ${SHERPA_ONNX_ARCHIVE}; refusing to extract an unverified archive." >&2
+    exit 1
+fi
+
+actual_sha256="$(sha256sum "${archive_path}" | awk '{print $1}')"
+if [[ "${actual_sha256}" != "${SHERPA_ONNX_SHA256}" ]]; then
+    echo "Checksum mismatch for ${archive_path}: expected ${SHERPA_ONNX_SHA256}, got ${actual_sha256}" >&2
+    exit 1
 fi
 
 tar -xjf "${archive_path}" -C "${workdir}"

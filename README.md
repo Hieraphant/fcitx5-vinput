@@ -64,10 +64,15 @@ sudo apt-get install -f
 **Dependencies:** `cmake` `fcitx5` `sherpa-onnx` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
 
 ```bash
+sudo bash scripts/build-sherpa-onnx.sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 sudo cmake --install build
 ```
+
+If `sherpa-onnx` is already installed system-wide on your machine, you can skip
+the first step. The local and CI builds are intended to use the same
+system-level dependency layout.
 
 ## Quick Start
 
@@ -220,6 +225,11 @@ The `default` scene calls LLM like any other scene (when enabled). To bypass LLM
 ## Command Mode
 
 Select text → hold command key → speak your instruction → release → done.
+
+If there is no active surrounding-text selection, command mode falls back to
+the current primary-selection clipboard text. That keeps the workflow
+convenient, but it also means stale or unrelated selected text may be sent into
+the command rewrite flow if your primary selection is not what you expect.
 
 **Examples:**
 - Select Chinese text → say *"translate to English"* → replaced with translation

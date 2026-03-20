@@ -50,7 +50,9 @@ std::string CommandKeysLabel() { return _("Command Keys"); }
 
 std::string CommandKeysTooltip() {
   return _("Press and hold this key to record a voice command to operate on "
-           "the selected text. Default is Right Control.");
+           "the selected text. If there is no active selection, vinput falls "
+           "back to the current primary-selection clipboard text. Default is "
+           "Right Control.");
 }
 
 std::string SceneMenuKeyLabel() { return _("Postprocess Menu Keys"); }
