@@ -38,7 +38,7 @@ jobs:
             qtbase5-dev \
             qttools5-dev
 
-      - name: Build sherpa-onnx from source
+      - name: Install pre-built sherpa-onnx
         run: sudo bash scripts/build-sherpa-onnx.sh && sudo ldconfig
 
       - name: Configure

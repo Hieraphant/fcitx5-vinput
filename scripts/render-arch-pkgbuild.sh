@@ -15,6 +15,8 @@ pkgrel=${5:-1}
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "${script_dir}/.." && pwd)
 default_pkgurl="https://github.com/OWNER/REPO"
+# shellcheck source=./sherpa-onnx-vars.sh
+source "${script_dir}/sherpa-onnx-vars.sh"
 
 if origin_url=$(git -C "${repo_root}" remote get-url origin 2>/dev/null); then
     case "${origin_url}" in
@@ -35,6 +37,7 @@ source_sha256=$(sha256sum "${source_archive}" | awk '{print $1}')
 mkdir -p "$(dirname "${output_path}")"
 
 sed \
+    -e "s|@SHERPA_ONNX_VERSION@|${SHERPA_ONNX_VERSION}|g" \
     -e "s|@VINPUT_PKGVER@|${pkgver}|g" \
     -e "s|@VINPUT_PKGREL@|${pkgrel}|g" \
     -e "s|@VINPUT_PKGURL@|${pkgurl}|g" \

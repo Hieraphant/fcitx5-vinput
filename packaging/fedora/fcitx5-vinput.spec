@@ -1,4 +1,4 @@
-%global sherpa_onnx_ver 1.12.28
+%global sherpa_onnx_ver @SHERPA_ONNX_VERSION@
 
 Name:           fcitx5-vinput
 Version:        @VINPUT_VERSION@

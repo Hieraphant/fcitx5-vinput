@@ -83,7 +83,7 @@ jobs:
           name: source-archive
           path: dist
 
-      - name: Build sherpa-onnx from source
+      - name: Install pre-built sherpa-onnx
         run: |
           tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
           sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
@@ -156,7 +156,7 @@ jobs:
           name: source-archive
           path: dist
 
-      - name: Build sherpa-onnx from source
+      - name: Install pre-built sherpa-onnx
         run: |
           tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
           bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
@@ -351,19 +351,17 @@ jobs:
         shell: bash
         run: |
           version="${{ needs.source_archive.outputs.package_version }}"
-          sherpa_version="$(sed -n 's/^%global sherpa_onnx_ver //p' packaging/fedora/fcitx5-vinput.spec)"
-          if [[ -z "${sherpa_version}" ]]; then
-            echo "Failed to read sherpa-onnx version from packaging/fedora/fcitx5-vinput.spec" >&2
-            exit 1
-          fi
-          sherpa_archive="sherpa-onnx-v${sherpa_version}-linux-x64-shared-no-tts.tar.bz2"
+          source ./scripts/sherpa-onnx-vars.sh
           mkdir -p "${HOME}/rpmbuild/"{SOURCES,SPECS}
           cp dist/${{ needs.source_archive.outputs.source_archive }} "${HOME}/rpmbuild/SOURCES/"
           curl -fL --retry 3 --retry-delay 2 \
-            -o "${HOME}/rpmbuild/SOURCES/${sherpa_archive}" \
-            "https://github.com/k2-fsa/sherpa-onnx/releases/download/v${sherpa_version}/${sherpa_archive}"
+            -o "${HOME}/rpmbuild/SOURCES/${SHERPA_ONNX_ARCHIVE}" \
+            "${SHERPA_ONNX_URL}"
 
-          sed "s/@VINPUT_VERSION@/${version}/" packaging/fedora/fcitx5-vinput.spec \
+          sed \
+            -e "s/@VINPUT_VERSION@/${version}/g" \
+            -e "s/@SHERPA_ONNX_VERSION@/${SHERPA_ONNX_VERSION}/g" \
+            packaging/fedora/fcitx5-vinput.spec \
             > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
 
           rpmbuild -bs "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec" \
