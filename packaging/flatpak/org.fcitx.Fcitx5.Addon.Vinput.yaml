@@ -18,28 +18,19 @@ cleanup:
   - /lib/pkgconfig
 modules:
   - name: sherpa-onnx
-    buildsystem: cmake-ninja
-    build-options:
-      build-args:
-        - --share=network
-    config-opts:
-      - -DCMAKE_BUILD_TYPE=Release
-      - -DSHERPA_ONNX_ENABLE_TESTS=OFF
-      - -DSHERPA_ONNX_ENABLE_PYTHON=OFF
-      - -DSHERPA_ONNX_ENABLE_C_API=ON
-      - -DSHERPA_ONNX_ENABLE_BINARY=OFF
-      - -DSHERPA_ONNX_ENABLE_TTS=OFF
-      - -DSHERPA_ONNX_ENABLE_SPEAKER_DIARIZATION=OFF
-      - -DBUILD_SHARED_LIBS=ON
+    buildsystem: simple
+    build-commands:
+      - install -d ${FLATPAK_DEST}/lib ${FLATPAK_DEST}/include/sherpa-onnx/c-api
+      - install -m 755 lib/*.so ${FLATPAK_DEST}/lib/
+      - install -m 644 include/sherpa-onnx/c-api/*.h ${FLATPAK_DEST}/include/sherpa-onnx/c-api/
     sources:
       - type: archive
-        url: https://github.com/k2-fsa/sherpa-onnx/archive/refs/tags/v1.12.28.tar.gz
-        sha256: 99bbeb2a1558cc13f24d1af03c040c1f499f425916ffed9a734a38a434bdb899
+        url: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.28/sherpa-onnx-v1.12.28-linux-x64-shared-no-tts.tar.bz2
+        sha256: 4f1ad4ba5c80271f55b1ec6f0a93083aa1588a86ab1491153e48064f4ed3870b
   - name: fcitx5-vinput
     buildsystem: cmake-ninja
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
-      - -DUSE_SYSTEM_SHERPA_ONNX=ON
     sources:
       - type: git
         url: https://github.com/xifan2333/fcitx5-vinput
