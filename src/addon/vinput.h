@@ -92,6 +92,7 @@ private:
   vinput::scene::Config scene_config_;
   std::vector<vinput::result::Candidate> result_candidates_;
   bool result_is_command_ = false;
+  std::chrono::steady_clock::time_point last_trigger_time_;
   std::unique_ptr<fcitx::EventSourceTime> pending_stop_event_;
   VinputSettings settings_;
   mutable std::unique_ptr<VinputConfig> ui_config_;

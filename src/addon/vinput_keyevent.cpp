@@ -15,8 +15,9 @@
 
 namespace {
 
-constexpr auto kReleaseDebounce = std::chrono::milliseconds(40);
+constexpr auto kReleaseDebounce = std::chrono::milliseconds(500);
 constexpr auto kToggleThreshold = std::chrono::milliseconds(300);
+constexpr auto kTriggerDebounce = std::chrono::milliseconds(80);
 
 std::string RecordingPreeditText() { return _("... Recording ..."); }
 
@@ -66,6 +67,13 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
                    << " is_command=" << is_command;
 
   if ((is_trigger || is_command) && !keyEvent.isRelease()) {
+    auto now = std::chrono::steady_clock::now();
+    if (now - last_trigger_time_ < kTriggerDebounce) {
+      keyEvent.filterAndAccept();
+      return;
+    }
+    last_trigger_time_ = now;
+
     cancelPendingStop();
     if (session_ && session_->phase == Session::Phase::Recording) {
       finishStopRecording();
@@ -151,7 +159,7 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       keyEvent.isRelease() && isReleaseOfActiveTrigger(keyEvent.key())) {
     auto held = std::chrono::steady_clock::now() - session_->press_time;
     if (held >= kToggleThreshold) {
-      finishStopRecording();
+      scheduleStopRecording();
     }
     keyEvent.filterAndAccept();
     return;
