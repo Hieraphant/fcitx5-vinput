@@ -4,6 +4,9 @@ find_package(Fcitx5ModuleNotifications REQUIRED)
 
 add_library(fcitx5-vinput MODULE
     vinput.cpp
+    vinput_keyevent.cpp
+    vinput_menu.cpp
+    vinput_dbus.cpp
 )
 
 find_package(Fcitx5Core REQUIRED)

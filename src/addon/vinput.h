@@ -7,7 +7,9 @@
 #include <fcitx/addonmanager.h>
 #include <fcitx/instance.h>
 
+#include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -62,10 +64,15 @@ private:
   std::unique_ptr<fcitx::dbus::Slot> result_slot_;
   std::unique_ptr<fcitx::dbus::Slot> status_slot_;
   std::unique_ptr<fcitx::dbus::Slot> error_slot_;
-  bool recording_ = false;
-  bool command_mode_ = false;
-  bool awaiting_result_ = false;
-  fcitx::InputContext *active_ic_ = nullptr;
+  struct Session {
+    enum class Phase { Recording, Busy };
+    Phase phase;
+    fcitx::InputContext *ic;
+    fcitx::Key trigger;
+    std::chrono::steady_clock::time_point press_time;
+    bool command_mode = false;
+  };
+  std::optional<Session> session_;
   fcitx::InputContext *scene_menu_ic_ = nullptr;
   fcitx::InputContext *result_menu_ic_ = nullptr;
   fcitx::KeyList trigger_keys_{fcitx::Key(FcitxKey_Control_R)};
@@ -79,13 +86,12 @@ private:
       fcitx::Key(FcitxKey_Page_Down),
       fcitx::Key(FcitxKey_KP_Page_Down),
   };
-  fcitx::Key active_trigger_;
-  std::chrono::steady_clock::time_point press_time_;
   bool scene_menu_visible_ = false;
   bool result_menu_visible_ = false;
   std::string active_scene_id_;
   vinput::scene::Config scene_config_;
   std::vector<vinput::result::Candidate> result_candidates_;
+  bool result_is_command_ = false;
   std::unique_ptr<fcitx::EventSourceTime> pending_stop_event_;
   VinputSettings settings_;
   mutable std::unique_ptr<VinputConfig> ui_config_;

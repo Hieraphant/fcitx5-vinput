@@ -15,8 +15,8 @@
 #include <condition_variable>
 #include <cstdio>
 #include <cstring>
-#include <deque>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -109,65 +109,80 @@ int main(int argc, char *argv[]) {
   using vinput::dbus::Status;
   using vinput::dbus::StatusToString;
 
-  std::atomic<Status> current_status{Status::Idle};
-
-  struct InferenceJob {
+  // --- Single-slot state (all protected by state_mutex) ---
+  struct Order {
     std::vector<int16_t> pcm;
     std::string scene_id;
     bool is_command = false;
     std::string selected_text;
   };
 
-  std::mutex job_mutex;
-  std::condition_variable job_cv;
-  std::deque<InferenceJob> jobs;
-  std::atomic<bool> worker_running{true};
-
-  std::thread worker;
-
+  std::mutex state_mutex;
+  std::condition_variable worker_cv;
+  Status phase{Status::Idle};
+  std::optional<Order> current_order;
   bool current_is_command = false;
   std::string current_selected_text;
+  std::atomic<bool> worker_running{true};
+  std::thread worker;
+
+  // Helper: set phase under lock, emit outside lock
+  auto setPhase = [&](Status new_phase) {
+    {
+      std::lock_guard<std::mutex> lock(state_mutex);
+      phase = new_phase;
+    }
+    dbus.EmitStatusChanged(StatusToString(new_phase));
+  };
+
+  auto resetToIdle = [&]() {
+    {
+      std::lock_guard<std::mutex> lock(state_mutex);
+      phase = Status::Idle;
+      current_order.reset();
+    }
+    dbus.EmitStatusChanged(StatusToString(Status::Idle));
+    fprintf(stderr, "vinput-daemon: phase -> idle\n");
+  };
 
   dbus.SetStartHandler([&]() {
-    if (current_status == Status::Recording) {
-      fprintf(stderr, "vinput-daemon: already recording, ignoring duplicate start request\n");
-      return DbusService::MethodResult::Failure(
-          "Recording is already in progress.");
+    std::lock_guard<std::mutex> lock(state_mutex);
+    if (phase != Status::Idle) {
+      fprintf(stderr, "vinput-daemon: start rejected (phase: %s)\n",
+              StatusToString(phase));
+      return DbusService::MethodResult::Failure("Daemon is busy.");
     }
     current_is_command = false;
     current_selected_text.clear();
     auto runtime_settings = LoadCoreConfig();
     capture.SetTargetObject(runtime_settings.captureDevice);
     if (!capture.BeginRecording()) {
-      current_status = Status::Error;
-      dbus.EmitStatusChanged(StatusToString(Status::Error));
       fprintf(stderr, "vinput-daemon: failed to start recording\n");
       return DbusService::MethodResult::Failure("Failed to start recording.");
     }
-    current_status = Status::Recording;
+    phase = Status::Recording;
     dbus.EmitStatusChanged(StatusToString(Status::Recording));
     fprintf(stderr, "vinput-daemon: recording started\n");
     return DbusService::MethodResult::Success();
   });
 
   dbus.SetStartCommandHandler([&](const std::string &selected_text) {
-    if (current_status == Status::Recording) {
-      fprintf(stderr, "vinput-daemon: already recording, ignoring duplicate command start request\n");
-      return DbusService::MethodResult::Failure(
-          "Recording is already in progress.");
+    std::lock_guard<std::mutex> lock(state_mutex);
+    if (phase != Status::Idle) {
+      fprintf(stderr, "vinput-daemon: command start rejected (phase: %s)\n",
+              StatusToString(phase));
+      return DbusService::MethodResult::Failure("Daemon is busy.");
     }
     current_is_command = true;
     current_selected_text = selected_text;
     auto runtime_settings = LoadCoreConfig();
     capture.SetTargetObject(runtime_settings.captureDevice);
     if (!capture.BeginRecording()) {
-      current_status = Status::Error;
-      dbus.EmitStatusChanged(StatusToString(Status::Error));
       fprintf(stderr, "vinput-daemon: failed to start command recording\n");
       return DbusService::MethodResult::Failure(
           "Failed to start command recording.");
     }
-    current_status = Status::Recording;
+    phase = Status::Recording;
     dbus.EmitStatusChanged(StatusToString(Status::Recording));
     fprintf(stderr,
             "vinput-daemon: command recording started (selected_text length: "
@@ -178,9 +193,10 @@ int main(int argc, char *argv[]) {
 
   dbus.SetStopHandler(
       [&](const std::string &scene_id) -> DbusService::MethodResult {
-    if (current_status != Status::Recording) {
-      fprintf(stderr, "vinput-daemon: stop requested while not recording (status: %s)\n",
-              StatusToString(current_status.load()));
+    std::lock_guard<std::mutex> lock(state_mutex);
+    if (phase != Status::Recording) {
+      fprintf(stderr, "vinput-daemon: stop rejected (phase: %s)\n",
+              StatusToString(phase));
       return DbusService::MethodResult::Failure("Recording is not active.");
     }
 
@@ -189,10 +205,10 @@ int main(int argc, char *argv[]) {
     if (pcm.empty()) {
       fprintf(stderr,
               "vinput-daemon: recording stopped with empty audio buffer\n");
-      current_is_command = false;
-      current_selected_text.clear();
-      current_status = Status::Idle;
+      phase = Status::Idle;
+      current_order.reset();
       dbus.EmitStatusChanged(StatusToString(Status::Idle));
+      fprintf(stderr, "vinput-daemon: phase -> idle\n");
       return DbusService::MethodResult::Success();
     }
 
@@ -201,29 +217,28 @@ int main(int argc, char *argv[]) {
               "vinput-daemon: recording too short, skipping inference: "
               "%zu samples (%.1f ms)\n",
               pcm.size(), static_cast<double>(pcm.size()) * 1000.0 / 16000.0);
-      current_is_command = false;
-      current_selected_text.clear();
-      current_status = Status::Idle;
+      phase = Status::Idle;
+      current_order.reset();
       dbus.EmitStatusChanged(StatusToString(Status::Idle));
+      fprintf(stderr, "vinput-daemon: phase -> idle\n");
       return DbusService::MethodResult::Success();
     }
 
-    {
-      std::lock_guard<std::mutex> lock(job_mutex);
-      jobs.push_back({std::move(pcm), scene_id, current_is_command,
-                      current_selected_text});
-    }
+    current_order = Order{std::move(pcm), scene_id, current_is_command,
+                          current_selected_text};
     current_is_command = false;
     current_selected_text.clear();
-    current_status = Status::Inferring;
+    phase = Status::Inferring;
     dbus.EmitStatusChanged(StatusToString(Status::Inferring));
-    job_cv.notify_one();
+    worker_cv.notify_one();
     fprintf(stderr, "vinput-daemon: recording stopped, queued inference\n");
     return DbusService::MethodResult::Success();
   });
 
-  dbus.SetStatusHandler(
-      [&]() -> std::string { return StatusToString(current_status.load()); });
+  dbus.SetStatusHandler([&]() -> std::string {
+    std::lock_guard<std::mutex> lock(state_mutex);
+    return StatusToString(phase);
+  });
 
   if (!dbus.Start()) {
     fprintf(stderr, "vinput-daemon: DBus service start failed, exiting\n");
@@ -232,95 +247,83 @@ int main(int argc, char *argv[]) {
 
   worker = std::thread([&]() {
     while (worker_running) {
-      InferenceJob job;
+      Order order;
       {
-        std::unique_lock<std::mutex> lock(job_mutex);
-        job_cv.wait(lock,
-                    [&]() { return !jobs.empty() || !worker_running.load(); });
-        if (!worker_running && jobs.empty()) {
+        std::unique_lock<std::mutex> lock(state_mutex);
+        worker_cv.wait(lock, [&]() {
+          return current_order.has_value() || !worker_running.load();
+        });
+        if (!worker_running && !current_order.has_value()) {
           break;
         }
-        job = std::move(jobs.front());
-        jobs.pop_front();
+        order = std::move(*current_order);
       }
 
-      current_status = Status::Inferring;
-      dbus.EmitStatusChanged(StatusToString(Status::Inferring));
-
-      std::string text;
-      if (!disable_asr) {
-        LogAsrRequest(startup_settings, job.pcm.size());
-        auto asr_result = asr->Infer(job.pcm);
-        if (!asr_result.ok && !asr_result.error.empty()) {
-          fprintf(stderr, "vinput-daemon: ASR provider error: %s\n",
-                  asr_result.error.c_str());
-          dbus.EmitError(asr_result.error);
+      try {
+        std::string text;
+        if (!disable_asr) {
+          LogAsrRequest(startup_settings, order.pcm.size());
+          auto asr_result = asr->Infer(order.pcm);
+          if (!asr_result.ok && !asr_result.error.empty()) {
+            fprintf(stderr, "vinput-daemon: ASR provider error: %s\n",
+                    asr_result.error.c_str());
+            dbus.EmitError(asr_result.error);
+          }
+          text = std::move(asr_result.text);
         }
-        text = std::move(asr_result.text);
-      }
 
-      vinput::result::Payload result;
-      if (!text.empty()) {
-        auto runtime_settings = LoadCoreConfig();
-        NormalizeCoreConfig(&runtime_settings);
-        vinput::scene::Config scene_config;
-        scene_config.activeSceneId = runtime_settings.scenes.activeScene;
-        scene_config.scenes = runtime_settings.scenes.definitions;
-        if (job.is_command) {
-          const auto *cmd_scene = FindCommandScene(runtime_settings);
-          if (cmd_scene &&
-              cmd_scene->candidate_count > 0 &&
-              !cmd_scene->provider_id.empty()) {
-            current_status = Status::Postprocessing;
-            dbus.EmitStatusChanged(StatusToString(Status::Postprocessing));
+        vinput::result::Payload result;
+        if (!text.empty()) {
+          auto runtime_settings = LoadCoreConfig();
+          NormalizeCoreConfig(&runtime_settings);
+          vinput::scene::Config scene_config;
+          scene_config.activeSceneId = runtime_settings.scenes.activeScene;
+          scene_config.scenes = runtime_settings.scenes.definitions;
+          if (order.is_command) {
+            const auto *cmd_scene = FindCommandScene(runtime_settings);
+            if (cmd_scene && cmd_scene->candidate_count > 0 &&
+                !cmd_scene->provider_id.empty()) {
+              setPhase(Status::Postprocessing);
+            }
+            vinput::scene::Definition fallback_cmd;
+            fallback_cmd.id = std::string(vinput::scene::kCommandSceneId);
+            fallback_cmd.builtin = true;
+            const auto &command_scene = cmd_scene ? *cmd_scene : fallback_cmd;
+            std::string llm_error;
+            result = post_processor.ProcessCommand(
+                text, order.selected_text, command_scene, runtime_settings,
+                &llm_error);
+            if (!llm_error.empty()) {
+              dbus.EmitError(llm_error);
+            }
+          } else {
+            const auto &scene =
+                vinput::scene::Resolve(scene_config, order.scene_id);
+            if (scene.candidate_count > 0 && !scene.provider_id.empty() &&
+                !scene.prompt.empty()) {
+              setPhase(Status::Postprocessing);
+            }
+            std::string llm_error;
+            result = post_processor.Process(text, scene, runtime_settings,
+                                            &llm_error);
+            if (!llm_error.empty()) {
+              dbus.EmitError(llm_error);
+            }
           }
-          vinput::scene::Definition fallback_cmd;
-          fallback_cmd.id = std::string(vinput::scene::kCommandSceneId);
-          fallback_cmd.builtin = true;
-          const auto &command_scene = cmd_scene ? *cmd_scene : fallback_cmd;
-          std::string llm_error;
-          result = post_processor.ProcessCommand(text, job.selected_text,
-                                                 command_scene,
-                                                 runtime_settings, &llm_error);
-          if (!llm_error.empty()) {
-            dbus.EmitError(llm_error);
-          }
-          text = result.commitText;
-        } else {
-          const auto &scene =
-              vinput::scene::Resolve(scene_config, job.scene_id);
-          if (scene.candidate_count > 0 &&
-              !scene.provider_id.empty() &&
-              !scene.prompt.empty()) {
-            current_status = Status::Postprocessing;
-            dbus.EmitStatusChanged(StatusToString(Status::Postprocessing));
-          }
-          std::string llm_error;
-          result = post_processor.Process(text, scene, runtime_settings,
-                                          &llm_error);
-          if (!llm_error.empty()) {
-            dbus.EmitError(llm_error);
-          }
-          text = result.commitText;
         }
-      }
 
-      if (!text.empty()) {
         dbus.EmitRecognitionResult(vinput::result::Serialize(result));
+
+      } catch (const std::exception &e) {
+        fprintf(stderr, "vinput-daemon: worker exception: %s\n", e.what());
+        dbus.EmitError(e.what());
+      } catch (...) {
+        fprintf(stderr, "vinput-daemon: worker unknown exception\n");
+        dbus.EmitError("Unknown error during processing");
       }
 
-      bool has_more = false;
-      {
-        std::lock_guard<std::mutex> lock(job_mutex);
-        has_more = !jobs.empty();
-      }
-      if (!has_more) {
-        current_status = Status::Idle;
-        dbus.EmitStatusChanged(StatusToString(Status::Idle));
-      } else {
-        current_status = Status::Inferring;
-        dbus.EmitStatusChanged(StatusToString(Status::Inferring));
-      }
+      // No matter what, release the slot
+      resetToIdle();
     }
   });
 
@@ -356,8 +359,11 @@ int main(int argc, char *argv[]) {
   }
 
   fprintf(stderr, "vinput-daemon: shutting down\n");
-  worker_running = false;
-  job_cv.notify_all();
+  {
+    std::lock_guard<std::mutex> lock(state_mutex);
+    worker_running = false;
+  }
+  worker_cv.notify_all();
   if (worker.joinable()) {
     worker.join();
   }
