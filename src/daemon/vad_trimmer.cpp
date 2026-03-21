@@ -2,6 +2,7 @@
 
 #include <sherpa-onnx/c-api/c-api.h>
 
+#include <algorithm>
 #include <cstdio>
 
 VadTrimmer::VadTrimmer() = default;
@@ -60,13 +61,17 @@ std::vector<float> VadTrimmer::Trim(const std::vector<float> &samples,
   }
   SherpaOnnxVoiceActivityDetectorFlush(vad_);
 
-  // Collect all speech segments
+  // Collect all speech segments with padding from original audio
+  constexpr int kPaddingSamples = 3200;  // 200ms @ 16kHz
   std::vector<float> result;
   while (!SherpaOnnxVoiceActivityDetectorEmpty(vad_)) {
     const SherpaOnnxSpeechSegment *seg =
         SherpaOnnxVoiceActivityDetectorFront(vad_);
-    if (seg && seg->samples && seg->n > 0) {
-      result.insert(result.end(), seg->samples, seg->samples + seg->n);
+    if (seg && seg->n > 0) {
+      int start = std::max(0, static_cast<int>(seg->start) - kPaddingSamples);
+      int end = std::min(n, static_cast<int>(seg->start) + static_cast<int>(seg->n) + kPaddingSamples);
+      result.insert(result.end(), samples.begin() + start,
+                    samples.begin() + end);
     }
     if (seg) {
       SherpaOnnxDestroySpeechSegment(seg);
