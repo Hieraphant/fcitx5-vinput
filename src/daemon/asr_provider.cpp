@@ -1,8 +1,8 @@
 #include "asr_provider.h"
 
 #include "asr_engine.h"
+#include "common/asr_provider_script.h"
 #include "common/asr_defaults.h"
-#include "common/extension_manager.h"
 #include "common/model_manager.h"
 #include "common/process_utils.h"
 
@@ -146,10 +146,10 @@ public:
         command_.command.rfind(".", 0) != 0 &&
         command_.command.rfind("~", 0) != 0) {
       std::string resolve_error;
-      auto extension_path = vinput::extension::ResolveCommandPath(
-          command_.command, vinput::extension::Type::kAsr, &resolve_error);
-      if (extension_path.has_value()) {
-        command_.command = extension_path->string();
+      auto script_path =
+          vinput::asr::script::ResolvePath(command_.command, &resolve_error);
+      if (script_path.has_value()) {
+        command_.command = script_path->string();
       }
     }
 

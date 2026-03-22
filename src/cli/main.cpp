@@ -9,8 +9,8 @@
 #include "cli/command_device.h"
 #include "cli/command_hotword.h"
 #include "cli/command_init.h"
+#include "cli/command_adaptor.h"
 #include "cli/command_asr.h"
-#include "cli/command_extension.h"
 #include "cli/command_llm.h"
 #include "cli/command_model.h"
 #include "cli/command_recording.h"
@@ -177,27 +177,26 @@ int main(int argc, char *argv[]) {
       asr_cmd->add_subcommand("edit", _("Open an external ASR provider script"));
   asr_edit->add_option("name", asr_edit_name, _("Provider name"))->required();
 
-  // ---- extension subcommand ----
-  auto *extension_cmd =
-      app.add_subcommand("extension", _("Manage built-in and user extensions"));
-  extension_cmd->alias("ext");
-  extension_cmd->require_subcommand(1);
+  // ---- adaptor subcommand ----
+  auto *adaptor_cmd =
+      app.add_subcommand("adaptor", _("Manage built-in and user LLM adaptors"));
+  adaptor_cmd->require_subcommand(1);
 
-  auto *extension_list =
-      extension_cmd->add_subcommand("list", _("List available extensions"));
-  extension_list->alias("ls");
+  auto *adaptor_list =
+      adaptor_cmd->add_subcommand("list", _("List available LLM adaptors"));
+  adaptor_list->alias("ls");
 
-  std::string extension_start_name;
-  auto *extension_start =
-      extension_cmd->add_subcommand("start", _("Start an LLM extension"));
-  extension_start->add_option("name", extension_start_name,
-                              _("Extension ID"))->required();
+  std::string adaptor_start_name;
+  auto *adaptor_start =
+      adaptor_cmd->add_subcommand("start", _("Start an LLM adaptor"));
+  adaptor_start->add_option("name", adaptor_start_name,
+                            _("Adaptor ID"))->required();
 
-  std::string extension_stop_name;
-  auto *extension_stop =
-      extension_cmd->add_subcommand("stop", _("Stop an LLM extension"));
-  extension_stop->add_option("name", extension_stop_name,
-                             _("Extension ID"))->required();
+  std::string adaptor_stop_name;
+  auto *adaptor_stop =
+      adaptor_cmd->add_subcommand("stop", _("Stop an LLM adaptor"));
+  adaptor_stop->add_option("name", adaptor_stop_name,
+                           _("Adaptor ID"))->required();
 
   // ---- config subcommand ----
   auto *config_cmd =
@@ -378,13 +377,13 @@ int main(int argc, char *argv[]) {
     return RunAsrEdit(asr_edit_name, *fmt, ctx);
   }
 
-  // extension
-  else if (extension_list->parsed()) {
-    return RunExtensionList(*fmt, ctx);
-  } else if (extension_start->parsed()) {
-    return RunExtensionStart(extension_start_name, *fmt, ctx);
-  } else if (extension_stop->parsed()) {
-    return RunExtensionStop(extension_stop_name, *fmt, ctx);
+  // adaptor
+  else if (adaptor_list->parsed()) {
+    return RunAdaptorList(*fmt, ctx);
+  } else if (adaptor_start->parsed()) {
+    return RunAdaptorStart(adaptor_start_name, *fmt, ctx);
+  } else if (adaptor_stop->parsed()) {
+    return RunAdaptorStop(adaptor_stop_name, *fmt, ctx);
   }
 
   // hotword

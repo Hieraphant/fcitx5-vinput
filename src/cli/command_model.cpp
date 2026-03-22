@@ -15,6 +15,7 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
+    const auto registry_urls = ResolveRegistryUrls(config);
     ModelManager mgr(base_dir.string());
     const std::string active_model = ResolvePreferredBuiltinModel(config);
 
@@ -62,14 +63,14 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     }
 
     // Remote listing
-    if (config.registryUrl.empty()) {
-        fmt.PrintError(_("No registry URL configured. Set with: vinput config set extra.registry_url <url>"));
+    if (registry_urls.empty()) {
+        fmt.PrintError(_("No registry sources configured. Edit config.json and set registry.sources."));
         return 1;
     }
 
     ModelRepository repo(base_dir.string());
     std::string err;
-    auto remote_models = repo.FetchRegistry(config.registryUrl, &err);
+    auto remote_models = repo.FetchRegistry(registry_urls, &err);
     if (!err.empty()) {
         fmt.PrintError(err);
         return 1;
@@ -118,9 +119,10 @@ int RunModelAdd(const std::string& name, Formatter& fmt, const CliContext& ctx) 
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
+    const auto registry_urls = ResolveRegistryUrls(config);
 
-    if (config.registryUrl.empty()) {
-        fmt.PrintError(_("No registry URL configured. Set with: vinput config set extra.registry_url <url>"));
+    if (registry_urls.empty()) {
+        fmt.PrintError(_("No registry sources configured. Edit config.json and set registry.sources."));
         return 1;
     }
 
@@ -128,7 +130,7 @@ int RunModelAdd(const std::string& name, Formatter& fmt, const CliContext& ctx) 
 
     // Fetch registry first to get total size for progress bar
     std::string err;
-    auto remote_models = repo.FetchRegistry(config.registryUrl, &err);
+    auto remote_models = repo.FetchRegistry(registry_urls, &err);
     if (!err.empty()) {
         fmt.PrintError(err);
         return 1;
@@ -147,7 +149,7 @@ int RunModelAdd(const std::string& name, Formatter& fmt, const CliContext& ctx) 
     ProgressBar bar(label_buf, total_size, ctx.is_tty);
 
     bool install_ok = repo.InstallModel(
-        config.registryUrl, name,
+        registry_urls, name,
         [&](const InstallProgress& p) {
             bar.Update(p.downloaded_bytes, p.speed_bps);
         },

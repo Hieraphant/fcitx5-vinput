@@ -12,9 +12,6 @@ constexpr int kDefaultCandidateCount = 1;
 constexpr int kDefaultTimeoutMs = 4000;
 constexpr std::string_view kRawSceneId = "__raw__";
 constexpr std::string_view kCommandSceneId = "__command__";
-inline constexpr char kBuiltinCommandScenePrompt[] =
-    "Execute the voice command on the given text. "
-    "The command may contain speech recognition errors; infer the intent.";
 
 struct Definition {
   std::string id;

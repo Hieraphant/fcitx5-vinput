@@ -50,6 +50,11 @@ private slots:
   void onLlmEdit();
   void onLlmRemove();
 
+  // LLM Adaptor Management
+  void onAdaptorEdit();
+  void onAdaptorStart();
+  void onAdaptorStop();
+
   // ASR Provider Management
   void onAsrAdd();
   void onAsrEdit();
@@ -71,10 +76,11 @@ private:
   void setupModelTab();
   void setupSceneTab();
   void setupLlmTab();
-  void setupAsrTab();
+  void setupAdaptorTab();
   void setupHotwordTab();
   void refreshSceneList();
   void refreshLlmList();
+  void refreshAdaptorList();
   void refreshAsrList();
 
   QTabWidget *tabWidget;
@@ -82,12 +88,11 @@ private:
   QWidget *modelTab;
   QWidget *sceneTab;
   QWidget *llmTab;
-  QWidget *asrTab;
+  QWidget *adaptorTab;
   QWidget *hotwordTab;
 
   // General Tab
   QComboBox *comboDevice;
-  QComboBox *comboModel;
   QComboBox *comboActiveScene;
   QPushButton *btnOpenConfig;
   QPushButton *btnSave;
@@ -113,6 +118,13 @@ private:
   QPushButton *btnLlmAdd;
   QPushButton *btnLlmEdit;
   QPushButton *btnLlmRemove;
+
+  // Adaptor Tab
+  QListWidget *listAdaptors;
+  QPushButton *btnAdaptorEdit;
+  QPushButton *btnAdaptorStart;
+  QPushButton *btnAdaptorStop;
+  QPushButton *btnAdaptorRefresh;
 
   // ASR Tab
   QListWidget *listAsrProviders;

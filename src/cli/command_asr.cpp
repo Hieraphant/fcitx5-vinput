@@ -3,9 +3,9 @@
 #include "cli/cli_helpers.h"
 #include "cli/editor_utils.h"
 #include "cli/systemd_client.h"
+#include "common/asr_provider_script.h"
 #include "common/asr_defaults.h"
 #include "common/core_config.h"
-#include "common/extension_manager.h"
 #include "common/i18n.h"
 #include "common/path_utils.h"
 #include "common/string_utils.h"
@@ -87,8 +87,7 @@ std::filesystem::path ResolveEditableScriptPath(const AsrProvider &provider) {
       provider.command.rfind(".", 0) != 0 &&
       provider.command.rfind("~", 0) != 0) {
     std::string error;
-    auto path = vinput::extension::ResolveCommandPath(
-        provider.command, vinput::extension::Type::kAsr, &error);
+    auto path = vinput::asr::script::ResolvePath(provider.command, &error);
     if (path.has_value()) {
       return *path;
     }

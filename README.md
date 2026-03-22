@@ -168,12 +168,14 @@ Scenes that use LLM must set `--provider`, `--model`, and `--prompt` together.
 vinput llm list                 # List configured providers
 vinput llm add <name> --base-url <url>
 vinput llm remove <name>        # Remove provider
-vinput extension list           # List built-in/user extensions
-vinput extension start <id>     # Start an LLM extension
-vinput extension stop <id>      # Stop an LLM extension
+vinput adaptor list             # List built-in/user LLM adaptors
+vinput adaptor start <id>       # Start an LLM adaptor
+vinput adaptor stop <id>        # Stop an LLM adaptor
 ```
 
-LLM providers are referenced by scenes; there is no separate active-provider toggle.
+LLM providers are referenced by scenes; there is no separate active-provider
+toggle. An LLM adaptor is only a local OpenAI-compatible bridge process that a
+provider may point to.
 
 </details>
 
@@ -188,7 +190,7 @@ vinput asr edit <name>          # Edit external provider script
 vinput asr remove <name>        # Remove provider
 ```
 
-Built-in ASR extensions can be referenced directly by script ID in
+Built-in ASR provider scripts can be referenced directly by script ID in
 command providers, without hardcoding a full path.
 
 </details>
@@ -297,12 +299,12 @@ vinput scene add --id polish \
 vinput scene use polish
 ```
 
-## Extension Scripts And Provider Contracts
+## Provider Scripts And Adaptor Contracts
 
-Optional integration scripts now live under `extensions/`:
+Optional integration scripts now live under two flat directories:
 
-- `extensions/asr/`: external ASR provider scripts
-- `extensions/llm/`: LLM proxy or bridge scripts
+- `asr-providers/`: external ASR provider scripts
+- `llm-adaptors/`: LLM OpenAI-compatible adaptor scripts
 
 The `scripts/` directory is reserved for project maintenance tasks such as
 build, packaging, and checks.
@@ -340,14 +342,15 @@ A minimal provider config looks like this:
 }
 ```
 
-Built-in extensions are installed under
-`/usr/share/fcitx5-vinput/extensions/` by default. User overrides can be
-placed under `~/.config/vinput/extensions/`; user files take precedence over
-built-in extensions with the same script name.
+Built-in ASR provider scripts are installed under
+`/usr/share/fcitx5-vinput/asr-providers/` by default. User overrides can be
+placed under `~/.config/vinput/asr-providers/`; user files take precedence over
+built-in scripts with the same script name. If you configure an absolute path,
+the script can live anywhere runnable.
 
-### LLM Proxy Contract
+### LLM Adaptor Contract
 
-If you want to write your own LLM proxy, it should expose an OpenAI-compatible
+If you want to write your own LLM adaptor, it should expose an OpenAI-compatible
 API and implement at least:
 
 - `GET /v1/models`
@@ -387,14 +390,18 @@ the structured payload currently consumed by `vinput`.
 }
 ```
 
-For built-in managed LLM extensions, prefer environment variables over CLI
-arguments for runtime configuration. `vinput extension start/stop` starts the
+Built-in LLM adaptors are installed under
+`/usr/share/fcitx5-vinput/llm-adaptors/` by default. User overrides can be
+placed under `~/.config/vinput/llm-adaptors/`.
+
+For built-in managed LLM adaptors, prefer environment variables over CLI
+arguments for runtime configuration. `vinput adaptor start/stop` starts the
 script directly and does not inject positional arguments.
 
 Reference implementations:
 
-- `extensions/llm/mtranserver_proxy.py`
-- `extensions/asr/elevenlabs_speech_to_text.py`
+- `llm-adaptors/mtranserver_proxy.py`
+- `asr-providers/elevenlabs_speech_to_text.py`
 
 ## Configuration Files
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# ==vinput-extension==
+# ==vinput-asr-provider==
 # @name ElevenLabs Speech to Text
-# @type asr
 # @description Cloud ASR via ElevenLabs API
 # @author xifan
 # @version 1.0.0
@@ -10,7 +9,7 @@
 # @env ELEVENLABS_LANGUAGE (optional)
 # @env ELEVENLABS_URL (optional)
 # @env ELEVENLABS_TIMEOUT (optional)
-# ==/vinput-extension==
+# ==/vinput-asr-provider==
 """ElevenLabs speech-to-text command provider for vinput.
 
 Reads one utterance of raw PCM S16_LE 16 kHz mono audio from stdin and writes
@@ -25,7 +24,7 @@ Environment:
 
 Example:
     ELEVENLABS_API_KEY=... \
-    python3 extensions/asr/elevenlabs_speech_to_text.py
+    python3 asr-providers/elevenlabs_speech_to_text.py
 """
 
 import json

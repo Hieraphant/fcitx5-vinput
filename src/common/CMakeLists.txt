@@ -5,7 +5,8 @@ add_library(vinput-common STATIC
     postprocess_scene.cpp
     model_manager.cpp
     model_repository.cpp
-    extension_manager.cpp
+    adaptor_manager.cpp
+    asr_provider_script.cpp
     path_utils.cpp
     file_utils.cpp
     process_utils.cpp

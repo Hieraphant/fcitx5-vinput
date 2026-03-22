@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# ==vinput-extension==
+# ==vinput-adaptor==
 # @name MTranServer Proxy
-# @type llm
 # @description OpenAI-compatible proxy for MTranServer
 # @author xifan
 # @version 1.0.0
 # @env MTRAN_URL (optional, default: http://localhost:8989)
 # @env MTRAN_TOKEN (optional)
 # @env MTRAN_PORT (optional, default: 8990)
-# ==/vinput-extension==
+# ==/vinput-adaptor==
 """OpenAI-compatible proxy for MTranServer.
 
 Translates /v1/chat/completions requests into MTranServer /translate calls.

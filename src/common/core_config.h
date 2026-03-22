@@ -14,20 +14,34 @@ struct LlmProvider {
   std::string api_key;
 };
 
+struct LlmAdaptor {
+  std::string id;
+  std::string command;
+  std::vector<std::string> args;
+  std::map<std::string, std::string> env;
+};
+
 struct AsrProvider {
   std::string name{vinput::asr::kDefaultProviderName};
   std::string type{vinput::asr::kBuiltinProviderType};
-  std::string model{vinput::asr::kDefaultBuiltinModel};
+  std::string model;
   std::string command;
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
   int timeoutMs{vinput::asr::kDefaultProviderTimeoutMs};
 };
 
+struct RegistrySource {
+  std::string name;
+  std::string url;
+};
+
 struct CoreConfig {
   std::string captureDevice{"default"};
   std::string modelBaseDir;
-  std::string registryUrl{"https://raw.githubusercontent.com/xifan2333/vinput-models/main/registry.json"};
+  struct Registry {
+    std::vector<RegistrySource> sources;
+  } registry;
 
   std::string defaultLanguage{"zh"};
 
@@ -35,6 +49,7 @@ struct CoreConfig {
 
   struct Llm {
     std::vector<LlmProvider> providers;
+    std::vector<LlmAdaptor> adaptors;
   } llm;
 
   struct Asr {
@@ -60,13 +75,17 @@ std::string GetCoreConfigPath();
 void NormalizeCoreConfig(CoreConfig *config);
 const LlmProvider *ResolveLlmProvider(const CoreConfig &config,
                                       const std::string &provider_id);
+const LlmAdaptor *ResolveLlmAdaptor(const CoreConfig &config,
+                                    const std::string &adaptor_id);
 const AsrProvider *ResolveAsrProvider(const CoreConfig &config,
                                       const std::string &provider_id);
 const AsrProvider *ResolveActiveAsrProvider(const CoreConfig &config);
+bool IsManagedBuiltinAsrProviderName(std::string_view provider_name);
 const AsrProvider *ResolveActiveBuiltinAsrProvider(const CoreConfig &config);
 const AsrProvider *ResolvePreferredBuiltinAsrProvider(const CoreConfig &config);
 std::string ResolveActiveBuiltinModel(const CoreConfig &config);
 std::string ResolvePreferredBuiltinModel(const CoreConfig &config);
+std::vector<std::string> ResolveRegistryUrls(const CoreConfig &config);
 bool SetPreferredBuiltinModel(CoreConfig *config, const std::string &model,
                               std::string *error);
 const vinput::scene::Definition *FindCommandScene(const CoreConfig &config);

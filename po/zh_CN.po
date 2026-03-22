@@ -998,36 +998,48 @@ msgid "Updated ASR provider script: %s"
 msgstr "已更新 ASR 提供商脚本：%s"
 
 #: src/cli/main.cpp
-msgid "Manage built-in and user extensions"
-msgstr "管理内建和用户扩展"
+msgid "Manage built-in and user LLM adaptors"
+msgstr "管理内建和用户 LLM adaptor"
 
 #: src/cli/main.cpp
-msgid "List available extensions"
-msgstr "列出可用扩展"
+msgid "List available LLM adaptors"
+msgstr "列出可用 LLM adaptor"
 
 #: src/cli/main.cpp
-msgid "Start an LLM extension"
-msgstr "启动一个 LLM 扩展"
+msgid "Start an LLM adaptor"
+msgstr "启动一个 LLM adaptor"
 
 #: src/cli/main.cpp
-msgid "Stop an LLM extension"
-msgstr "停止一个 LLM 扩展"
+msgid "Stop an LLM adaptor"
+msgstr "停止一个 LLM adaptor"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
-msgid "Extension '%s' started."
-msgstr "扩展 '%s' 已启动。"
+msgid "Adaptor '%s' started."
+msgstr "Adaptor '%s' 已启动。"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
-msgid "Extension '%s' stopped."
-msgstr "扩展 '%s' 已停止。"
+msgid "Adaptor '%s' stopped."
+msgstr "Adaptor '%s' 已停止。"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
 msgid "Log file: %s"
 msgstr "日志文件：%s"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_asr.cpp
+msgid "(not set)"
+msgstr "（未设置）"
+
+#: src/cli/main.cpp
+msgid "Adaptor ID"
+msgstr "Adaptor ID"
+
+#: src/cli/command_adaptor.cpp
 msgid "SOURCE"
 msgstr "来源"
+
+#: src/cli/command_adaptor.cpp
+msgid "STATE"
+msgstr "状态"

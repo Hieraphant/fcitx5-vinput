@@ -29,6 +29,34 @@ static void signal_handler(int sig) {
 
 namespace {
 
+bool ShouldDisableAsrAtStartup(const CoreConfig &config, bool disable_asr,
+                               std::string *reason) {
+  if (disable_asr) {
+    if (reason) {
+      *reason = _("ASR disabled by command line.");
+    }
+    return true;
+  }
+
+  const AsrProvider *provider = ResolveActiveAsrProvider(config);
+  if (!provider) {
+    if (reason) {
+      *reason = _("No active ASR provider configured.");
+    }
+    return true;
+  }
+
+  if (provider->type == vinput::asr::kBuiltinProviderType &&
+      provider->model.empty()) {
+    if (reason) {
+      *reason = _("No builtin ASR model configured.");
+    }
+    return true;
+  }
+
+  return false;
+}
+
 void LogActiveAsrProvider(const CoreConfig &config) {
   const AsrProvider *provider = ResolveActiveAsrProvider(config);
   if (!provider) {
@@ -80,6 +108,9 @@ int main(int argc, char *argv[]) {
   auto startup_settings = LoadCoreConfig();
   NormalizeCoreConfig(&startup_settings);
   std::unique_ptr<vinput::asr::Provider> asr;
+  std::string asr_disabled_reason;
+  disable_asr = ShouldDisableAsrAtStartup(startup_settings, disable_asr,
+                                          &asr_disabled_reason);
   if (!disable_asr) {
     LogActiveAsrProvider(startup_settings);
     std::string asr_error;
@@ -94,7 +125,11 @@ int main(int argc, char *argv[]) {
     }
   }
   if (disable_asr) {
-    fprintf(stderr, "vinput-daemon: running with ASR disabled\n");
+    fprintf(stderr, "vinput-daemon: running with ASR disabled");
+    if (!asr_disabled_reason.empty()) {
+      fprintf(stderr, " (%s)", asr_disabled_reason.c_str());
+    }
+    fprintf(stderr, "\n");
   }
 
   AudioCapture capture;
