@@ -47,9 +47,14 @@ set(VINPUT_ASR_PROVIDER_DIR
 set(VINPUT_LLM_ADAPTOR_DIR
     "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/llm-adaptors"
     CACHE PATH "Install directory for built-in LLM adaptor scripts")
-option(VINPUT_BUNDLE_SHERPA_RUNTIME
-    "Install bundled sherpa-onnx runtime libraries with vinput-daemon"
-    ON)
+set(VINPUT_RUNTIME_MODE "bundled"
+    CACHE STRING "Runtime library mode for vinput-daemon: system or bundled")
+set_property(CACHE VINPUT_RUNTIME_MODE PROPERTY STRINGS system bundled)
+if(NOT VINPUT_RUNTIME_MODE STREQUAL "system" AND
+   NOT VINPUT_RUNTIME_MODE STREQUAL "bundled")
+    message(FATAL_ERROR
+        "VINPUT_RUNTIME_MODE must be either 'system' or 'bundled'")
+endif()
 set(VINPUT_DAEMON_EXECUTABLE
     "${CMAKE_INSTALL_FULL_BINDIR}/vinput-daemon")
 

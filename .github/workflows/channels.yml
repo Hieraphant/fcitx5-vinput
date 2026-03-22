@@ -1,0 +1,305 @@
+name: channels
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to publish from
+        required: true
+        default: main
+      version:
+        description: Package version, for example 1.1.14
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: channels-${{ inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source_archive:
+    runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.meta.outputs.package_version }}
+      package_release: ${{ steps.meta.outputs.package_release }}
+      source_archive: ${{ steps.meta.outputs.source_archive }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - id: meta
+        shell: bash
+        run: |
+          version="${{ inputs.version }}"
+          if [[ -z "${version}" ]]; then
+            echo "version is required" >&2
+            exit 1
+          fi
+
+          echo "package_version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "package_release=1" >> "${GITHUB_OUTPUT}"
+          echo "source_archive=fcitx5-vinput-${version}.tar.gz" >> "${GITHUB_OUTPUT}"
+
+      - name: Create source archive
+        shell: bash
+        run: |
+          mkdir -p dist
+          ./scripts/create-source-archive.sh \
+            "dist/${{ steps.meta.outputs.source_archive }}" \
+            "${{ steps.meta.outputs.package_version }}" \
+            "${GITHUB_WORKSPACE}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-archive
+          path: dist/${{ steps.meta.outputs.source_archive }}
+          if-no-files-found: error
+
+  build-deb-ubuntu:
+    needs: source_archive
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh ubuntu24.04
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Install pre-built sherpa-onnx
+        run: |
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
+          sudo ldconfig
+
+      - name: Build Debian package
+        shell: bash
+        run: |
+          cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
+            -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
+            -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
+            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
+
+          cmake --build build
+          cpack --config build/CPackConfig.cmake -G DEB -B dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb-package-ubuntu24.04
+          path: dist/*.deb
+          if-no-files-found: error
+
+  build-deb-debian12:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh debian12
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Install pre-built sherpa-onnx
+        run: |
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
+          ldconfig
+
+      - name: Build Debian package
+        shell: bash
+        run: |
+          cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
+            -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
+            -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
+            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
+
+          cmake --build build
+          cpack --config build/CPackConfig.cmake -G DEB -B dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb-package-debian12
+          path: dist/*.deb
+          if-no-files-found: error
+
+  build-arch:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh archlinux
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Render PKGBUILD
+        shell: bash
+        run: |
+          cp "dist/${{ needs.source_archive.outputs.source_archive }}" packaging/arch/
+          VINPUT_PKGURL="${{ github.server_url }}/${{ github.repository }}" \
+            ./scripts/render-arch-pkgbuild.sh \
+            packaging/arch/PKGBUILD.in \
+            packaging/arch/PKGBUILD \
+            "${{ needs.source_archive.outputs.package_version }}" \
+            "packaging/arch/${{ needs.source_archive.outputs.source_archive }}" \
+            "${{ needs.source_archive.outputs.package_release }}"
+
+      - name: Build Arch package
+        shell: bash
+        run: |
+          useradd -m builder
+          chown -R builder:builder "${GITHUB_WORKSPACE}"
+          su builder -c "cd '${GITHUB_WORKSPACE}/packaging/arch' && makepkg --noconfirm --cleanbuild --force"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: packaging/arch/*.pkg.tar.zst
+          if-no-files-found: error
+
+  copr:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Install rpmbuild and copr-cli
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          pip install copr-cli
+
+      - name: Build SRPM
+        shell: bash
+        run: |
+          version="${{ needs.source_archive.outputs.package_version }}"
+          source ./scripts/sherpa-onnx-vars.sh
+          mkdir -p "${HOME}/rpmbuild/"{SOURCES,SPECS}
+          cp dist/${{ needs.source_archive.outputs.source_archive }} "${HOME}/rpmbuild/SOURCES/"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o "${HOME}/rpmbuild/SOURCES/${SHERPA_ONNX_ARCHIVE}" \
+            "${SHERPA_ONNX_URL}"
+
+          sed \
+            -e "s/@VINPUT_VERSION@/${version}/g" \
+            -e "s/@SHERPA_ONNX_VERSION@/${SHERPA_ONNX_VERSION}/g" \
+            packaging/fedora/fcitx5-vinput.spec \
+            > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
+
+          rpmbuild -bs "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec" \
+            --define "_topdir $HOME/rpmbuild"
+
+      - name: Submit to COPR
+        shell: bash
+        run: |
+          mkdir -p ~/.config
+          echo "${{ secrets.COPR_CONFIG }}" > ~/.config/copr
+
+          srpm=$(find ~/rpmbuild/SRPMS -name '*.src.rpm' -print -quit)
+          copr-cli build fcitx5-vinput-bin "${srpm}"
+
+  ppa:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    env:
+      DEBFULLNAME: "xifan233"
+      DEBEMAIL: "xifan2333@gmail.com"
+      GPG_KEY_ID: "E6D4B5BAE745E1506C9961EC892ED0BBCEA13586"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y devscripts debhelper dput gnupg
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          gpg-connect-agent reloadagent /bye
+
+      - name: Build and upload source package
+        shell: bash
+        run: |
+          version="${{ needs.source_archive.outputs.package_version }}"
+          pkg="fcitx5-vinput_${version}-1ppa1~noble1"
+
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          cp "dist/${{ needs.source_archive.outputs.source_archive }}" \
+            "fcitx5-vinput_${version}.orig.tar.gz"
+
+          cd "fcitx5-vinput-${version}"
+          cp -r packaging/debian debian
+          dch --create --package fcitx5-vinput \
+            --newversion "${version}-1ppa1~noble1" \
+            --distribution noble \
+            "Release ${version}"
+
+          dpkg-buildpackage -S -sa -d --no-sign
+
+          cd ..
+          debsign -k"${GPG_KEY_ID}" \
+            -p"gpg --no-tty --pinentry-mode loopback" \
+            "${pkg}_source.changes"
+          dput ppa:xifan233/ppa "${pkg}_source.changes"
+
+  aur:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger AUR publish
+        env:
+          GH_TOKEN: ${{ secrets.AUR_AUTO_PAT }}
+        run: |
+          gh workflow run build-and-publish.yml \
+            --repo xifan2333/aur-auto \
+            --field package=fcitx5-vinput-bin \
+            --field force=true
