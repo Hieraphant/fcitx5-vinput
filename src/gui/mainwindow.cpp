@@ -304,6 +304,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   connect(daemonRefreshTimer, &QTimer::timeout, this,
           &MainWindow::refreshDaemonStatus);
   daemonRefreshTimer->start(2000); // 2 seconds refresh rate
+
+  MainWindow::checkFlatpakPermissions();
 }
 
 MainWindow::~MainWindow() = default;
