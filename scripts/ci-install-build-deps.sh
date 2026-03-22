@@ -37,6 +37,7 @@ case "${target}" in
     debian12)
         apt-get update
         apt-get install -y \
+            bzip2 \
             cmake \
             ninja-build \
             pkg-config \
