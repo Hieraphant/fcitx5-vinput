@@ -20,6 +20,7 @@ jobs:
         run: ./scripts/ci-install-build-deps.sh ubuntu24.04
 
       - name: Install sherpa-onnx build runtime
+        shell: bash
         run: |
           prefix="${RUNNER_TEMP}/sherpa-onnx-install"
           source scripts/sherpa-onnx-vars.sh
@@ -64,6 +65,7 @@ jobs:
         run: ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
 
       - name: Install sherpa-onnx build runtime
+        shell: bash
         run: |
           prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
           source scripts/sherpa-onnx-vars.sh
