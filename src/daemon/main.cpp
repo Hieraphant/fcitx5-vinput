@@ -318,7 +318,7 @@ int main(int argc, char *argv[]) {
           if (!asr_result.ok && !asr_result.error.empty()) {
             fprintf(stderr, "vinput-daemon: ASR provider error: %s\n",
                     asr_result.error.c_str());
-            dbus.EmitError(asr_result.error);
+            dbus.EmitError(vinput::dbus::ClassifyErrorText(asr_result.error));
           }
           text = std::move(asr_result.text);
         }
@@ -345,7 +345,7 @@ int main(int argc, char *argv[]) {
                 text, order.selected_text, command_scene, runtime_settings,
                 &llm_error);
             if (!llm_error.empty()) {
-              dbus.EmitError(llm_error);
+              dbus.EmitError(vinput::dbus::ClassifyErrorText(llm_error));
             }
           } else {
             const auto &scene =
@@ -358,7 +358,7 @@ int main(int argc, char *argv[]) {
             result = post_processor.Process(text, scene, runtime_settings,
                                             &llm_error);
             if (!llm_error.empty()) {
-              dbus.EmitError(llm_error);
+              dbus.EmitError(vinput::dbus::ClassifyErrorText(llm_error));
             }
           }
         }
@@ -367,10 +367,12 @@ int main(int argc, char *argv[]) {
 
       } catch (const std::exception &e) {
         fprintf(stderr, "vinput-daemon: worker exception: %s\n", e.what());
-        dbus.EmitError(e.what());
+        dbus.EmitError(vinput::dbus::MakeRawError(e.what()));
       } catch (...) {
         fprintf(stderr, "vinput-daemon: worker unknown exception\n");
-        dbus.EmitError("Unknown error during processing");
+        dbus.EmitError(vinput::dbus::MakeErrorInfo(
+            vinput::dbus::kErrorCodeProcessingUnknown, {}, {},
+            "Unknown error during processing"));
       }
 
       // No matter what, release the slot

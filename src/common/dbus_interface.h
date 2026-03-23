@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/error_info.h"
+
 #include <string>
 
 namespace vinput::dbus {

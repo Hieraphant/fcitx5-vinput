@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/error_info.h"
+
 #include <systemd/sd-bus.h>
 #include <sys/eventfd.h>
 
@@ -39,7 +41,7 @@ public:
   void FlushEmitQueue(); // main thread only
   void EmitRecognitionResult(const std::string &text);
   void EmitStatusChanged(const std::string &status);
-  void EmitError(const std::string &message);
+  void EmitError(const vinput::dbus::ErrorInfo &error);
 
   void SetStartHandler(std::function<MethodResult()> handler);
   void SetStartCommandHandler(
@@ -66,6 +68,7 @@ private:
     enum class Type { Result, Status, Error };
     Type type;
     std::string payload;
+    vinput::dbus::ErrorInfo error;
   };
   std::mutex emit_mutex_;
   std::vector<PendingEmit> emit_queue_;

@@ -176,7 +176,8 @@ bool DbusClient::StopRecording(const std::string& scene_id, std::string* error) 
     return true;
 }
 
-bool DbusClient::NotifyError(const std::string& message, std::string* error) {
+bool DbusClient::NotifyError(const vinput::dbus::ErrorInfo& error_info,
+                             std::string* error) {
     if (!bus_) {
         if (error) *error = "D-Bus not connected";
         return false;
@@ -190,7 +191,11 @@ bool DbusClient::NotifyError(const std::string& message, std::string* error) {
         vinput::dbus::kNotifierObjectPath,
         vinput::dbus::kNotifierInterface,
         vinput::dbus::kMethodNotifyError,
-        &err, &reply, "s", message.c_str());
+        &err, &reply, vinput::dbus::kErrorInfoSignature,
+        error_info.code.c_str(),
+        error_info.subject.c_str(),
+        error_info.detail.c_str(),
+        error_info.raw_message.c_str());
 
     if (r < 0) {
         if (error) {

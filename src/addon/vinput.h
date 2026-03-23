@@ -16,6 +16,7 @@
 #include "common/postprocess_scene.h"
 #include "common/recognition_result.h"
 #include "common/vinput_config.h"
+#include "common/error_info.h"
 
 class VinputNotifierDBusObject;
 
@@ -55,6 +56,7 @@ private:
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
   void onDaemonError(fcitx::dbus::Message &msg);
+  void notifyError(const vinput::dbus::ErrorInfo &error);
   void notifyError(const std::string &message);
   std::string queryDaemonStatus() const;
   void ensureStatusSync();

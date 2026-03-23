@@ -1,6 +1,7 @@
 #include "cli/command_daemon.h"
 #include "cli/dbus_client.h"
 #include "cli/systemd_client.h"
+#include "common/error_info.h"
 #include "common/i18n.h"
 #include "common/string_utils.h"
 
@@ -103,13 +104,13 @@ std::vector<std::string> ExtractDaemonFailureReasons(const std::string& logs) {
     return candidates;
 }
 
-void NotifyDaemonFailure(const std::string& message) {
-    if (message.empty()) {
+void NotifyDaemonFailure(const vinput::dbus::ErrorInfo& error) {
+    if (error.empty()) {
         return;
     }
 
     vinput::cli::DbusClient dbus;
-    dbus.NotifyError(message);
+    dbus.NotifyError(error);
 }
 
 std::string BuildDaemonFailureMessage(const char* fmt, int exit_code) {
@@ -122,20 +123,29 @@ std::string BuildDaemonFailureMessage(const char* fmt, int exit_code) {
     return message;
 }
 
-std::string BuildDaemonFailureNotification(const char* fmt, int exit_code) {
+vinput::dbus::ErrorInfo BuildDaemonFailureNotification(
+    const char* fallback_code, const char* fmt, int exit_code) {
     std::string logs = vinput::cli::JournalctlLogsText(20);
     auto reasons = ExtractDaemonFailureReasons(logs);
-    if (!reasons.empty()) {
-        std::string message;
-        for (size_t i = 0; i < reasons.size(); ++i) {
-            if (i > 0) {
-                message += "\n";
-            }
-            message += reasons[i];
+    vinput::dbus::ErrorInfo fallback_error;
+    for (auto it = reasons.rbegin(); it != reasons.rend(); ++it) {
+        auto error = vinput::dbus::ClassifyErrorText(*it);
+        if (error.empty()) {
+            continue;
         }
-        return message;
+        if (fallback_error.empty()) {
+            fallback_error = error;
+        }
+        if (error.code != vinput::dbus::kErrorCodeUnknown) {
+            return error;
+        }
     }
-    return vinput::str::FmtStr(fmt, exit_code);
+    if (!fallback_error.empty()) {
+        return fallback_error;
+    }
+    return vinput::dbus::MakeErrorInfo(
+        fallback_code, {}, std::to_string(exit_code),
+        vinput::str::FmtStr(fmt, exit_code));
 }
 
 } // namespace
@@ -150,8 +160,9 @@ int RunDaemonStart(Formatter& fmt, const CliContext& ctx) {
     const auto message =
         BuildDaemonFailureMessage(_("systemctl start failed (exit code: %d)"), r);
     fmt.PrintError(message);
-    NotifyDaemonFailure(
-        BuildDaemonFailureNotification(_("systemctl start failed (exit code: %d)"), r));
+    NotifyDaemonFailure(BuildDaemonFailureNotification(
+        vinput::dbus::kErrorCodeDaemonStartFailed,
+        _("systemctl start failed (exit code: %d)"), r));
     return 1;
 }
 
@@ -176,8 +187,9 @@ int RunDaemonRestart(Formatter& fmt, const CliContext& ctx) {
     const auto message =
         BuildDaemonFailureMessage(_("systemctl restart failed (exit code: %d)"), r);
     fmt.PrintError(message);
-    NotifyDaemonFailure(
-        BuildDaemonFailureNotification(_("systemctl restart failed (exit code: %d)"), r));
+    NotifyDaemonFailure(BuildDaemonFailureNotification(
+        vinput::dbus::kErrorCodeDaemonRestartFailed,
+        _("systemctl restart failed (exit code: %d)"), r));
     return 1;
 }
 

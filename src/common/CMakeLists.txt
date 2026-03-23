@@ -1,4 +1,5 @@
 add_library(vinput-common STATIC
+    error_info.cpp
     core_config.cpp
     vinput_config.cpp
     recognition_result.cpp

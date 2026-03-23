@@ -1,4 +1,5 @@
 #pragma once
+#include "common/error_info.h"
 #include <string>
 
 struct sd_bus;
@@ -22,7 +23,8 @@ public:
     bool StartRecording(std::string* error = nullptr);
     bool StartCommandRecording(const std::string& selected_text, std::string* error = nullptr);
     bool StopRecording(const std::string& scene_id, std::string* error = nullptr);
-    bool NotifyError(const std::string& message, std::string* error = nullptr);
+    bool NotifyError(const vinput::dbus::ErrorInfo& error_info,
+                     std::string* error = nullptr);
 
 private:
     sd_bus* bus_ = nullptr;

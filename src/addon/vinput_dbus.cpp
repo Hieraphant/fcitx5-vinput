@@ -1,7 +1,9 @@
 #include "vinput.h"
 #include "common/dbus_interface.h"
+#include "common/error_info.h"
 #include "common/i18n.h"
 #include "common/recognition_result.h"
+#include "common/string_utils.h"
 
 #include "notifications_public.h"
 #include <dbus_public.h>
@@ -12,6 +14,7 @@
 
 #include <cstdio>
 #include <string>
+#include <tuple>
 
 using namespace vinput::dbus;
 
@@ -35,6 +38,193 @@ std::string CommandingPreeditText() { return _("... Commanding ..."); }
 std::string InferringPreeditText() { return _("... Recognizing ..."); }
 
 std::string PostprocessingPreeditText() { return _("... Postprocessing ..."); }
+
+std::string AppendDetail(std::string summary, const std::string &detail) {
+  if (detail.empty()) {
+    return summary;
+  }
+  summary += "\n";
+  summary += detail;
+  return summary;
+}
+
+std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
+  using namespace vinput::dbus;
+
+  if (error.code == kErrorCodeLocalAsrModelConfigMissing) {
+    return error.subject.empty()
+               ? _("Local ASR model configuration is missing.")
+               : vinput::str::FmtStr(
+                     _("Local ASR model configuration is missing for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrModelTypeMissing) {
+    return error.subject.empty()
+               ? _("Local ASR model metadata is missing model_type.")
+               : vinput::str::FmtStr(
+                     _("Local ASR model metadata is missing model_type for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrModelInvalidPath) {
+    return error.subject.empty()
+               ? _("Local ASR model metadata contains an invalid path.")
+               : vinput::str::FmtStr(
+                     _("Local ASR model metadata contains an invalid path for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrModelTokensMissing) {
+    return error.subject.empty()
+               ? _("Local ASR model tokens file is missing.")
+               : vinput::str::FmtStr(
+                     _("Local ASR model tokens file is missing for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrModelFilesMissing) {
+    return error.subject.empty()
+               ? _("Local ASR model files are missing.")
+               : vinput::str::FmtStr(
+                     _("Local ASR model files are missing for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrModelRootResolveFailed) {
+    return error.subject.empty()
+               ? _("Failed to resolve the local ASR model directory.")
+               : vinput::str::FmtStr(
+                     _("Failed to resolve the local ASR model directory for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrModelParseFailed) {
+    return error.subject.empty()
+               ? _("Failed to parse local ASR model metadata.")
+               : vinput::str::FmtStr(
+                     _("Failed to parse local ASR model metadata for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrUnsupportedModelType) {
+    return error.subject.empty()
+               ? _("The local ASR model type is not supported.")
+               : vinput::str::FmtStr(
+                     _("The local ASR model type is not supported for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrRecognizerCreateFailed) {
+    return error.subject.empty()
+               ? _("Failed to initialize the local ASR recognizer.")
+               : vinput::str::FmtStr(
+                     _("Failed to initialize the local ASR recognizer for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeVadCreateFailed) {
+    return error.subject.empty()
+               ? _("Failed to initialize VAD.")
+               : vinput::str::FmtStr(
+                     _("Failed to initialize VAD for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrModelCheckFailed) {
+    return error.subject.empty()
+               ? _("Local ASR model check failed.")
+               : vinput::str::FmtStr(
+                     _("Local ASR model check failed for provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeLocalAsrProviderInitFailed) {
+    return error.subject.empty()
+               ? _("Failed to initialize the local ASR provider.")
+               : vinput::str::FmtStr(
+                     _("Failed to initialize the local ASR provider '%s'."),
+                     error.subject);
+  }
+  if (error.code == kErrorCodeAudioCaptureLoopNotInitialized) {
+    return _("Audio capture is not initialized.");
+  }
+  if (error.code == kErrorCodePipeWireThreadLoopCreateFailed) {
+    return _("Failed to create the PipeWire thread loop.");
+  }
+  if (error.code == kErrorCodePipeWireThreadLoopStartFailed) {
+    return AppendDetail(_("Failed to start the PipeWire thread loop."),
+                        error.detail);
+  }
+  if (error.code == kErrorCodePipeWirePropertiesAllocFailed) {
+    return _("Failed to allocate PipeWire properties.");
+  }
+  if (error.code == kErrorCodePipeWireStreamCreateFailed) {
+    return _("Failed to create the PipeWire stream.");
+  }
+  if (error.code == kErrorCodePipeWireStreamConnectFailed) {
+    return AppendDetail(_("Failed to connect the PipeWire stream."),
+                        error.detail);
+  }
+  if (error.code == kErrorCodeDbusEventfdCreateFailed) {
+    return AppendDetail(_("Failed to initialize daemon notifications."),
+                        error.detail);
+  }
+  if (error.code == kErrorCodeDbusUserBusOpenFailed) {
+    return AppendDetail(_("Failed to connect to the user D-Bus."),
+                        error.detail);
+  }
+  if (error.code == kErrorCodeDbusVtableAddFailed) {
+    return AppendDetail(_("Failed to register the daemon D-Bus interface."),
+                        error.detail);
+  }
+  if (error.code == kErrorCodeDbusNameRequestFailed) {
+    return AppendDetail(_("Failed to acquire the daemon D-Bus name."),
+                        error.detail);
+  }
+  if (error.code == kErrorCodeStartRecordingFailed) {
+    return _("Failed to start recording.");
+  }
+  if (error.code == kErrorCodeStartCommandRecordingFailed) {
+    return _("Failed to start command recording.");
+  }
+  if (error.code == kErrorCodeAsrProviderStartFailed) {
+    return error.subject.empty()
+               ? _("ASR provider failed to start.")
+               : vinput::str::FmtStr(_("ASR provider '%s' failed to start."),
+                                     error.subject);
+  }
+  if (error.code == kErrorCodeAsrProviderTimeout) {
+    return error.subject.empty()
+               ? _("ASR provider timed out.")
+               : vinput::str::FmtStr(_("ASR provider '%s' timed out."),
+                                     error.subject);
+  }
+  if (error.code == kErrorCodeAsrProviderFailed) {
+    return error.subject.empty()
+               ? _("ASR provider failed.")
+               : vinput::str::FmtStr(_("ASR provider '%s' failed."),
+                                     error.subject);
+  }
+  if (error.code == kErrorCodeAsrProviderNoText) {
+    return error.subject.empty()
+               ? _("ASR provider returned no text.")
+               : vinput::str::FmtStr(_("ASR provider '%s' returned no text."),
+                                     error.subject);
+  }
+  if (error.code == kErrorCodeLlmRequestFailed) {
+    return AppendDetail(_("LLM request failed."), error.detail);
+  }
+  if (error.code == kErrorCodeLlmHttpFailed) {
+    return _("LLM request returned an HTTP error.");
+  }
+  if (error.code == kErrorCodeProcessingUnknown) {
+    return _("Unknown error during processing.");
+  }
+  if (error.code == kErrorCodeDaemonStartFailed) {
+    return _("Failed to start the daemon.");
+  }
+  if (error.code == kErrorCodeDaemonRestartFailed) {
+    return _("Failed to restart the daemon.");
+  }
+
+  if (!error.raw_message.empty()) {
+    return error.raw_message;
+  }
+  if (!error.detail.empty()) {
+    return error.detail;
+  }
+  return _("Unknown error.");
+}
 
 } // namespace
 
@@ -345,10 +535,13 @@ void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
 }
 
 void VinputEngine::onDaemonError(fcitx::dbus::Message &msg) {
-  std::string error_message;
-  msg >> error_message;
+  std::tuple<std::string, std::string, std::string, std::string> payload;
+  msg >> payload;
+  auto error = vinput::dbus::MakeErrorInfo(
+      std::move(std::get<0>(payload)), std::move(std::get<1>(payload)),
+      std::move(std::get<2>(payload)), std::move(std::get<3>(payload)));
 
-  if (error_message.empty()) {
+  if (error.empty()) {
     return;
   }
 
@@ -356,13 +549,15 @@ void VinputEngine::onDaemonError(fcitx::dbus::Message &msg) {
   hideResultMenu();
   finishFrontendSession(ic);
 
-  notifyError(error_message);
+  notifyError(error);
 }
 
-void VinputEngine::notifyError(const std::string &message) {
-  if (message.empty()) {
+void VinputEngine::notifyError(const vinput::dbus::ErrorInfo &error) {
+  if (error.empty()) {
     return;
   }
+
+  const std::string message = RenderErrorMessage(error);
 
   auto *notifications =
       instance_->addonManager().addon("notifications", true);
@@ -375,6 +570,10 @@ void VinputEngine::notifyError(const std::string &message) {
   } else {
     fprintf(stderr, "vinput: %s\n", message.c_str());
   }
+}
+
+void VinputEngine::notifyError(const std::string &message) {
+  notifyError(vinput::dbus::MakeRawError(message));
 }
 
 void VinputEngine::updatePreedit(fcitx::InputContext *ic,
