@@ -9,6 +9,11 @@ fi
 target=$1
 version=$2
 
+fail_verify() {
+    echo "$1" >&2
+    exit 1
+}
+
 check_no_missing_libs() {
     local binary=$1
     local report
@@ -16,8 +21,7 @@ check_no_missing_libs() {
     report=$(mktemp)
     ldd "${binary}" | tee "${report}"
     if grep -Fq "not found" "${report}"; then
-        echo "missing shared library dependency detected for ${binary}" >&2
-        exit 1
+        fail_verify "missing shared library dependency detected for ${binary}"
     fi
 }
 
@@ -37,13 +41,11 @@ assert_common_install() {
     runtime_dir=$(find /usr/lib /usr/lib64 -path '*/fcitx5-vinput' -type d -print -quit 2>/dev/null || true)
 
     if [[ -z "${addon_path}" ]]; then
-        echo "fcitx5 addon was not installed" >&2
-        exit 1
+        fail_verify "fcitx5 addon was not installed"
     fi
 
     if [[ -z "${runtime_dir}" ]]; then
-        echo "bundled runtime directory was not installed" >&2
-        exit 1
+        fail_verify "bundled runtime directory was not installed"
     fi
 
     test -f "${runtime_dir}/libsherpa-onnx-c-api.so"
@@ -67,46 +69,50 @@ case "${target}" in
         add-apt-repository -y ppa:xifan233/ppa
         apt-get update
         apt-cache policy fcitx5-vinput
+        if ! apt-cache show fcitx5-vinput >/dev/null 2>&1; then
+            fail_verify "ppa:xifan233/ppa does not currently publish fcitx5-vinput for noble"
+        fi
         apt-get install -y --no-install-recommends "fcitx5-vinput=${expected_version}"
-        dpkg-query -W -f='${Version}\n' fcitx5-vinput | grep -Fx "${expected_version}"
+        installed_version=$(dpkg-query -W -f='${Version}\n' fcitx5-vinput)
+        if [[ "${installed_version}" != "${expected_version}" ]]; then
+            fail_verify "ppa installed ${installed_version}, expected ${expected_version}"
+        fi
         ;;
     copr-fedora43)
         dnf install -y dnf-plugins-core
         dnf copr enable -y xifan/fcitx5-vinput-bin
         dnf install -y fcitx5-vinput
-        rpm -q --qf '%{VERSION}\n' fcitx5-vinput | grep -Fx "${version}"
+        installed_version=$(rpm -q --qf '%{VERSION}\n' fcitx5-vinput)
+        if [[ "${installed_version}" != "${version}" ]]; then
+            fail_verify "copr installed ${installed_version}, expected ${version}"
+        fi
         ;;
     aur-archlinux)
         workspace=/tmp/aur-verify
 
-        pacman -Sy --noconfirm --needed \
-            cli11 \
-            cmake \
-            curl \
-            fcitx5 \
+        pacman -Syu --noconfirm --needed \
             git \
-            libarchive \
-            ninja \
-            nlohmann-json \
-            openssl \
-            pipewire \
-            pkgconf \
-            qt5-base \
-            qt5-tools \
-            systemd
+            sudo
 
         useradd -m builder
+        echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
+        chmod 0440 /etc/sudoers.d/builder
         rm -rf "${workspace}"
         install -d -o builder -g builder "${workspace}"
-        su builder -c "git clone --depth 1 https://aur.archlinux.org/fcitx5-vinput-bin.git '${workspace}/fcitx5-vinput-bin'"
-        su builder -c "grep -E '^pkgver=${version}$' '${workspace}/fcitx5-vinput-bin/PKGBUILD'"
-        su builder -c "cd '${workspace}/fcitx5-vinput-bin' && makepkg --noconfirm --cleanbuild --force --nodeps"
-        pacman -U --noconfirm "${workspace}/fcitx5-vinput-bin/"*.pkg.tar.zst
-        pacman -Q fcitx5-vinput-bin | awk '{print $2}' | grep -E "^${version}-"
+        su builder -c "git clone --depth 1 https://aur.archlinux.org/yay-bin.git '${workspace}/yay-bin'"
+        su builder -c "cd '${workspace}/yay-bin' && makepkg -si --noconfirm"
+        aur_version=$(su builder -c "yay -Si fcitx5-vinput-bin | sed -n 's/^Version[[:space:]]*:[[:space:]]*//p' | head -n1 | cut -d- -f1")
+        if [[ "${aur_version}" != "${version}" ]]; then
+            fail_verify "aur PKGBUILD version is ${aur_version}, expected ${version}"
+        fi
+        su builder -c "yay -S --noconfirm --answerdiff None --answerclean None fcitx5-vinput-bin"
+        installed_version=$(pacman -Q fcitx5-vinput-bin | awk '{print $2}')
+        if [[ ! "${installed_version}" =~ ^${version}- ]]; then
+            fail_verify "aur installed ${installed_version}, expected ${version}-*"
+        fi
         ;;
     *)
-        echo "unsupported target: ${target}" >&2
-        exit 1
+        fail_verify "unsupported target: ${target}"
         ;;
 esac
 
