@@ -535,5 +535,9 @@ Please follow the instructions.</source>
         <source>vinput command timed out</source>
         <translation>vinput 命令超时</translation>
     </message>
+    <message>
+        <source>vinput command failed</source>
+        <translation>vinput 命令失败</translation>
+    </message>
 </context>
 </TS>
