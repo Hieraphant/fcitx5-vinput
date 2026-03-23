@@ -26,7 +26,7 @@ jobs:
       package_release: ${{ steps.meta.outputs.package_release }}
       source_archive: ${{ steps.meta.outputs.source_archive }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -53,7 +53,7 @@ jobs:
             "${{ steps.meta.outputs.package_version }}" \
             "${GITHUB_WORKSPACE}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: source-archive
           path: dist/${{ steps.meta.outputs.source_archive }}
@@ -63,11 +63,11 @@ jobs:
     needs: source_archive
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source-archive
           path: dist
@@ -115,11 +115,11 @@ jobs:
       DEBEMAIL: "xifan2333@gmail.com"
       GPG_KEY_ID: "E6D4B5BAE745E1506C9961EC892ED0BBCEA13586"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source-archive
           path: dist

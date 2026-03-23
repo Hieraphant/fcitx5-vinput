@@ -20,7 +20,7 @@ jobs:
       package_release: ${{ steps.meta.outputs.package_release }}
       source_archive: ${{ steps.meta.outputs.source_archive }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - id: meta
         shell: bash
@@ -45,7 +45,7 @@ jobs:
             "${{ steps.meta.outputs.package_version }}" \
             "${GITHUB_WORKSPACE}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: source-archive
           path: dist/${{ steps.meta.outputs.source_archive }}
@@ -55,12 +55,12 @@ jobs:
     needs: source_archive
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install build dependencies
         run: ./scripts/ci-install-build-deps.sh ubuntu24.04
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source-archive
           path: dist
@@ -104,7 +104,7 @@ jobs:
           mv "${stage_root}/usr" "dist/release/${archive_root}"
           tar -C dist/release -czf "dist/${archive_root}.tar.gz" "${archive_root}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release-tarball-bundled
           path: dist/fcitx5-vinput_*_linux_x86_64_bundled.tar.gz
@@ -114,12 +114,12 @@ jobs:
     needs: source_archive
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install build dependencies
         run: ./scripts/ci-install-build-deps.sh ubuntu24.04
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source-archive
           path: dist
@@ -145,7 +145,7 @@ jobs:
           cmake --build build
           cpack --config build/CPackConfig.cmake -G DEB -B dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release-deb-ubuntu24.04
           path: dist/*.deb
@@ -157,12 +157,12 @@ jobs:
     container:
       image: debian:12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install build dependencies
         run: ./scripts/ci-install-build-deps.sh debian12
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source-archive
           path: dist
@@ -188,7 +188,7 @@ jobs:
           cmake --build build
           cpack --config build/CPackConfig.cmake -G DEB -B dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release-deb-debian12
           path: dist/*.deb
@@ -200,14 +200,14 @@ jobs:
     container:
       image: fedora:43
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install build dependencies
         run: |
           ./scripts/ci-install-build-deps.sh fedora43
           dnf install -y rpm-build
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source-archive
           path: dist
@@ -235,7 +235,7 @@ jobs:
           mkdir -p dist
           find "${HOME}/rpmbuild/RPMS" -name '*.rpm' -exec cp {} dist/ \;
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release-rpm-fedora43
           path: dist/*.rpm
@@ -247,12 +247,12 @@ jobs:
     container:
       image: archlinux:base-devel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install build dependencies
         run: ./scripts/ci-install-build-deps.sh archlinux
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source-archive
           path: dist
@@ -276,7 +276,7 @@ jobs:
           chown -R builder:builder "${GITHUB_WORKSPACE}"
           su builder -c "cd '${GITHUB_WORKSPACE}/packaging/arch' && makepkg --noconfirm --cleanbuild --force"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release-arch
           path: packaging/arch/*.pkg.tar.zst
@@ -295,7 +295,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -305,7 +305,7 @@ jobs:
         with:
           args: --latest --strip header
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: release-artifacts
 
