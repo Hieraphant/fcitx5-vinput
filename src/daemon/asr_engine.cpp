@@ -22,7 +22,8 @@ AsrEngine::AsrEngine() = default;
 
 AsrEngine::~AsrEngine() { Shutdown(); }
 
-bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config) {
+bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config,
+                     std::string *error) {
   if (initialized_) {
     return true;
   }
@@ -227,15 +228,17 @@ bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config) {
     config.model_config.model_type = "funasr_nano";
 
   } else {
-    fprintf(stderr, "vinput: unsupported model type '%s'\n", type.c_str());
+    if (error) {
+      *error = "unsupported model type '" + type + "'";
+    }
     return false;
   }
 
   recognizer_ = SherpaOnnxCreateOfflineRecognizer(&config);
   if (!recognizer_) {
-    fprintf(stderr,
-            "vinput: failed to create sherpa-onnx recognizer for type '%s'\n",
-            type.c_str());
+    if (error) {
+      *error = "failed to create sherpa-onnx recognizer for type '" + type + "'";
+    }
     return false;
   }
 
@@ -243,8 +246,13 @@ bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config) {
   normalize_audio_ = asr_config.normalize_audio;
 
   if (asr_config.vad_enabled && !asr_config.vad_model_path.empty()) {
-    if (!vad_.Init(asr_config.vad_model_path)) {
-      fprintf(stderr, "vinput: VAD model not available, continuing without VAD\n");
+    std::string vad_error;
+    if (!vad_.Init(asr_config.vad_model_path, 16000, &vad_error)) {
+      if (vad_error.empty()) {
+        vad_error = "VAD model not available";
+      }
+      fprintf(stderr, "vinput: %s, continuing without VAD\n",
+              vad_error.c_str());
     }
   }
 

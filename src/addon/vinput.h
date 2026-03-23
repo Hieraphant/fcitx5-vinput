@@ -17,6 +17,8 @@
 #include "common/recognition_result.h"
 #include "common/vinput_config.h"
 
+class VinputNotifierDBusObject;
+
 class VinputEngine : public fcitx::AddonInstance {
 public:
   VinputEngine(fcitx::Instance *instance);
@@ -71,6 +73,7 @@ private:
   std::vector<std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>>
       eventHandlers_;
   fcitx::dbus::Bus *bus_ = nullptr;
+  std::unique_ptr<VinputNotifierDBusObject> notifier_dbus_;
   std::unique_ptr<fcitx::dbus::Slot> result_slot_;
   std::unique_ptr<fcitx::dbus::Slot> status_slot_;
   std::unique_ptr<fcitx::dbus::Slot> error_slot_;

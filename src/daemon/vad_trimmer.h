@@ -14,7 +14,8 @@ public:
   VadTrimmer &operator=(const VadTrimmer &) = delete;
 
   // Load silero_vad.onnx from `model_path`. Returns true on success.
-  bool Init(const std::string &model_path, int sample_rate = 16000);
+  bool Init(const std::string &model_path, int sample_rate = 16000,
+            std::string *error = nullptr);
 
   // Extract speech segments, concatenated. Returns empty if no speech found.
   std::vector<float> Trim(const std::vector<float> &samples, int sample_rate);

@@ -132,8 +132,12 @@ int main(int argc, char *argv[]) {
   }
 
   AudioCapture capture;
-  if (!capture.Start()) {
-    fprintf(stderr, "vinput-daemon: audio capture start failed, exiting\n");
+  std::string capture_error;
+  if (!capture.Start(&capture_error)) {
+    if (capture_error.empty()) {
+      capture_error = "audio capture start failed";
+    }
+    fprintf(stderr, "vinput-daemon: %s\n", capture_error.c_str());
     return 1;
   }
 
@@ -190,9 +194,14 @@ int main(int argc, char *argv[]) {
     current_selected_text.clear();
     auto runtime_settings = LoadCoreConfig();
     capture.SetTargetObject(runtime_settings.captureDevice);
-    if (!capture.BeginRecording()) {
-      fprintf(stderr, "vinput-daemon: failed to start recording\n");
-      return DbusService::MethodResult::Failure("Failed to start recording.");
+    std::string error;
+    if (!capture.BeginRecording(&error)) {
+      std::string message = "Failed to start recording.";
+      if (!error.empty()) {
+        message = "Failed to start recording: " + error;
+      }
+      fprintf(stderr, "vinput-daemon: %s\n", message.c_str());
+      return DbusService::MethodResult::Failure(message);
     }
     phase = Status::Recording;
     dbus.EmitStatusChanged(StatusToString(Status::Recording));
@@ -211,10 +220,14 @@ int main(int argc, char *argv[]) {
     current_selected_text = selected_text;
     auto runtime_settings = LoadCoreConfig();
     capture.SetTargetObject(runtime_settings.captureDevice);
-    if (!capture.BeginRecording()) {
-      fprintf(stderr, "vinput-daemon: failed to start command recording\n");
-      return DbusService::MethodResult::Failure(
-          "Failed to start command recording.");
+    std::string error;
+    if (!capture.BeginRecording(&error)) {
+      std::string message = "Failed to start command recording.";
+      if (!error.empty()) {
+        message = "Failed to start command recording: " + error;
+      }
+      fprintf(stderr, "vinput-daemon: %s\n", message.c_str());
+      return DbusService::MethodResult::Failure(message);
     }
     phase = Status::Recording;
     dbus.EmitStatusChanged(StatusToString(Status::Recording));
@@ -274,8 +287,12 @@ int main(int argc, char *argv[]) {
     return StatusToString(phase);
   });
 
-  if (!dbus.Start()) {
-    fprintf(stderr, "vinput-daemon: DBus service start failed, exiting\n");
+  std::string dbus_error;
+  if (!dbus.Start(&dbus_error)) {
+    if (dbus_error.empty()) {
+      dbus_error = "DBus service start failed";
+    }
+    fprintf(stderr, "vinput-daemon: %s\n", dbus_error.c_str());
     return 1;
   }
 

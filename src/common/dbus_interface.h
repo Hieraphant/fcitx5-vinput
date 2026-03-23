@@ -4,14 +4,18 @@
 
 namespace vinput::dbus {
 
+constexpr const char *kFcitxBusName = "org.fcitx.Fcitx5";
 constexpr const char *kBusName = "org.fcitx.Vinput";
 constexpr const char *kObjectPath = "/org/fcitx/Vinput";
 constexpr const char *kInterface = "org.fcitx.Vinput.Service";
+constexpr const char *kNotifierObjectPath = "/org/fcitx/Fcitx5/Vinput";
+constexpr const char *kNotifierInterface = "org.fcitx.Fcitx5.Vinput1";
 
 constexpr const char *kMethodStartRecording = "StartRecording";
 constexpr const char *kMethodStartCommandRecording = "StartCommandRecording";
 constexpr const char *kMethodStopRecording = "StopRecording";
 constexpr const char *kMethodGetStatus = "GetStatus";
+constexpr const char *kMethodNotifyError = "NotifyError";
 
 constexpr const char *kSignalRecognitionResult = "RecognitionResult";
 constexpr const char *kSignalStatusChanged = "StatusChanged";

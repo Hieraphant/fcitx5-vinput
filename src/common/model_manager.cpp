@@ -52,7 +52,8 @@ bool ResolveModelMetadataPath(const fs::path &model_dir,
   return true;
 }
 
-ModelInfo ParseModelJson(const fs::path &dir, const fs::path &json_path) {
+ModelInfo ParseModelJson(const fs::path &dir, const fs::path &json_path,
+                         std::string *error) {
   ModelInfo info;
   try {
     std::ifstream file(json_path);
@@ -61,8 +62,10 @@ ModelInfo ParseModelJson(const fs::path &dir, const fs::path &json_path) {
     std::error_code root_ec;
     const fs::path model_root = fs::weakly_canonical(dir, root_ec);
     if (root_ec) {
-      fprintf(stderr, "vinput: failed to resolve model root %s: %s\n",
-              dir.string().c_str(), root_ec.message().c_str());
+      if (error) {
+        *error = "failed to resolve model root '" + dir.string() +
+                 "': " + root_ec.message();
+      }
       return info;
     }
 
@@ -77,11 +80,6 @@ ModelInfo ParseModelJson(const fs::path &dir, const fs::path &json_path) {
           if (!ResolveModelMetadataPath(dir, model_root, raw_path,
                                         &resolved_path, &path_error)) {
             info.rejected_files[key] = raw_path;
-            fprintf(stderr,
-                    "vinput: rejected metadata file path for key '%s' in %s: "
-                    "%s\n",
-                    key.c_str(), json_path.string().c_str(),
-                    path_error.c_str());
             continue;
           }
           info.files[key] = resolved_path.string();
@@ -105,8 +103,9 @@ ModelInfo ParseModelJson(const fs::path &dir, const fs::path &json_path) {
     }
 
   } catch (const std::exception &e) {
-    fprintf(stderr, "vinput: failed to parse %s: %s\n",
-            json_path.string().c_str(), e.what());
+    if (error) {
+      *error = "failed to parse '" + json_path.string() + "': " + e.what();
+    }
   }
 
   return info;
@@ -146,53 +145,58 @@ ModelManager::ModelManager(const std::string &base_dir,
   model_name_ = model_name;
 }
 
-bool ModelManager::EnsureModels() {
+bool ModelManager::EnsureModels(std::string *error) {
   auto dir = fs::path(base_dir_) / model_name_;
   auto json_path = dir / "vinput-model.json";
 
   if (!fs::exists(json_path)) {
-    fprintf(stderr,
-            "vinput: ASR model configuration not found for '%s' at %s\n"
-            "vinput: Missing 'vinput-model.json'. Please ensure you have a "
-            "valid model installed.\n",
-            model_name_.c_str(), json_path.string().c_str());
+    if (error) {
+      *error = "missing 'vinput-model.json' in " + dir.string();
+    }
     return false;
   }
 
-  auto info = GetModelInfo();
+  std::string parse_error;
+  auto info = GetModelInfo(&parse_error);
   if (info.model_type.empty()) {
-    fprintf(
-        stderr,
-        "vinput: 'vinput-model.json' for '%s' is missing model_type.\n",
-        model_name_.c_str());
+    if (error) {
+      if (!parse_error.empty()) {
+        *error = std::move(parse_error);
+      } else {
+        *error = "'vinput-model.json' is missing model_type for model '" +
+                 model_name_ + "'";
+      }
+    }
     return false;
   }
 
   if (!info.rejected_files.empty()) {
     const auto &[key, raw_path] = *info.rejected_files.begin();
-    fprintf(stderr,
-            "vinput: 'vinput-model.json' for '%s' contains invalid file path "
-            "for '%s': %s\n",
-            model_name_.c_str(), key.c_str(), raw_path.c_str());
+    if (error) {
+      *error = "'vinput-model.json' contains invalid path for '" + key +
+               "': " + raw_path;
+    }
     return false;
   }
 
   if (!HasTokens(info)) {
-    fprintf(stderr, "vinput: tokens file not found for model '%s'\n",
-            model_name_.c_str());
+    if (error) {
+      *error = "tokens file not found for model '" + model_name_ + "'";
+    }
     return false;
   }
 
   if (!HasModelFiles(info)) {
-    fprintf(stderr, "vinput: no model files found for model '%s'\n",
-            model_name_.c_str());
+    if (error) {
+      *error = "no model files found for model '" + model_name_ + "'";
+    }
     return false;
   }
 
   return true;
 }
 
-ModelInfo ModelManager::GetModelInfo() const {
+ModelInfo ModelManager::GetModelInfo(std::string *error) const {
   auto dir = fs::path(base_dir_) / model_name_;
   auto json_path = dir / "vinput-model.json";
 
@@ -200,7 +204,7 @@ ModelInfo ModelManager::GetModelInfo() const {
     return {};
   }
 
-  return ParseModelJson(dir, json_path);
+  return ParseModelJson(dir, json_path, error);
 }
 
 std::string ModelManager::GetBaseDir() const { return base_dir_; }
@@ -300,10 +304,17 @@ bool ModelManager::Validate(const std::string &model_name,
     return false;
   }
 
-  auto info = ParseModelJson(dir, json_path);
+  std::string parse_error;
+  auto info = ParseModelJson(dir, json_path, &parse_error);
 
   if (info.model_type.empty()) {
-    if (error) *error = "vinput-model.json missing required field: model_type";
+    if (error) {
+      if (!parse_error.empty()) {
+        *error = std::move(parse_error);
+      } else {
+        *error = "vinput-model.json missing required field: model_type";
+      }
+    }
     return false;
   }
 

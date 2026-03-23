@@ -49,8 +49,8 @@ public:
   explicit ModelManager(const std::string &base_dir = "",
                         const std::string &model_name = "");
 
-  bool EnsureModels();
-  ModelInfo GetModelInfo() const;
+  bool EnsureModels(std::string *error = nullptr);
+  ModelInfo GetModelInfo(std::string *error = nullptr) const;
   std::vector<std::string> ListModels() const;
   std::string GetBaseDir() const;
   std::string GetModelName() const;

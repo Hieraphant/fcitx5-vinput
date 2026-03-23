@@ -25,7 +25,8 @@ public:
   AsrEngine();
   ~AsrEngine();
 
-  bool Init(const ModelInfo &info, const AsrConfig &asr_config);
+  bool Init(const ModelInfo &info, const AsrConfig &asr_config,
+            std::string *error = nullptr);
   std::string Infer(const std::vector<int16_t> &pcm_data);
   void Shutdown();
   bool IsInitialized() const;

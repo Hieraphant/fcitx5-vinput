@@ -9,7 +9,8 @@ VadTrimmer::VadTrimmer() = default;
 
 VadTrimmer::~VadTrimmer() { Shutdown(); }
 
-bool VadTrimmer::Init(const std::string &model_path, int sample_rate) {
+bool VadTrimmer::Init(const std::string &model_path, int sample_rate,
+                      std::string *error) {
   if (vad_) return true;
 
   SherpaOnnxVadModelConfig config = {};
@@ -26,8 +27,9 @@ bool VadTrimmer::Init(const std::string &model_path, int sample_rate) {
 
   vad_ = SherpaOnnxCreateVoiceActivityDetector(&config, 30.0f);
   if (!vad_) {
-    fprintf(stderr, "vinput: failed to create VAD from '%s'\n",
-            model_path.c_str());
+    if (error) {
+      *error = "failed to create VAD from '" + model_path + "'";
+    }
     return false;
   }
 

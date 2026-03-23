@@ -32,7 +32,7 @@ public:
   DbusService();
   ~DbusService();
 
-  bool Start();
+  bool Start(std::string *error = nullptr);
   int GetFd() const;
   int GetNotifyFd() const;
   bool ProcessOnce();

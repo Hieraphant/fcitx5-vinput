@@ -57,29 +57,37 @@ static const sd_bus_vtable vtable[] = {
     SD_BUS_VTABLE_END,
 };
 
-bool DbusService::Start() {
+bool DbusService::Start(std::string *error) {
   notify_fd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
   if (notify_fd_ < 0) {
-    fprintf(stderr, "vinput: failed to create eventfd: %s\n", strerror(errno));
+    if (error) {
+      *error = std::string("failed to create eventfd: ") + strerror(errno);
+    }
     return false;
   }
 
   int ret = sd_bus_open_user(&bus_);
   if (ret < 0) {
-    fprintf(stderr, "vinput: failed to open user bus: %s\n", strerror(-ret));
+    if (error) {
+      *error = std::string("failed to open user bus: ") + strerror(-ret);
+    }
     return false;
   }
 
   ret = sd_bus_add_object_vtable(bus_, &slot_, kObjectPath, kInterface, vtable,
                                  this);
   if (ret < 0) {
-    fprintf(stderr, "vinput: failed to add vtable: %s\n", strerror(-ret));
+    if (error) {
+      *error = std::string("failed to add D-Bus vtable: ") + strerror(-ret);
+    }
     return false;
   }
 
   ret = sd_bus_request_name(bus_, kBusName, 0);
   if (ret < 0) {
-    fprintf(stderr, "vinput: failed to request bus name: %s\n", strerror(-ret));
+    if (error) {
+      *error = std::string("failed to request D-Bus name: ") + strerror(-ret);
+    }
     return false;
   }
 

@@ -65,21 +65,25 @@ void AudioCapture::onParamChanged(void *userdata, uint32_t id,
           info.rate, info.channels, info.format);
 }
 
-bool AudioCapture::Start() {
+bool AudioCapture::Start(std::string *error) {
   if (loop_) {
     return true;
   }
 
   loop_ = pw_thread_loop_new("vinput-capture-loop", nullptr);
   if (!loop_) {
-    fprintf(stderr, "vinput: failed to create PipeWire thread loop\n");
+    if (error) {
+      *error = "failed to create PipeWire thread loop";
+    }
     return false;
   }
 
   int ret = pw_thread_loop_start(loop_);
   if (ret < 0) {
-    fprintf(stderr, "vinput: failed to start PipeWire thread loop: %s\n",
-            strerror(-ret));
+    if (error) {
+      *error = std::string("failed to start PipeWire thread loop: ") +
+               strerror(-ret);
+    }
     pw_thread_loop_destroy(loop_);
     loop_ = nullptr;
     return false;
@@ -88,8 +92,11 @@ bool AudioCapture::Start() {
   return true;
 }
 
-bool AudioCapture::CreateStream() {
+bool AudioCapture::CreateStream(std::string *error) {
   if (!loop_) {
+    if (error) {
+      *error = "audio capture loop is not initialized";
+    }
     return false;
   }
 
@@ -114,7 +121,9 @@ bool AudioCapture::CreateStream() {
                         "Capture", PW_KEY_MEDIA_ROLE, "Communication",
                         PW_KEY_STREAM_CAPTURE_SINK, "false", nullptr);
   if (!properties) {
-    fprintf(stderr, "vinput: failed to allocate PipeWire properties\n");
+    if (error) {
+      *error = "failed to allocate PipeWire properties";
+    }
     pw_thread_loop_unlock(loop_);
     return false;
   }
@@ -130,7 +139,9 @@ bool AudioCapture::CreateStream() {
                            properties, &stream_events_, this);
 
   if (!stream_) {
-    fprintf(stderr, "vinput: failed to create PipeWire stream\n");
+    if (error) {
+      *error = "failed to create PipeWire stream";
+    }
     pw_thread_loop_unlock(loop_);
     return false;
   }
@@ -153,8 +164,10 @@ bool AudioCapture::CreateStream() {
       params, 1);
 
   if (ret < 0) {
-    fprintf(stderr, "vinput: failed to connect PipeWire stream: %s\n",
-            strerror(-ret));
+    if (error) {
+      *error = std::string("failed to connect PipeWire stream: ") +
+               strerror(-ret);
+    }
     pw_stream_destroy(stream_);
     stream_ = nullptr;
     pw_thread_loop_unlock(loop_);
@@ -177,14 +190,14 @@ void AudioCapture::DestroyStream() {
   pw_thread_loop_unlock(loop_);
 }
 
-bool AudioCapture::BeginRecording() {
+bool AudioCapture::BeginRecording(std::string *error) {
   DestroyStream();
   {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
     pcm_buffer_.clear();
   }
   recording_.store(true, std::memory_order_relaxed);
-  if (!CreateStream()) {
+  if (!CreateStream(error)) {
     recording_.store(false, std::memory_order_relaxed);
     return false;
   }

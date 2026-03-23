@@ -68,10 +68,16 @@ public:
     model_name_ = provider->model;
 
     ModelManager model_mgr(ResolveModelBaseDir(config).string(), model_name_);
-    if (!model_mgr.EnsureModels()) {
+    std::string model_error;
+    if (!model_mgr.EnsureModels(&model_error)) {
       if (error) {
         *error = "Local ASR model check failed for provider '" +
-                 provider_name_ + "'.";
+                 provider_name_ + "'";
+        if (!model_error.empty()) {
+          *error += ": " + model_error;
+        } else {
+          *error += ".";
+        }
       }
       return false;
     }
@@ -85,10 +91,16 @@ public:
     asr_config.normalize_audio = config.asr.normalizeAudio;
     asr_config.vad_enabled = config.asr.vad.enabled;
     asr_config.vad_model_path = VINPUT_VAD_MODEL_PATH;
-    if (!engine_.Init(model_info, asr_config)) {
+    std::string engine_error;
+    if (!engine_.Init(model_info, asr_config, &engine_error)) {
       if (error) {
         *error = "Failed to initialize local ASR provider '" +
-                 provider_name_ + "'.";
+                 provider_name_ + "'";
+        if (!engine_error.empty()) {
+          *error += ": " + engine_error;
+        } else {
+          *error += ".";
+        }
       }
       return false;
     }

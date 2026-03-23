@@ -15,9 +15,9 @@ public:
   AudioCapture();
   ~AudioCapture();
 
-  bool Start();
+  bool Start(std::string *error = nullptr);
   std::vector<int16_t> StopAndGetBuffer();
-  bool BeginRecording();
+  bool BeginRecording(std::string *error = nullptr);
   void EndRecording();
   bool IsRecording() const;
   void SetTargetObject(std::string target_object);
@@ -26,7 +26,7 @@ private:
   static void onProcess(void *userdata);
   static void onParamChanged(void *userdata, uint32_t id,
                              const struct spa_pod *param);
-  bool CreateStream();
+  bool CreateStream(std::string *error = nullptr);
   void DestroyStream();
   void processCallback();
 

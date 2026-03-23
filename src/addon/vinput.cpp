@@ -1,4 +1,5 @@
 #include "vinput.h"
+#include "notifier_dbus_object.h"
 #include "common/core_config.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
@@ -127,6 +128,14 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
   auto *dbus_addon = instance_->addonManager().addon("dbus");
   if (dbus_addon) {
     bus_ = dbus_addon->call<fcitx::IDBusModule::bus>();
+    notifier_dbus_ = std::make_unique<VinputNotifierDBusObject>(
+        [this](const std::string &message) { notifyError(message); });
+    if (!bus_->addObjectVTable(vinput::dbus::kNotifierObjectPath,
+                               vinput::dbus::kNotifierInterface,
+                               *notifier_dbus_)) {
+      FCITX_LOG(Error) << "vinput: failed to register notifier DBus object";
+      notifier_dbus_.reset();
+    }
     setupDBusWatcher();
   }
 }
