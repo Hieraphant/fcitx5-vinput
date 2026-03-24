@@ -342,14 +342,16 @@ vinput scene use polish
 
 ```json
 {
-  "name": "elevenlabs",
+  "name": "openai-compatible",
   "type": "command",
   "command": "python3",
   "args": [
-    "/usr/share/fcitx5-vinput/asr-providers/elevenlabs_speech_to_text.py"
+    "/usr/share/fcitx5-vinput/asr-providers/openai_compatible_speech_to_text.py"
   ],
   "env": {
-    "ELEVENLABS_API_KEY": "..."
+    "OPENAI_COMPATIBLE_ASR_API_KEY": "...",
+    "OPENAI_COMPATIBLE_ASR_URL": "https://api.openai.com/v1/audio/transcriptions",
+    "OPENAI_COMPATIBLE_ASR_MODEL": "gpt-4o-mini-transcribe"
   },
   "timeout_ms": 60000
 }
@@ -359,6 +361,16 @@ vinput scene use polish
 `/usr/share/fcitx5-vinput/asr-providers/`。用户覆盖脚本放到
 `~/.config/vinput/asr-providers/` 即可；同名文件会优先覆盖内建脚本。
 `command` 应该填写可执行命令或解释器，脚本路径放在 `args` 里。
+
+现在内建的云 ASR provider 包括：
+
+- `elevenlabs`
+- `openai-compatible`
+- `doubao`
+
+其中 `openai-compatible` 覆盖 OpenAI 官方、SiliconFlow 以及其他
+OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao`
+直接对接豆包语音 / 火山引擎录音文件极速版接口。
 
 ### LLM Adaptor 协议
 

@@ -45,6 +45,34 @@
         ],
         "env": {},
         "timeout_ms": 60000
+      },
+      {
+        "name": "openai-compatible",
+        "type": "command",
+        "builtin": true,
+        "command": "python3",
+        "args": [
+          "${VINPUT_ASR_PROVIDER_DIR}/openai_compatible_speech_to_text.py"
+        ],
+        "env": {
+          "OPENAI_COMPATIBLE_ASR_URL": "https://api.openai.com/v1/audio/transcriptions",
+          "OPENAI_COMPATIBLE_ASR_MODEL": "gpt-4o-mini-transcribe"
+        },
+        "timeout_ms": 60000
+      },
+      {
+        "name": "doubao",
+        "type": "command",
+        "builtin": true,
+        "command": "python3",
+        "args": [
+          "${VINPUT_ASR_PROVIDER_DIR}/doubao_speech_to_text.py"
+        ],
+        "env": {
+          "DOUBAO_ASR_RESOURCE_ID": "volc.bigasr.auc_turbo",
+          "DOUBAO_ASR_MODEL_NAME": "bigmodel"
+        },
+        "timeout_ms": 60000
       }
     ]
   },

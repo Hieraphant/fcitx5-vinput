@@ -169,6 +169,30 @@ bool LoadBundledDefaultConfigImpl(CoreConfig *config, std::string *content,
   }
 }
 
+void MergeMissingBuiltinAsrProviders(CoreConfig *config,
+                                     const CoreConfig &bundled_config) {
+  if (!config) {
+    return;
+  }
+
+  std::set<std::string> existing_names;
+  for (const auto &provider : config->asr.providers) {
+    if (!provider.name.empty()) {
+      existing_names.insert(provider.name);
+    }
+  }
+
+  for (const auto &provider : bundled_config.asr.providers) {
+    if (!provider.builtin || provider.name.empty()) {
+      continue;
+    }
+    if (!existing_names.insert(provider.name).second) {
+      continue;
+    }
+    config->asr.providers.push_back(provider);
+  }
+}
+
 }  // namespace
 
 std::string GetCoreConfigPath() {
@@ -468,6 +492,10 @@ CoreConfig LoadCoreConfig() {
       config = bundled_config;
       should_write_bundled = true;
     }
+  }
+
+  if (has_bundled_default) {
+    MergeMissingBuiltinAsrProviders(&config, bundled_config);
   }
 
   if (should_write_bundled) {

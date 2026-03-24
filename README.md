@@ -349,14 +349,16 @@ A minimal provider config looks like this:
 
 ```json
 {
-  "name": "elevenlabs",
+  "name": "openai-compatible",
   "type": "command",
   "command": "python3",
   "args": [
-    "/usr/share/fcitx5-vinput/asr-providers/elevenlabs_speech_to_text.py"
+    "/usr/share/fcitx5-vinput/asr-providers/openai_compatible_speech_to_text.py"
   ],
   "env": {
-    "ELEVENLABS_API_KEY": "..."
+    "OPENAI_COMPATIBLE_ASR_API_KEY": "...",
+    "OPENAI_COMPATIBLE_ASR_URL": "https://api.openai.com/v1/audio/transcriptions",
+    "OPENAI_COMPATIBLE_ASR_MODEL": "gpt-4o-mini-transcribe"
   },
   "timeout_ms": 60000
 }
@@ -367,6 +369,16 @@ Built-in ASR provider scripts are installed under
 placed under `~/.config/vinput/asr-providers/`; user files take precedence over
 built-in scripts with the same script name. `command` should be the executable
 or interpreter, and the script path should live in `args`.
+
+Built-in cloud ASR providers now include:
+
+- `elevenlabs`
+- `openai-compatible`
+- `doubao`
+
+`openai-compatible` covers OpenAI, SiliconFlow, and other OpenAI-compatible
+transcription endpoints by changing the URL and model env vars. `doubao`
+targets the ByteDance / Volcengine fast file-recognition API directly.
 
 ### LLM Adaptor Contract
 

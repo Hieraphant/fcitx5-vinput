@@ -10,28 +10,18 @@
 # @env ELEVENLABS_URL (optional)
 # @env ELEVENLABS_TIMEOUT (optional)
 # ==/vinput-asr-provider==
-"""vinput 的 ElevenLabs 语音转文字命令式 provider。
+"""Built-in ElevenLabs ASR provider for vinput.
 
-从 stdin 读取一段原始 PCM S16_LE 16 kHz 单声道音频，并将最终识别文本
-写入 stdout。
-
-环境变量：
-    ELEVENLABS_API_KEY      必填，API Key。
-    ELEVENLABS_MODEL_ID     可选，默认值为 "scribe_v2"。
-    ELEVENLABS_LANGUAGE     可选，ISO-639 语言代码。
-    ELEVENLABS_URL          可选，自定义接口地址。
-    ELEVENLABS_TIMEOUT      可选，请求超时时间，单位为秒。
-
-示例：
-    ELEVENLABS_API_KEY=... \
-    python3 data/asr-providers/elevenlabs_speech_to_text.py
+Reads one complete PCM S16_LE 16 kHz mono utterance from stdin, sends it to
+the ElevenLabs speech-to-text API, and writes the final transcript to stdout.
+Errors are written to stderr only.
 """
 
 import json
 import os
 import sys
 import uuid
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Iterable, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -39,13 +29,41 @@ from urllib.request import Request, urlopen
 DEFAULT_MODEL_ID = "scribe_v2"
 DEFAULT_TIMEOUT = 60
 DEFAULT_URL = "https://api.elevenlabs.io/v1/speech-to-text"
+EXIT_RUNTIME_ERROR = 1
+EXIT_USAGE_ERROR = 2
 
 
-def env_flag(name: str, default: bool) -> bool:
+def get_required_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise ValueError(f"Missing {name}.")
+    return value
+
+
+def get_optional_env(name: str, default: str = "") -> str:
+    value = os.getenv(name, "").strip()
+    return value or default
+
+
+def get_optional_int_env(name: str, default: int) -> int:
+    value = os.getenv(name, "").strip()
+    if not value:
+        return default
+    return int(value)
+
+
+def get_optional_bool_env(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
         return default
     return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def read_audio_input() -> bytes:
+    pcm_audio = sys.stdin.buffer.read()
+    if not pcm_audio:
+        raise ValueError("No audio received on stdin.")
+    return pcm_audio
 
 
 def build_multipart(
@@ -152,27 +170,18 @@ def transcribe(
 
 
 def main() -> int:
-    api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
-    if not api_key:
-        print("Missing ELEVENLABS_API_KEY.", file=sys.stderr)
-        return 2
-
-    model_id = os.getenv("ELEVENLABS_MODEL_ID", DEFAULT_MODEL_ID).strip()
-    if not model_id:
-        model_id = DEFAULT_MODEL_ID
-
-    language_code = os.getenv("ELEVENLABS_LANGUAGE", "").strip() or None
-    endpoint = os.getenv("ELEVENLABS_URL", DEFAULT_URL).strip() or DEFAULT_URL
-    timeout = int(os.getenv("ELEVENLABS_TIMEOUT", str(DEFAULT_TIMEOUT)))
-    enable_logging = env_flag("ELEVENLABS_ENABLE_LOGGING", True)
-    tag_audio_events = env_flag("ELEVENLABS_TAG_AUDIO_EVENTS", False)
-
-    pcm_audio = sys.stdin.buffer.read()
-    if not pcm_audio:
-        print("No audio received on stdin.", file=sys.stderr)
-        return 2
-
     try:
+        api_key = get_required_env("ELEVENLABS_API_KEY")
+        model_id = get_optional_env("ELEVENLABS_MODEL_ID", DEFAULT_MODEL_ID)
+        language_code = get_optional_env("ELEVENLABS_LANGUAGE") or None
+        endpoint = get_optional_env("ELEVENLABS_URL", DEFAULT_URL)
+        timeout = get_optional_int_env("ELEVENLABS_TIMEOUT", DEFAULT_TIMEOUT)
+        enable_logging = get_optional_bool_env("ELEVENLABS_ENABLE_LOGGING", True)
+        tag_audio_events = get_optional_bool_env(
+            "ELEVENLABS_TAG_AUDIO_EVENTS", False
+        )
+        pcm_audio = read_audio_input()
+
         text = transcribe(
             pcm_audio=pcm_audio,
             api_key=api_key,
@@ -183,17 +192,20 @@ def main() -> int:
             enable_logging=enable_logging,
             tag_audio_events=tag_audio_events,
         )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return EXIT_USAGE_ERROR
     except HTTPError as exc:
         payload = exc.read()
         message = parse_error_payload(payload)
         print(f"ElevenLabs HTTP {exc.code}: {message}", file=sys.stderr)
-        return 1
+        return EXIT_RUNTIME_ERROR
     except URLError as exc:
         print(f"Failed to reach ElevenLabs: {exc}", file=sys.stderr)
-        return 1
+        return EXIT_RUNTIME_ERROR
     except Exception as exc:
         print(str(exc), file=sys.stderr)
-        return 1
+        return EXIT_RUNTIME_ERROR
 
     sys.stdout.write(text)
     return 0
