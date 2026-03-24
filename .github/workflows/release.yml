@@ -285,11 +285,13 @@ jobs:
   build-flatpak:
     needs: source_archive
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
       options: --privileged
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Render pinned Flatpak manifest
         shell: bash
         run: |
@@ -306,7 +308,7 @@ jobs:
           bundle: fcitx5-vinput.flatpak
           repository-name: flathub
           cache-key: flatpak-builder-${{ github.sha }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: flatpak-bundle
           path: fcitx5-vinput.flatpak
