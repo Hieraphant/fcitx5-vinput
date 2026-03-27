@@ -38,7 +38,8 @@ add_executable(vinput
     config/register_llm.cpp
     config/register_scene.cpp
     config/scene_actions.cpp
-    dbus_client.cpp
+    runtime/dbus_client.cpp
+    runtime/systemd_client.cpp
     ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
     ${CMAKE_SOURCE_DIR}/src/common/model_manager.cpp
 )

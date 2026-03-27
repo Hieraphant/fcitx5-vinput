@@ -1,5 +1,7 @@
 #pragma once
+
 #include "common/error_info.h"
+
 #include <string>
 
 struct sd_bus;
@@ -14,12 +16,9 @@ public:
     DbusClient(const DbusClient&) = delete;
     DbusClient& operator=(const DbusClient&) = delete;
 
-    // Check if daemon is running (via NameHasOwner, avoids auto-activation)
     bool IsDaemonRunning(std::string* error = nullptr);
-    // Get daemon status string (only call if IsDaemonRunning returns true)
     bool GetDaemonStatus(std::string* status, std::string* error = nullptr);
 
-    // Recording control
     bool StartRecording(std::string* error = nullptr);
     bool StartCommandRecording(const std::string& selected_text, std::string* error = nullptr);
     bool StopRecording(const std::string& scene_id, std::string* error = nullptr);

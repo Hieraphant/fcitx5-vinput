@@ -1,5 +1,5 @@
 #include "cli/command_status.h"
-#include "cli/dbus_client.h"
+#include "cli/runtime/dbus_client.h"
 #include "common/i18n.h"
 #include <nlohmann/json.hpp>
 #include <cstdio>

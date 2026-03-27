@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-#include "cli/dbus_client.h"
+#include "cli/runtime/dbus_client.h"
 #include "cli/utils/cli_helpers.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"

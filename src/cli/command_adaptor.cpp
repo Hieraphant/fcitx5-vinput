@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "cli/dbus_client.h"
+#include "cli/runtime/dbus_client.h"
 #include "common/adaptor_manager.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"

@@ -1,9 +1,11 @@
-#include "cli/systemd_client.h"
+#include "cli/runtime/systemd_client.h"
+
 #include "common/utils/path_utils.h"
+
 #include <array>
+#include <string>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <string>
 #include <vector>
 
 namespace vinput::cli {
@@ -46,7 +48,7 @@ std::vector<std::string> BuildJournalctlCommand(bool follow, int lines) {
     return args;
 }
 
-static int RunCommand(const std::vector<std::string>& args) {
+int RunCommand(const std::vector<std::string>& args) {
     auto actual_args = BuildCommand(args);
     auto exec_args = BuildExecArgs(actual_args);
     pid_t pid = fork();
@@ -60,8 +62,8 @@ static int RunCommand(const std::vector<std::string>& args) {
     return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }
 
-static int RunCommandCapture(const std::vector<std::string>& args,
-                             std::string* output) {
+int RunCommandCapture(const std::vector<std::string>& args,
+                      std::string* output) {
     int pipefd[2];
     if (pipe(pipefd) < 0) return -1;
 

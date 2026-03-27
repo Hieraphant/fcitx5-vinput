@@ -1,6 +1,6 @@
 #include "cli/command_model.h"
 #include "cli/utils/cli_helpers.h"
-#include "cli/systemd_client.h"
+#include "cli/runtime/systemd_client.h"
 #include "common/i18n.h"
 #include "cli/progress.h"
 #include "common/config/core_config.h"
