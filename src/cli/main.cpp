@@ -3,6 +3,8 @@
 #include <string>
 #include <unistd.h>
 
+#include "cli/action.h"
+#include "cli/control/register.h"
 #include "cli/config/register.h"
 #include "cli/utils/cli_context.h"
 #include "cli/utils/formatter.h"
@@ -11,15 +13,16 @@
 int main(int argc, char *argv[]) {
   vinput::i18n::Init();
 
-  CLI::App app{_("vinput - Voice input configuration manager")};
+  CLI::App app{_("vinput - Voice input manager")};
   app.require_subcommand(0, 1);
   app.set_help_flag("-h,--help", _("Print this help message and exit"));
 
   bool json_output = false;
   app.add_flag("-j,--json", json_output, _("Output in JSON format"));
 
-  vinput::cli::config::CliAction action;
+  vinput::cli::CliAction action;
   vinput::cli::config::RegisterConfigCli(app, &action);
+  vinput::cli::control::RegisterControlCli(app, &action);
 
   CLI11_PARSE(app, argc, argv);
 

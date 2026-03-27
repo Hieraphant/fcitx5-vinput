@@ -22,6 +22,8 @@ add_executable(vinput
     main.cpp
     utils/formatter.cpp
     utils/editor_utils.cpp
+    control/register.cpp
+    control/register_recording.cpp
     config/asr_actions.cpp
     config/llm_actions.cpp
     config/register.cpp
@@ -31,10 +33,12 @@ add_executable(vinput
     config/register_init.cpp
     config/register_llm.cpp
     config/register_scene.cpp
+    command_recording.cpp
     command_init.cpp
     command_scene.cpp
     command_config.cpp
     command_device.cpp
+    dbus_client.cpp
     ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
     ${CMAKE_SOURCE_DIR}/src/common/model_manager.cpp
 )
@@ -42,12 +46,14 @@ add_executable(vinput
 target_include_directories(vinput PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${PIPEWIRE_INCLUDE_DIRS}
+    ${SDBUS_INCLUDE_DIRS}
 )
 
 target_link_libraries(vinput PRIVATE
     vinput-config
     CLI11::CLI11
     ${PIPEWIRE_LIBRARIES}
+    ${SDBUS_LIBRARIES}
 )
 
 install(TARGETS vinput
