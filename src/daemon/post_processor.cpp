@@ -102,7 +102,7 @@ void LogResponseSummary(const LlmProvider &provider, const std::string &url,
                         long status_code, double total_time_ms) {
   fprintf(stderr,
           "vinput-daemon: LLM request provider=%s url=%s status=%ld time=%.1fms\n",
-          provider.name.empty() ? "(unnamed)" : provider.name.c_str(),
+          provider.id.empty() ? "(unnamed)" : provider.id.c_str(),
           url.c_str(), status_code, total_time_ms);
 }
 
@@ -289,7 +289,7 @@ RewriteWithOpenAiCompatible(const std::string &text,
         std::string("LLM request failed: ") + curl_easy_strerror(curl_code);
     fprintf(stderr,
             "vinput-daemon: LLM request provider=%s url=%s failed after %.1fms: %s\n",
-            provider.name.empty() ? "(unnamed)" : provider.name.c_str(),
+            provider.id.empty() ? "(unnamed)" : provider.id.c_str(),
             url.c_str(), total_time_ms, curl_easy_strerror(curl_code));
     if (error_out) *error_out = msg;
     return std::nullopt;

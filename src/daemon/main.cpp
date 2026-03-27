@@ -77,6 +77,10 @@ bool ShouldDisableAsrAtStartup(const CoreConfig &config, bool disable_asr,
   return false;
 }
 
+std::string BuildAsrRuntimeSignature(const CoreConfig &config) {
+  return nlohmann::ordered_json(config).dump();
+}
+
 void LogActiveAsrProvider(const CoreConfig &config) {
   const AsrProvider *provider = ResolveActiveAsrProvider(config);
   if (!provider) {
@@ -84,18 +88,19 @@ void LogActiveAsrProvider(const CoreConfig &config) {
     return;
   }
 
-  if (provider->type == vinput::asr::kLocalProviderType) {
+  if (const auto *local = std::get_if<LocalAsrProvider>(provider)) {
     fprintf(stderr,
             "vinput-daemon: ASR provider=%s type=%s model=%s lang=%s\n",
-            provider->name.c_str(), provider->type.c_str(),
-            provider->model.c_str(), config.global.defaultLanguage.c_str());
+            local->id.c_str(), vinput::asr::kLocalProviderType,
+            local->model.c_str(), config.global.defaultLanguage.c_str());
     return;
   }
 
+  const auto &command = std::get<CommandAsrProvider>(*provider);
   fprintf(stderr,
           "vinput-daemon: ASR provider=%s type=%s command=%s timeout=%dms\n",
-          provider->name.c_str(), provider->type.c_str(),
-          provider->command.c_str(), provider->timeoutMs);
+          command.id.c_str(), vinput::asr::kCommandProviderType,
+          command.command.c_str(), command.timeoutMs);
 }
 
 void LogAsrRequest(const CoreConfig &config, std::size_t sample_count) {
@@ -108,7 +113,8 @@ void LogAsrRequest(const CoreConfig &config, std::size_t sample_count) {
 
   fprintf(stderr,
           "vinput-daemon: ASR request provider=%s type=%s samples=%zu\n",
-          provider->name.c_str(), provider->type.c_str(), sample_count);
+          AsrProviderId(*provider).c_str(),
+          std::string(AsrProviderType(*provider)).c_str(), sample_count);
 }
 
 class AdaptorSupervisor {
@@ -542,23 +548,65 @@ int main(int argc, char *argv[]) {
   auto startup_settings = LoadCoreConfig();
   NormalizeCoreConfig(&startup_settings);
   std::unique_ptr<vinput::asr::Provider> asr;
+  std::string asr_signature;
+  const bool disable_asr_by_flag = disable_asr;
+
+  auto resetAsr = [&]() {
+    if (asr) {
+      asr->Shutdown();
+      asr.reset();
+    }
+    asr_signature.clear();
+  };
+
+  auto ensureAsrReady = [&](const CoreConfig &settings,
+                            std::string *error) -> bool {
+    std::string disabled_reason;
+    if (ShouldDisableAsrAtStartup(settings, disable_asr_by_flag,
+                                  &disabled_reason)) {
+      resetAsr();
+      if (error) {
+        *error = std::move(disabled_reason);
+      }
+      return false;
+    }
+
+    const std::string signature = BuildAsrRuntimeSignature(settings);
+    if (asr && asr_signature == signature) {
+      if (error) {
+        error->clear();
+      }
+      return true;
+    }
+
+    resetAsr();
+    LogActiveAsrProvider(settings);
+
+    std::string init_error;
+    auto provider = vinput::asr::CreateProvider(settings, &init_error);
+    if (!provider) {
+      if (error) {
+        *error = std::move(init_error);
+      }
+      return false;
+    }
+    if (!provider->Init(settings, &init_error)) {
+      if (error) {
+        *error = std::move(init_error);
+      }
+      return false;
+    }
+
+    asr = std::move(provider);
+    asr_signature = signature;
+    if (error) {
+      error->clear();
+    }
+    return true;
+  };
+
   std::string asr_disabled_reason;
-  disable_asr = ShouldDisableAsrAtStartup(startup_settings, disable_asr,
-                                          &asr_disabled_reason);
-  if (!disable_asr) {
-    LogActiveAsrProvider(startup_settings);
-    std::string asr_error;
-    asr = vinput::asr::CreateProvider(startup_settings, &asr_error);
-    if (!asr) {
-      fprintf(stderr, "vinput-daemon: %s\n", asr_error.c_str());
-      return 1;
-    }
-    if (!asr->Init(startup_settings, &asr_error)) {
-      fprintf(stderr, "vinput-daemon: %s\n", asr_error.c_str());
-      return 1;
-    }
-  }
-  if (disable_asr) {
+  if (!ensureAsrReady(startup_settings, &asr_disabled_reason)) {
     fprintf(stderr, "vinput-daemon: running with ASR disabled");
     if (!asr_disabled_reason.empty()) {
       fprintf(stderr, " (%s)", asr_disabled_reason.c_str());
@@ -763,9 +811,13 @@ int main(int argc, char *argv[]) {
       }
 
       try {
+        auto runtime_settings = LoadCoreConfig();
+        NormalizeCoreConfig(&runtime_settings);
+
         std::string text;
-        if (!disable_asr) {
-          LogAsrRequest(startup_settings, order.pcm.size());
+        std::string asr_error;
+        if (ensureAsrReady(runtime_settings, &asr_error)) {
+          LogAsrRequest(runtime_settings, order.pcm.size());
           auto asr_result = asr->Infer(order.pcm);
           if (!asr_result.ok && !asr_result.error.empty()) {
             fprintf(stderr, "vinput-daemon: ASR provider error: %s\n",
@@ -773,12 +825,14 @@ int main(int argc, char *argv[]) {
             dbus.EmitError(vinput::dbus::MakeRawError(asr_result.error));
           }
           text = std::move(asr_result.text);
+        } else if (!asr_error.empty()) {
+          fprintf(stderr, "vinput-daemon: ASR unavailable: %s\n",
+                  asr_error.c_str());
+          dbus.EmitError(vinput::dbus::ClassifyErrorText(asr_error));
         }
 
         vinput::result::Payload result;
         if (!text.empty()) {
-          auto runtime_settings = LoadCoreConfig();
-          NormalizeCoreConfig(&runtime_settings);
           vinput::scene::Config scene_config;
           scene_config.activeSceneId = runtime_settings.scenes.activeScene;
           scene_config.scenes = runtime_settings.scenes.definitions;

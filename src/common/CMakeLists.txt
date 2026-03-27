@@ -25,7 +25,6 @@ add_library(vinput-common STATIC
     model_repository.cpp
     registry_cache.cpp
     registry_i18n.cpp
-    script_resource.cpp
     adaptor_manager.cpp
     utils/downloader.cpp
     utils/process_utils.cpp

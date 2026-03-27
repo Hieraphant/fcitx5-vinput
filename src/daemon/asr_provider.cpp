@@ -33,8 +33,9 @@ public:
       return false;
     }
 
-    provider_name_ = provider->name;
-    model_name_ = provider->model;
+    const auto &local = std::get<LocalAsrProvider>(*provider);
+    provider_name_ = local.id;
+    model_name_ = local.model;
     if (model_name_.empty()) {
       if (error) {
         *error = vinput::str::FmtStr(
@@ -64,7 +65,7 @@ public:
 
     AsrConfig asr_config;
     asr_config.language = config.global.defaultLanguage;
-    asr_config.hotwords_file = provider->hotwordsFile;
+    asr_config.hotwords_file = local.hotwordsFile;
     asr_config.normalize_audio = config.asr.normalizeAudio;
     asr_config.vad_enabled = config.asr.vad.enabled;
     asr_config.vad_model_path = VINPUT_VAD_MODEL_PATH;
@@ -109,25 +110,26 @@ class CommandProvider : public Provider {
 public:
   bool Init(const CoreConfig &config, std::string *error) override {
     const ::AsrProvider *provider = ResolveActiveAsrProvider(config);
-    if (!provider || provider->type != kCommandProviderType) {
+    if (!provider || !std::holds_alternative<CommandAsrProvider>(*provider)) {
       if (error) {
         *error = "Active ASR provider is not a command provider.";
       }
       return false;
     }
 
-    if (provider->command.empty()) {
+    const auto &command_provider = std::get<CommandAsrProvider>(*provider);
+    if (command_provider.command.empty()) {
       if (error) {
         *error = "Command ASR provider has empty command.";
       }
       return false;
     }
 
-    provider_name_ = provider->name;
-    command_.command = provider->command;
-    command_.args = provider->args;
-    command_.env = provider->env;
-    command_.timeout_ms = provider->timeoutMs;
+    provider_name_ = command_provider.id;
+    command_.command = command_provider.command;
+    command_.args = command_provider.args;
+    command_.env = command_provider.env;
+    command_.timeout_ms = command_provider.timeoutMs;
 
     initialized_ = true;
     return true;
@@ -195,15 +197,16 @@ std::unique_ptr<Provider> CreateProvider(const CoreConfig &config,
     return nullptr;
   }
 
-  if (provider->type == kLocalProviderType) {
+  if (std::holds_alternative<LocalAsrProvider>(*provider)) {
     return std::make_unique<LocalProvider>();
   }
-  if (provider->type == kCommandProviderType) {
+  if (std::holds_alternative<CommandAsrProvider>(*provider)) {
     return std::make_unique<CommandProvider>();
   }
 
   if (error) {
-    *error = "Unsupported ASR provider type: " + provider->type;
+    *error = "Unsupported ASR provider type: " +
+             std::string(AsrProviderType(*provider));
   }
   return nullptr;
 }
