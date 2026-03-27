@@ -109,6 +109,10 @@ vinput model use <模型名>        # 设置为当前模型
 systemctl --user enable --now vinput-daemon.service
 ```
 
+如果你之前把 Vinput 安装在 `/usr/local`，请先删除那里的旧用户态
+service 文件，并执行 `systemctl --user daemon-reload`，否则旧 unit
+可能会覆盖新的 `/usr` 安装结果。
+
 **3. 在 Fcitx5 中启用**
 
 打开 Fcitx5 配置 → 附加组件 → 找到 **Vinput** → 启用。

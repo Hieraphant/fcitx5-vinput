@@ -110,6 +110,10 @@ Or manually place a model directory in `~/.local/share/vinput/models/<model-name
 systemctl --user enable --now vinput-daemon.service
 ```
 
+If you previously installed Vinput under `/usr/local`, remove old user service
+files there and run `systemctl --user daemon-reload` first, otherwise the old
+unit may override the new `/usr` install.
+
 **3. Enable in Fcitx5**
 
 Open Fcitx5 Configuration → Addons → Find **Vinput** → Enable.

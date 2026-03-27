@@ -12,26 +12,59 @@ flatpak_branch := "stable"
 default:
   @just --list
 
-configure type="Release" *cmake_args:
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} {{cmake_args}}
+configure type="Release" prefix="/usr" *cmake_args:
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
 
-dev *cmake_args:
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Debug {{cmake_args}}
+dev prefix="/usr" *cmake_args:
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
 
-release *cmake_args:
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Release {{cmake_args}}
+release prefix="/usr" *cmake_args:
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
 
 build:
   cmake --build {{build_dir}}
 
-install:
-  cmake --install {{build_dir}}
+install prefix="/usr":
+  @cmake -B {{build_dir}} -DCMAKE_INSTALL_PREFIX={{prefix}}
+  @cmake --install {{build_dir}}
+  @echo "note: run 'systemctl --user daemon-reload' after installing systemd user units"
+  @if [ "{{prefix}}" = "/usr" ]; then just check-stale-install; fi
+
+doctor: check-build-cache check-installed-binaries check-user-service check-stale-install
+
+check-build-cache:
+  @echo "== Build Cache =="
+  @cmake -LA -N {{build_dir}} 2>/dev/null | rg 'CMAKE_BUILD_TYPE|CMAKE_INSTALL_PREFIX' || true
+  @echo
+
+check-installed-binaries:
+  @echo "== Installed Binaries =="
+  @for cmd in vinput vinput-daemon vinput-gui; do \
+    if command -v "$cmd" >/dev/null 2>&1; then \
+      path="$(command -v "$cmd")"; \
+      echo "$cmd -> $path"; \
+      ls -l "$path"; \
+    else \
+      echo "$cmd -> (not found)"; \
+    fi; \
+    echo; \
+  done
+
+check-user-service:
+  @echo "== User Service =="
+  @systemctl --user cat vinput-daemon.service || true
+  @echo
+
+check-stale-install:
+  @echo "== Stale /usr/local Paths =="
+  @found=0; test ! -e /usr/local/bin/vinput || { found=1; ls -ld /usr/local/bin/vinput; }; test ! -e /usr/local/bin/vinput-daemon || { found=1; ls -ld /usr/local/bin/vinput-daemon; }; test ! -e /usr/local/bin/vinput-gui || { found=1; ls -ld /usr/local/bin/vinput-gui; }; test ! -e /usr/local/share/systemd/user/vinput-daemon.service || { found=1; ls -ld /usr/local/share/systemd/user/vinput-daemon.service; }; test ! -e /usr/local/share/dbus-1/services/org.fcitx.Vinput.service || { found=1; ls -ld /usr/local/share/dbus-1/services/org.fcitx.Vinput.service; }; test ! -e /usr/local/share/applications/vinput-gui.desktop || { found=1; ls -ld /usr/local/share/applications/vinput-gui.desktop; }; test "$found" -eq 0 && echo "(none)" || true
+  @echo
 
 clean:
   rm -rf {{build_dir}}
 
-rebuild type="Release" *cmake_args: clean
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} {{cmake_args}}
+rebuild type="Release" prefix="/usr" *cmake_args: clean
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
   cmake --build {{build_dir}}
 
 sherpa version="" prefix="/usr" archive="":
