@@ -13,19 +13,19 @@ default:
   @just --list
 
 configure type="Release" prefix="/usr" *cmake_args:
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON {{cmake_args}}
 
 dev prefix="/usr" *cmake_args:
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON {{cmake_args}}
 
 release prefix="/usr" *cmake_args:
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON {{cmake_args}}
 
 build:
   cmake --build {{build_dir}}
 
 install prefix="/usr":
-  @cmake -B {{build_dir}} -DCMAKE_INSTALL_PREFIX={{prefix}}
+  @cmake -B {{build_dir}} -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
   @cmake --install {{build_dir}}
   @echo "note: run 'systemctl --user daemon-reload' after installing systemd user units"
   @if [ "{{prefix}}" = "/usr" ]; then just check-stale-install; fi
@@ -64,7 +64,7 @@ clean:
   rm -rf {{build_dir}}
 
 rebuild type="Release" prefix="/usr" *cmake_args: clean
-  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
+  cmake -B {{build_dir}} -DCMAKE_BUILD_TYPE={{type}} -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON {{cmake_args}}
   cmake --build {{build_dir}}
 
 sherpa version="" prefix="/usr" archive="":
