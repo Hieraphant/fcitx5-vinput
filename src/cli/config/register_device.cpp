@@ -2,8 +2,8 @@
 
 #include <CLI/CLI.hpp>
 
-#include "cli/command_device.h"
 #include "cli/config/action.h"
+#include "cli/config/device_actions.h"
 #include "common/i18n.h"
 
 namespace vinput::cli::config {
@@ -16,7 +16,7 @@ void RegisterDeviceCommands(CLI::App &app, CliAction *action) {
   list->alias("ls");
   list->callback([action]() {
     *action = [](Formatter &fmt, const CliContext &ctx) {
-      return RunDeviceList(fmt, ctx);
+      return RunDeviceConfigList(fmt, ctx);
     };
   });
 
@@ -25,7 +25,7 @@ void RegisterDeviceCommands(CLI::App &app, CliAction *action) {
   use->add_option("id", *id, _("Device id or 'default'"))->required();
   use->callback([action, id]() {
     *action = [id](Formatter &fmt, const CliContext &ctx) {
-      return RunDeviceUse(*id, fmt, ctx);
+      return RunDeviceConfigUse(*id, fmt, ctx);
     };
   });
 }

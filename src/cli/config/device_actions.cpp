@@ -1,14 +1,15 @@
-#include "cli/command_device.h"
+#include "cli/config/device_actions.h"
+
+#include <nlohmann/json.hpp>
+#include <vector>
+
 #include "cli/utils/cli_helpers.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/pipewire_device.h"
 #include "common/utils/string_utils.h"
 
-#include <nlohmann/json.hpp>
-#include <vector>
-
-int RunDeviceList(Formatter &fmt, const CliContext &ctx) {
+int RunDeviceConfigList(Formatter &fmt, const CliContext &ctx) {
   CoreConfig config = LoadCoreConfig();
   std::string active_device = config.global.captureDevice;
 
@@ -33,7 +34,8 @@ int RunDeviceList(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
 
-  std::vector<std::string> headers = {_("NAME"), _("DESCRIPTION"), _("STATUS")};
+  std::vector<std::string> headers = {_("NAME"), _("DESCRIPTION"),
+                                      _("STATUS")};
   std::vector<std::vector<std::string>> rows;
 
   {
@@ -53,8 +55,8 @@ int RunDeviceList(Formatter &fmt, const CliContext &ctx) {
   return 0;
 }
 
-int RunDeviceUse(const std::string &name, Formatter &fmt,
-                 const CliContext &ctx) {
+int RunDeviceConfigUse(const std::string &name, Formatter &fmt,
+                       const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
 
@@ -75,7 +77,8 @@ int RunDeviceUse(const std::string &name, Formatter &fmt,
 
   config.global.captureDevice = name;
 
-  if (!SaveConfigOrFail(config, fmt)) return 1;
+  if (!SaveConfigOrFail(config, fmt))
+    return 1;
 
   fmt.PrintSuccess(vinput::str::FmtStr(
       _("Capture device set to '%s'. Restart daemon to apply changes."), name));
