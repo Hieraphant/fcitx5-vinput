@@ -24,6 +24,7 @@ add_executable(vinput
     progress.cpp
     editor_utils.cpp
     command_init.cpp
+    command_registry.cpp
     command_model.cpp
     command_scene.cpp
     command_config.cpp
@@ -56,16 +57,4 @@ target_link_libraries(vinput PRIVATE
 
 install(TARGETS vinput
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-install(PROGRAMS
-    ${CMAKE_SOURCE_DIR}/data/asr-providers/elevenlabs_speech_to_text.py
-    ${CMAKE_SOURCE_DIR}/data/asr-providers/openai_compatible_speech_to_text.py
-    ${CMAKE_SOURCE_DIR}/data/asr-providers/doubao_speech_to_text.py
-    DESTINATION ${VINPUT_ASR_PROVIDER_DIR}
-)
-
-install(PROGRAMS
-    ${CMAKE_SOURCE_DIR}/data/llm-adaptors/mtranserver_proxy.py
-    DESTINATION ${VINPUT_LLM_ADAPTOR_DIR}
 )

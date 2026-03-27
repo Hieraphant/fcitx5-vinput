@@ -1,10 +1,11 @@
 # ASR Provider 脚本
 
-这个目录保存项目内置的 ASR provider 脚本。构建和安装时，会将它们复制到
-运行时数据目录。
+这个目录保存项目维护的官方云端 ASR provider 脚本源码。它们不再作为内置资源
+随包安装，而是由 `vinput-registry` 发布，再由客户端按需下载到本地：
 
-- 内置安装路径：`/usr/share/fcitx5-vinput/asr-providers/`
-- 用户覆盖路径：`~/.config/vinput/asr-providers/`
+- 本仓库源码目录：`data/asr-providers/`
+- 用户本地安装路径：`~/.config/vinput/asr-providers/`
+- 安装方式：`vinput asr install <id>`
 
 受管理的 provider 应使用显式命令配置：
 
@@ -12,7 +13,7 @@
 - `args`：脚本路径和额外参数
 - `env`：环境变量覆盖
 
-当前内置脚本包括：
+当前官方脚本包括：
 
 - `elevenlabs_speech_to_text.py`
 - `openai_compatible_speech_to_text.py`

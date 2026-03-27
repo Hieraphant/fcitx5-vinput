@@ -2,6 +2,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <fstream>
 #include <system_error>
 #include <unistd.h>
 
@@ -113,6 +114,38 @@ bool EnsureParentDirectory(const std::filesystem::path& path, std::string* error
   if (ec) {
     if (error) *error = "Failed to create directory " + parent.string() + ": " + ec.message();
     return false;
+  }
+  return true;
+}
+
+bool ReadTextFile(const std::filesystem::path& path, std::string* content,
+                  std::string* error) {
+  if (!content) {
+    if (error) {
+      *error = "ReadTextFile requires a destination buffer.";
+    }
+    return false;
+  }
+
+  std::ifstream file(path, std::ios::binary);
+  if (!file.is_open()) {
+    if (error) {
+      *error = "Failed to open file " + path.string();
+    }
+    return false;
+  }
+
+  content->assign(std::istreambuf_iterator<char>(file),
+                  std::istreambuf_iterator<char>());
+  if (!file.good() && !file.eof()) {
+    if (error) {
+      *error = "Failed to read file " + path.string();
+    }
+    return false;
+  }
+
+  if (error) {
+    error->clear();
   }
   return true;
 }

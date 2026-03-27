@@ -281,22 +281,28 @@ private:
   }
 
   DbusService::MethodResult HandleStartRequest(const std::string &adaptor_id) {
-    std::string error;
-    auto info = vinput::adaptor::FindById(adaptor_id, &error);
-    if (!info.has_value()) {
-      return DbusService::MethodResult::Failure(
-          error.empty() ? "adaptor not found" : error);
+    auto runtime_settings = LoadCoreConfig();
+    NormalizeCoreConfig(&runtime_settings);
+    const auto *adaptor = ResolveLlmAdaptor(runtime_settings, adaptor_id);
+    if (!adaptor) {
+      return DbusService::MethodResult::Failure("adaptor not found");
     }
+
     if (adaptors_.find(adaptor_id) != adaptors_.end() ||
-        vinput::adaptor::IsRunning(*info)) {
+        vinput::adaptor::IsRunning(adaptor_id)) {
       return DbusService::MethodResult::Failure("adaptor is already running");
     }
 
-    auto runtime_settings = LoadCoreConfig();
-    NormalizeCoreConfig(&runtime_settings);
-    const auto spec = vinput::adaptor::BuildCommandSpec(*info, runtime_settings);
+    if (adaptor->command.empty()) {
+      return DbusService::MethodResult::Failure(
+          "adaptor command is not configured");
+    }
+
+    std::string error;
+    const auto spec = vinput::adaptor::BuildCommandSpec(*adaptor);
+    const auto working_dir = vinput::adaptor::ResolveWorkingDir(*adaptor);
     vinput::process::SpawnedProcess process;
-    if (!vinput::process::SpawnForMonitoring(spec, info->path.parent_path(),
+    if (!vinput::process::SpawnForMonitoring(spec, working_dir,
                                              &process, &error)) {
       return DbusService::MethodResult::Failure(
           error.empty() ? "failed to start adaptor" : error);
@@ -336,11 +342,10 @@ private:
   }
 
   DbusService::MethodResult HandleStopRequest(const std::string &adaptor_id) {
-    std::string error;
-    auto info = vinput::adaptor::FindById(adaptor_id, &error);
-    if (!info.has_value()) {
-      return DbusService::MethodResult::Failure(
-          error.empty() ? "adaptor not found" : error);
+    auto runtime_settings = LoadCoreConfig();
+    NormalizeCoreConfig(&runtime_settings);
+    if (!ResolveLlmAdaptor(runtime_settings, adaptor_id)) {
+      return DbusService::MethodResult::Failure("adaptor not found");
     }
 
     auto it = adaptors_.find(adaptor_id);
@@ -354,7 +359,8 @@ private:
       adaptors_.erase(it);
     }
 
-    if (!vinput::adaptor::Stop(*info, &error)) {
+    std::string error;
+    if (!vinput::adaptor::Stop(adaptor_id, &error)) {
       return DbusService::MethodResult::Failure(
           error.empty() ? "failed to stop adaptor" : error);
     }

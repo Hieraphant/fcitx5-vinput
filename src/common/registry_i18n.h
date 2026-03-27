@@ -11,7 +11,8 @@ namespace vinput::registry {
 using I18nMap = std::unordered_map<std::string, std::string>;
 
 std::string DetectPreferredLocale();
-I18nMap FetchI18nMap(const std::vector<std::string> &urls, std::string *error);
+I18nMap FetchI18nMap(const std::string &locale,
+                     const std::vector<std::string> &urls, std::string *error);
 I18nMap FetchMergedI18nMap(const CoreConfig &config,
                            const std::string &preferred_locale,
                            std::string *error = nullptr);

@@ -11,6 +11,7 @@
 #include <QHash>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -112,20 +113,6 @@ QStringList NonEmptyLines(const QString &text) {
   return lines;
 }
 
-std::optional<AsrProvider> LoadDefaultAsrProviderTemplate() {
-  CoreConfig config;
-  std::string error;
-  if (!LoadBundledDefaultCoreConfig(&config, &error)) {
-    return std::nullopt;
-  }
-
-  if (!config.asr.providers.empty()) {
-    return config.asr.providers.front();
-  }
-
-  return std::nullopt;
-}
-
 QString SceneLabelForGui(const vinput::scene::Definition &scene) {
   if (scene.label == vinput::scene::kRawSceneLabelKey) {
     return MainWindowTranslate("Raw");
@@ -161,14 +148,18 @@ struct ModelEntry {
   bool supports_hotwords = false;
 };
 
+struct RegistryResourceEntry {
+  QString id;
+  QString title;
+  QString description;
+  QString status;
+};
+
 QList<ModelEntry> LoadLocalModelsFromCli(QString *error_out);
 
 QString AsrProviderDisplayText(const AsrProvider &provider, bool active) {
   QString display = QString::fromStdString(provider.name) + " [" +
                     QString::fromStdString(provider.type) + "]";
-  if (provider.builtin) {
-    display += " · " + MainWindowTranslate("builtin");
-  }
   if (provider.type == vinput::asr::kLocalProviderType) {
     display += " · " +
                (provider.model.empty() ? MainWindowTranslate("(not set)")
@@ -205,20 +196,12 @@ QString JoinEnvLines(const std::map<std::string, std::string> &env) {
   return QString::fromStdString(joined);
 }
 
-QString AdaptorDisplayText(const vinput::adaptor::Info &info,
-                           const LlmAdaptor *config, bool running) {
-  QString display = QString::fromStdString(info.id) + " [" +
-                    QString::fromStdString(
-                        vinput::adaptor::SourceToString(info.source)) +
-                    "]";
-  display += " · " +
+QString AdaptorDisplayText(const LlmAdaptor &adaptor, bool running) {
+  QString display = QString::fromStdString(adaptor.id) + " · " +
              (running ? MainWindowTranslate("running")
                       : MainWindowTranslate("stopped"));
-  if (!info.description.empty()) {
-    display += " · " + QString::fromStdString(info.description);
-  }
-  if (config && !config->command.empty()) {
-    display += " · " + QString::fromStdString(config->command);
+  if (!adaptor.command.empty()) {
+    display += " · " + QString::fromStdString(adaptor.command);
   }
   return display;
 }
@@ -305,18 +288,8 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
     if (existing_provider) {
       initial = *existing_provider;
     } else {
-      if (auto defaults = LoadDefaultAsrProviderTemplate()) {
-        initial = *defaults;
-      }
-      initial.name.clear();
-      initial.model.clear();
-      initial.command.clear();
-      initial.args.clear();
-      initial.env.clear();
-      initial.builtin = false;
-      if (initial.type.empty()) {
-        initial.type = vinput::asr::kLocalProviderType;
-      }
+      initial.type = vinput::asr::kLocalProviderType;
+      initial.timeoutMs = 15000;
     }
 
     editName->setText(QString::fromStdString(initial.name));
@@ -331,7 +304,7 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
     editCommand->setText(QString::fromStdString(initial.command));
     textArgs->setPlainText(JoinArgLines(initial.args));
     textEnv->setPlainText(JoinEnvLines(initial.env));
-    comboType->setEnabled(!(existing_provider && existing_provider->builtin));
+    comboType->setEnabled(true);
     spinTimeout->setValue(initial.timeoutMs > 0
                               ? initial.timeoutMs
                               : spinTimeout->minimum());
@@ -390,7 +363,6 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
     AsrProvider provider;
     provider.name = name.toStdString();
     provider.type = type.toStdString();
-    provider.builtin = existing_provider ? existing_provider->builtin : false;
     provider.timeoutMs = spinTimeout->value();
 
     if (type == vinput::asr::kLocalProviderType) {
@@ -422,8 +394,7 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
   }
 }
 
-bool EditAdaptorDialog(QWidget *parent, const vinput::adaptor::Info &info,
-                       const LlmAdaptor *existing_config,
+bool EditAdaptorDialog(QWidget *parent, const LlmAdaptor &initial_adaptor,
                        LlmAdaptor *out_config) {
   if (!out_config) {
     return false;
@@ -435,25 +406,6 @@ bool EditAdaptorDialog(QWidget *parent, const vinput::adaptor::Info &info,
         MainWindowTranslate("Configure LLM Adaptor"));
 
     auto *layout = new QVBoxLayout(&dialog);
-
-    if (!info.description.empty()) {
-      auto *desc = new QLabel(QString::fromStdString(info.description));
-      desc->setWordWrap(true);
-      layout->addWidget(desc);
-    }
-
-    if (!info.env_entries.empty()) {
-      QStringList lines;
-      for (const auto &entry : info.env_entries) {
-        lines.push_back(QString::fromStdString(entry));
-      }
-      QStringList sections;
-      sections.push_back(MainWindowTranslate("Supported env entries:"));
-      sections.push_back(lines.join("\n"));
-      auto *hint = new QLabel(sections.join("\n\n"));
-      hint->setWordWrap(true);
-      layout->addWidget(hint);
-    }
 
     auto *form = new QFormLayout();
     auto *editCommand = new QLineEdit();
@@ -468,21 +420,14 @@ bool EditAdaptorDialog(QWidget *parent, const vinput::adaptor::Info &info,
     editCommand->setPlaceholderText(
         MainWindowTranslate("Command or interpreter"));
 
-    LlmAdaptor config;
-    config.id = info.id;
-    if (existing_config) {
-      config = *existing_config;
-    } else {
-      config.command = info.default_command;
-      config.args = info.default_args;
-    }
+    LlmAdaptor config = initial_adaptor;
 
     editCommand->setText(QString::fromStdString(config.command));
     textArgs->setPlainText(JoinArgLines(config.args));
     textEnv->setPlainText(JoinEnvLines(config.env));
 
     form->addRow(MainWindowTranslate("Adaptor ID:"),
-                 new QLabel(QString::fromStdString(info.id)));
+                 new QLabel(QString::fromStdString(config.id)));
     form->addRow(MainWindowTranslate("Command / Interpreter:"), editCommand);
     form->addRow(MainWindowTranslate("Args:"), textArgs);
     form->addRow(MainWindowTranslate("Env:"), textEnv);
@@ -500,7 +445,7 @@ bool EditAdaptorDialog(QWidget *parent, const vinput::adaptor::Info &info,
       return false;
     }
 
-    config.id = info.id;
+    config.id = initial_adaptor.id;
     config.command = editCommand->text().trimmed().toStdString();
     config.args.clear();
     for (const QString &arg : NonEmptyLines(textArgs->toPlainText())) {
@@ -597,10 +542,12 @@ void MainWindow::setupGeneralTab() {
   asrListLayout->addWidget(listAsrProviders);
 
   auto *asrBtnLayout = new QVBoxLayout();
+  btnAsrInstallOfficial = new QPushButton(tr("Install Available..."));
   btnAsrAdd = new QPushButton(tr("Add"));
   btnAsrEdit = new QPushButton(tr("Edit"));
   btnAsrRemove = new QPushButton(tr("Remove"));
   btnAsrSetActive = new QPushButton(tr("Set Active"));
+  asrBtnLayout->addWidget(btnAsrInstallOfficial);
   asrBtnLayout->addWidget(btnAsrAdd);
   asrBtnLayout->addWidget(btnAsrEdit);
   asrBtnLayout->addWidget(btnAsrRemove);
@@ -612,6 +559,8 @@ void MainWindow::setupGeneralTab() {
 
   layout->addWidget(asrFrame);
 
+  connect(btnAsrInstallOfficial, &QPushButton::clicked, this,
+          &MainWindow::onAsrInstallAvailable);
   connect(btnAsrAdd, &QPushButton::clicked, this, &MainWindow::onAsrAdd);
   connect(btnAsrEdit, &QPushButton::clicked, this, &MainWindow::onAsrEdit);
   connect(btnAsrRemove, &QPushButton::clicked, this, &MainWindow::onAsrRemove);
@@ -793,10 +742,10 @@ QList<ModelEntry> LoadLocalModelsFromCli(QString *error_out) {
 
 QList<ModelEntry> LoadRemoteModelsFromCli(QString *error_out) {
   QJsonDocument doc;
-  if (!RunVinputJson({"model", "list", "--remote"}, &doc, error_out) ||
+  if (!RunVinputJson({"model", "list", "--available"}, &doc, error_out) ||
       !doc.isArray()) {
     if (error_out && error_out->isEmpty())
-      *error_out = "invalid JSON output from vinput model list --remote";
+      *error_out = "invalid JSON output from vinput model list --available";
     return {};
   }
 
@@ -823,6 +772,75 @@ QList<ModelEntry> LoadRemoteModelsFromCli(QString *error_out) {
     models.push_back(entry);
   }
   return models;
+}
+
+QList<RegistryResourceEntry> LoadRemoteRegistryResourcesFromCli(
+    const QStringList &args, const QString &invalid_json_error,
+    QString *error_out) {
+  QJsonDocument doc;
+  if (!RunVinputJson(args, &doc, error_out) || !doc.isArray()) {
+    if (error_out && error_out->isEmpty()) {
+      *error_out = invalid_json_error;
+    }
+    return {};
+  }
+
+  QList<RegistryResourceEntry> entries;
+  for (const auto &value : doc.array()) {
+    if (!value.isObject()) {
+      continue;
+    }
+    const QJsonObject obj = value.toObject();
+    const QString id = obj.value("id").toString();
+    if (id.isEmpty()) {
+      continue;
+    }
+
+    RegistryResourceEntry entry;
+    entry.id = id;
+    entry.title = obj.value("title").toString();
+    if (entry.title.isEmpty()) {
+      entry.title = id;
+    }
+    entry.description = obj.value("description").toString();
+    entry.status = obj.value("status").toString();
+    entries.push_back(entry);
+  }
+  return entries;
+}
+
+std::optional<QString> PromptRegistryInstallSelection(
+    QWidget *parent, const QString &title, const QString &label,
+    const QList<RegistryResourceEntry> &entries) {
+  QStringList display_items;
+  std::vector<QString> ids;
+  display_items.reserve(entries.size());
+  ids.reserve(entries.size());
+
+  for (const auto &entry : entries) {
+    QString text = QString("%1 (%2)").arg(entry.title, entry.id);
+    if (!entry.description.isEmpty()) {
+      text += QString(" - %1").arg(entry.description);
+    }
+    if (entry.status == "installed") {
+      text += MainWindowTranslate(" [installed]");
+    }
+    display_items.push_back(text);
+    ids.push_back(entry.id);
+  }
+
+  bool ok = false;
+  const QString selected = QInputDialog::getItem(parent, title, label,
+                                                 display_items, 0, false, &ok);
+  if (!ok || selected.isEmpty()) {
+    return std::nullopt;
+  }
+
+  const int index = display_items.indexOf(selected);
+  if (index < 0 || index >= static_cast<int>(ids.size())) {
+    return std::nullopt;
+  }
+  return ids[static_cast<std::size_t>(index)];
 }
 
 } // namespace
@@ -1859,10 +1877,12 @@ void MainWindow::setupAdaptorTab() {
   listLayout->addWidget(listAdaptors);
 
   auto *btnLayout = new QVBoxLayout();
+  btnAdaptorInstallOfficial = new QPushButton(tr("Install Available..."));
   btnAdaptorEdit = new QPushButton(tr("Edit"));
   btnAdaptorStart = new QPushButton(tr("Start"));
   btnAdaptorStop = new QPushButton(tr("Stop"));
   btnAdaptorRefresh = new QPushButton(tr("Refresh"));
+  btnLayout->addWidget(btnAdaptorInstallOfficial);
   btnLayout->addWidget(btnAdaptorEdit);
   btnLayout->addWidget(btnAdaptorStart);
   btnLayout->addWidget(btnAdaptorStop);
@@ -1873,6 +1893,8 @@ void MainWindow::setupAdaptorTab() {
   layout->addLayout(listLayout);
   tabWidget->addTab(adaptorTab, tr("LLM Adaptors"));
 
+  connect(btnAdaptorInstallOfficial, &QPushButton::clicked, this,
+          &MainWindow::onAdaptorInstallAvailable);
   connect(btnAdaptorEdit, &QPushButton::clicked, this,
           &MainWindow::onAdaptorEdit);
   connect(btnAdaptorStart, &QPushButton::clicked, this,
@@ -1890,46 +1912,27 @@ void MainWindow::refreshAdaptorList() {
 
   CoreConfig config = LoadCoreConfig();
   NormalizeCoreConfig(&config);
-  std::string error;
-  const auto adaptors = vinput::adaptor::Discover(&error);
-  if (!error.empty()) {
-    QMessageBox::warning(this, tr("Error"),
-                         tr("Failed to load LLM adaptors: %1")
-                             .arg(QString::fromStdString(error)));
-    return;
-  }
-
-  for (const auto &info : adaptors) {
-    const bool running = vinput::adaptor::IsRunning(info);
-    const auto *adaptor_config = ResolveLlmAdaptor(config, info.id);
+  for (const auto &adaptor : config.llm.adaptors) {
+    const bool running = vinput::adaptor::IsRunning(adaptor.id);
     auto *item =
-        new QListWidgetItem(AdaptorDisplayText(info, adaptor_config, running),
+        new QListWidgetItem(AdaptorDisplayText(adaptor, running),
                             listAdaptors);
-    item->setData(Qt::UserRole, QString::fromStdString(info.id));
+    item->setData(Qt::UserRole, QString::fromStdString(adaptor.id));
     item->setData(Qt::UserRole + 1, running);
-    QString tooltip = QString::fromStdString(info.path.string());
-    const std::string effective_command =
-        adaptor_config && !adaptor_config->command.empty()
-            ? adaptor_config->command
-            : info.default_command;
-    const std::vector<std::string> effective_args =
-        adaptor_config && !adaptor_config->args.empty() ? adaptor_config->args
-                                                        : info.default_args;
-    if (!effective_command.empty()) {
+    QString tooltip;
+    if (!adaptor.command.empty()) {
       tooltip += "\n" +
                  tr("Command: %1")
-                     .arg(QString::fromStdString(effective_command));
+                     .arg(QString::fromStdString(adaptor.command));
     }
-    if (!effective_args.empty()) {
-      tooltip += "\n" + tr("Args: %1").arg(JoinArgLines(effective_args));
+    if (!adaptor.args.empty()) {
+      tooltip += "\n" + tr("Args: %1").arg(JoinArgLines(adaptor.args));
     }
-    if (adaptor_config) {
-      if (!adaptor_config->env.empty()) {
-        tooltip += "\n" +
-                   tr("Env: %1").arg(JoinEnvLines(adaptor_config->env));
-      }
+    if (!adaptor.env.empty()) {
+      tooltip += "\n" +
+                 tr("Env: %1").arg(JoinEnvLines(adaptor.env));
     }
-    item->setToolTip(tooltip);
+    item->setToolTip(tooltip.trimmed());
   }
 }
 
@@ -1943,16 +1946,16 @@ void MainWindow::onAdaptorEdit() {
   NormalizeCoreConfig(&config);
 
   const QString adaptor_id = item->data(Qt::UserRole).toString();
-  std::string error;
-  auto info = vinput::adaptor::FindById(adaptor_id.toStdString(), &error);
-  if (!info.has_value()) {
-    QMessageBox::warning(this, tr("Error"), QString::fromStdString(error));
+  const auto *existing = ResolveLlmAdaptor(config, adaptor_id.toStdString());
+  if (!existing) {
+    QMessageBox::warning(this, tr("Error"),
+                         tr("Adaptor '%1' not found in configuration.")
+                             .arg(adaptor_id));
     return;
   }
 
   LlmAdaptor adaptor_config;
-  const auto *existing = ResolveLlmAdaptor(config, info->id);
-  if (!EditAdaptorDialog(this, *info, existing, &adaptor_config)) {
+  if (!EditAdaptorDialog(this, *existing, &adaptor_config)) {
     return;
   }
 
@@ -1962,17 +1965,8 @@ void MainWindow::onAdaptorEdit() {
                               return entry.id == adaptor_config.id;
                             });
 
-  const bool empty_config = adaptor_config.command == info->default_command &&
-                            adaptor_config.args == info->default_args &&
-                            adaptor_config.env.empty();
   if (found != adaptors.end()) {
-    if (empty_config) {
-      adaptors.erase(found);
-    } else {
-      *found = adaptor_config;
-    }
-  } else if (!empty_config) {
-    adaptors.push_back(std::move(adaptor_config));
+    *found = adaptor_config;
   }
 
   NormalizeCoreConfig(&config);
@@ -1983,6 +1977,40 @@ void MainWindow::onAdaptorEdit() {
   }
 
   refreshAdaptorList();
+}
+
+void MainWindow::onAdaptorInstallAvailable() {
+  QString error;
+  const auto entries = LoadRemoteRegistryResourcesFromCli(
+      {"adaptor", "list", "--available"},
+      "invalid JSON output from vinput adaptor list --available", &error);
+  if (!error.isEmpty()) {
+    QMessageBox::warning(this, tr("Error"), error);
+    return;
+  }
+  if (entries.isEmpty()) {
+    QMessageBox::information(this, tr("LLM Adaptors"),
+                             tr("No official adaptors are available."));
+    return;
+  }
+
+  const auto selected = PromptRegistryInstallSelection(
+      this, tr("Install Available Adaptor"),
+      tr("Select an available adaptor to install:"), entries);
+  if (!selected.has_value()) {
+    return;
+  }
+
+  QString command_error;
+  if (!RunVinputCommand({"adaptor", "install", *selected}, &command_error, -1)) {
+    QMessageBox::warning(this, tr("Error"), command_error);
+    return;
+  }
+
+  refreshAdaptorList();
+  QMessageBox::information(this, tr("LLM Adaptor Installed"),
+                           tr("Adaptor '%1' has been installed.")
+                               .arg(*selected));
 }
 
 void MainWindow::onAdaptorStart() {
@@ -2033,6 +2061,42 @@ void MainWindow::refreshAsrList() {
         AsrProviderDisplayText(provider, active), listAsrProviders);
     item->setData(Qt::UserRole, QString::fromStdString(provider.name));
   }
+}
+
+void MainWindow::onAsrInstallAvailable() {
+  QString error;
+  const auto entries = LoadRemoteRegistryResourcesFromCli(
+      {"asr", "list", "--available"},
+      "invalid JSON output from vinput asr list --available", &error);
+  if (!error.isEmpty()) {
+    QMessageBox::warning(this, tr("Error"), error);
+    return;
+  }
+  if (entries.isEmpty()) {
+    QMessageBox::information(this, tr("ASR Providers"),
+                             tr("No official ASR providers are available."));
+    return;
+  }
+
+  const auto selected = PromptRegistryInstallSelection(
+      this, tr("Install Available ASR Provider"),
+      tr("Select an available ASR provider to install:"), entries);
+  if (!selected.has_value()) {
+    return;
+  }
+
+  QString command_error;
+  if (!RunVinputCommand({"asr", "install", *selected}, &command_error, -1)) {
+    QMessageBox::warning(this, tr("Error"), command_error);
+    return;
+  }
+
+  RestartDaemonFromGui(this);
+  refreshAsrList();
+  loadConfigToUi();
+  QMessageBox::information(this, tr("ASR Provider Installed"),
+                           tr("ASR provider '%1' has been installed.")
+                               .arg(*selected));
 }
 
 void MainWindow::onAsrAdd() {
@@ -2127,12 +2191,6 @@ void MainWindow::onAsrRemove() {
   if (it == providers.end()) {
     return;
   }
-  if (it->builtin) {
-    QMessageBox::warning(this, tr("Error"),
-                         tr("Builtin ASR providers cannot be removed."));
-    return;
-  }
-
   const bool removing_active = config.asr.activeProvider == name;
   providers.erase(it);
   if (removing_active) {

@@ -14,7 +14,7 @@
 #include "common/file_utils.h"
 #include "common/path_utils.h"
 
-using json = nlohmann::json;
+using json = nlohmann::ordered_json;
 
 void from_json(const json &j, CoreConfig &p);
 
@@ -62,15 +62,6 @@ bool IsLocalAsrProvider(const AsrProvider &provider) {
   return provider.type == vinput::asr::kLocalProviderType;
 }
 
-std::filesystem::path BuiltinAsrProviderDir() {
-  const std::filesystem::path source_dir = VINPUT_ASR_PROVIDER_SOURCE_DIR;
-  std::error_code ec;
-  if (std::filesystem::exists(source_dir, ec) && !ec) {
-    return source_dir;
-  }
-  return std::filesystem::path(VINPUT_ASR_PROVIDER_INSTALL_DIR);
-}
-
 void NormalizeCommandProviderSpec(AsrProvider *provider) {
   if (!provider || provider->type != vinput::asr::kCommandProviderType) {
     return;
@@ -84,21 +75,6 @@ std::filesystem::path BundledDefaultCoreConfigPath() {
     return source;
   }
   return std::filesystem::path(VINPUT_DEFAULT_CORE_CONFIG_INSTALL_PATH);
-}
-
-bool ReplaceAll(std::string *text, const std::string &from,
-                const std::string &to) {
-  if (!text || from.empty()) {
-    return false;
-  }
-  bool replaced = false;
-  std::size_t pos = 0;
-  while ((pos = text->find(from, pos)) != std::string::npos) {
-    text->replace(pos, from.size(), to);
-    pos += to.size();
-    replaced = true;
-  }
-  return replaced;
 }
 
 bool LoadBundledDefaultConfigText(std::string *content, std::string *error) {
@@ -120,7 +96,6 @@ bool LoadBundledDefaultConfigText(std::string *content, std::string *error) {
 
   *content = std::string((std::istreambuf_iterator<char>(file)),
                          std::istreambuf_iterator<char>());
-  ReplaceAll(content, "${VINPUT_ASR_PROVIDER_DIR}", BuiltinAsrProviderDir().string());
   if (error) {
     error->clear();
   }
@@ -169,30 +144,6 @@ bool LoadBundledDefaultConfigImpl(CoreConfig *config, std::string *content,
   }
 }
 
-void MergeMissingBuiltinAsrProviders(CoreConfig *config,
-                                     const CoreConfig &bundled_config) {
-  if (!config) {
-    return;
-  }
-
-  std::set<std::string> existing_names;
-  for (const auto &provider : config->asr.providers) {
-    if (!provider.name.empty()) {
-      existing_names.insert(provider.name);
-    }
-  }
-
-  for (const auto &provider : bundled_config.asr.providers) {
-    if (!provider.builtin || provider.name.empty()) {
-      continue;
-    }
-    if (!existing_names.insert(provider.name).second) {
-      continue;
-    }
-    config->asr.providers.push_back(provider);
-  }
-}
-
 }  // namespace
 
 std::string GetCoreConfigPath() {
@@ -209,9 +160,14 @@ std::string GetCoreConfigPath() {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const LlmProvider &p) {
-  j = json{{"name", p.name},
-           {"base_url", p.base_url},
-           {"api_key", p.api_key}};
+  j = json::object();
+  j["name"] = p.name;
+  if (!p.base_url.empty()) {
+    j["base_url"] = p.base_url;
+  }
+  if (!p.api_key.empty()) {
+    j["api_key"] = p.api_key;
+  }
 }
 
 void from_json(const json &j, LlmProvider &p) {
@@ -225,10 +181,15 @@ void from_json(const json &j, LlmProvider &p) {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const LlmAdaptor &p) {
-  j = json{{"id", p.id},
-           {"command", p.command},
-           {"args", p.args},
-           {"env", p.env}};
+  j = json::object();
+  j["id"] = p.id;
+  j["command"] = p.command;
+  if (!p.args.empty()) {
+    j["args"] = p.args;
+  }
+  if (!p.env.empty()) {
+    j["env"] = p.env;
+  }
 }
 
 void from_json(const json &j, LlmAdaptor &p) {
@@ -243,20 +204,32 @@ void from_json(const json &j, LlmAdaptor &p) {
 }
 
 void to_json(json &j, const AsrProvider &p) {
-  j = json{{"name", p.name},
-           {"type", p.type},
-           {"builtin", p.builtin},
-           {"model", p.model},
-           {"command", p.command},
-           {"args", p.args},
-           {"env", p.env},
-           {"timeout_ms", p.timeoutMs}};
+  j = json::object();
+  j["name"] = p.name;
+  j["type"] = p.type;
+  if (p.type == vinput::asr::kLocalProviderType) {
+    if (!p.model.empty()) {
+      j["model"] = p.model;
+    }
+  } else if (p.type == vinput::asr::kCommandProviderType) {
+    if (!p.command.empty()) {
+      j["command"] = p.command;
+    }
+    if (!p.args.empty()) {
+      j["args"] = p.args;
+    }
+    if (!p.env.empty()) {
+      j["env"] = p.env;
+    }
+  }
+  if (p.timeoutMs > 0) {
+    j["timeout_ms"] = p.timeoutMs;
+  }
 }
 
 void from_json(const json &j, AsrProvider &p) {
   p.name = j.value("name", p.name);
   p.type = j.value("type", p.type);
-  p.builtin = j.value("builtin", p.builtin);
   p.model = j.value("model", p.model);
   p.command = j.value("command", p.command);
   if (j.contains("args") && j.at("args").is_array()) {
@@ -273,7 +246,11 @@ void from_json(const json &j, AsrProvider &p) {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const RegistrySource &s) {
-  j = json{{"name", s.name}, {"urls", s.urls}};
+  j = json::object();
+  if (!s.name.empty()) {
+    j["name"] = s.name;
+  }
+  j["urls"] = s.urls;
 }
 
 void from_json(const json &j, RegistrySource &s) {
@@ -289,7 +266,9 @@ void from_json(const json &j, RegistrySource &s) {
 }
 
 void to_json(json &j, const RegistryI18nSource &s) {
-  j = json{{"locale", s.locale}, {"urls", s.urls}};
+  j = json::object();
+  j["locale"] = s.locale;
+  j["urls"] = s.urls;
 }
 
 void from_json(const json &j, RegistryI18nSource &s) {
@@ -311,14 +290,27 @@ void from_json(const json &j, RegistryI18nSource &s) {
 namespace vinput::scene {
 
 void to_json(json &j, const Definition &d) {
-  j = json{{"id", d.id},
-           {"label", d.label},
-           {"prompt", d.prompt},
-           {"provider_id", d.provider_id},
-           {"model", d.model},
-           {"candidate_count", d.candidate_count},
-           {"timeout_ms", d.timeout_ms},
-           {"builtin", d.builtin}};
+  j = json::object();
+  j["id"] = d.id;
+  if (!d.label.empty() && !IsBuiltinSceneLabelKey(d.label) &&
+      !IsBuiltinSceneId(d.id)) {
+    j["label"] = d.label;
+  }
+  if (!d.prompt.empty()) {
+    j["prompt"] = d.prompt;
+  }
+  if (!d.provider_id.empty()) {
+    j["provider_id"] = d.provider_id;
+  }
+  if (!d.model.empty()) {
+    j["model"] = d.model;
+  }
+  if (d.candidate_count != vinput::scene::kDefaultCandidateCount) {
+    j["candidate_count"] = d.candidate_count;
+  }
+  if (d.timeout_ms != vinput::scene::kDefaultTimeoutMs) {
+    j["timeout_ms"] = d.timeout_ms;
+  }
 }
 
 void from_json(const json &j, Definition &d) {
@@ -340,7 +332,13 @@ void from_json(const json &j, Definition &d) {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const CoreConfig::Llm &p) {
-  j = json{{"providers", p.providers}, {"adaptors", p.adaptors}};
+  j = json::object();
+  if (!p.providers.empty()) {
+    j["providers"] = p.providers;
+  }
+  if (!p.adaptors.empty()) {
+    j["adaptors"] = p.adaptors;
+  }
 }
 
 void from_json(const json &j, CoreConfig::Llm &p) {
@@ -357,7 +355,10 @@ void from_json(const json &j, CoreConfig::Llm &p) {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const CoreConfig::Asr::Vad &v) {
-  j = json{{"enabled", v.enabled}};
+  j = json::object();
+  if (!v.enabled) {
+    j["enabled"] = v.enabled;
+  }
 }
 
 void from_json(const json &j, CoreConfig::Asr::Vad &v) {
@@ -365,10 +366,17 @@ void from_json(const json &j, CoreConfig::Asr::Vad &v) {
 }
 
 void to_json(json &j, const CoreConfig::Asr &a) {
-  j = json{{"active_provider", a.activeProvider},
-           {"normalize_audio", a.normalizeAudio},
-           {"vad", a.vad},
-           {"providers", a.providers}};
+  j = json::object();
+  if (!a.activeProvider.empty()) {
+    j["active_provider"] = a.activeProvider;
+  }
+  if (!a.normalizeAudio) {
+    j["normalize_audio"] = a.normalizeAudio;
+  }
+  if (!a.vad.enabled) {
+    j["vad"] = a.vad;
+  }
+  j["providers"] = a.providers;
 }
 
 void from_json(const json &j, CoreConfig::Asr &a) {
@@ -387,10 +395,19 @@ void from_json(const json &j, CoreConfig::Asr &a) {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const CoreConfig::Registry &r) {
-  j = json{{"models", r.models},
-           {"asr_providers", r.asrProviders},
-           {"llm_adaptors", r.llmAdaptors},
-           {"i18n", r.i18n}};
+  j = json::object();
+  if (!r.models.empty()) {
+    j["models"] = r.models;
+  }
+  if (!r.asrProviders.empty()) {
+    j["asr_providers"] = r.asrProviders;
+  }
+  if (!r.llmAdaptors.empty()) {
+    j["llm_adaptors"] = r.llmAdaptors;
+  }
+  if (!r.i18n.empty()) {
+    j["i18n"] = r.i18n;
+  }
 }
 
 void from_json(const json &j, CoreConfig::Registry &r) {
@@ -421,7 +438,9 @@ void from_json(const json &j, CoreConfig::Registry &r) {
 
 void to_json(json &j, const CoreConfig::Scenes &s) {
   j = json::object();
-  j["active_scene"] = s.activeScene;
+  if (!s.activeScene.empty()) {
+    j["active_scene"] = s.activeScene;
+  }
   j["definitions"] = s.definitions;
 }
 
@@ -441,11 +460,20 @@ void to_json(json &j, const CoreConfig &p) {
   j = json::object();
   j["version"] = p.version;
   j["capture_device"] = p.captureDevice;
-  j["model_base_dir"] = p.modelBaseDir;
-  j["registry"] = p.registry;
-  j["llm"] = p.llm;
+  if (!p.modelBaseDir.empty()) {
+    j["model_base_dir"] = p.modelBaseDir;
+  }
+  if (!p.registry.models.empty() || !p.registry.asrProviders.empty() ||
+      !p.registry.llmAdaptors.empty() || !p.registry.i18n.empty()) {
+    j["registry"] = p.registry;
+  }
   j["default_language"] = p.defaultLanguage;
-  j["hotwords_file"] = p.hotwordsFile;
+  if (!p.hotwordsFile.empty()) {
+    j["hotwords_file"] = p.hotwordsFile;
+  }
+  if (!p.llm.providers.empty() || !p.llm.adaptors.empty()) {
+    j["llm"] = p.llm;
+  }
   j["scenes"] = p.scenes;
   j["asr"] = p.asr;
 }
@@ -534,10 +562,6 @@ CoreConfig LoadCoreConfig() {
       config = bundled_config;
       should_write_bundled = true;
     }
-  }
-
-  if (has_bundled_default) {
-    MergeMissingBuiltinAsrProviders(&config, bundled_config);
   }
 
   if (should_write_bundled) {

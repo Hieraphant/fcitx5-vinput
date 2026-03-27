@@ -12,7 +12,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
+int RunModelList(bool available, Formatter& fmt, const CliContext& ctx) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
@@ -20,7 +20,7 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     ModelManager mgr(base_dir.string());
     const std::string active_model = ResolvePreferredLocalModel(config);
 
-    if (!remote) {
+    if (!available) {
         auto models = mgr.ListDetailed(active_model);
 
         if (ctx.json_output) {
@@ -125,7 +125,7 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     return 0;
 }
 
-int RunModelAdd(const std::string& name, Formatter& fmt, const CliContext& ctx) {
+int RunModelInstall(const std::string& name, Formatter& fmt, const CliContext& ctx) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);

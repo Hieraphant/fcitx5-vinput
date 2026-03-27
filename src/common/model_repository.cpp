@@ -2,7 +2,6 @@
 
 #include <archive.h>
 #include <archive_entry.h>
-#include <curl/curl.h>
 #include <openssl/evp.h>
 
 #include <cstdio>
@@ -14,7 +13,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "common/downloader.h"
 #include "common/file_utils.h"
+#include "common/registry_cache.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -24,50 +25,6 @@ using json = nlohmann::json;
 // ---------------------------------------------------------------------------
 
 namespace {
-
-struct WriteState {
-  std::ofstream *out = nullptr;
-};
-
-size_t CurlWriteCallback(char *ptr, size_t size, size_t nmemb, void *userdata) {
-  auto *state = static_cast<WriteState *>(userdata);
-  const size_t total = size * nmemb;
-  state->out->write(ptr, static_cast<std::streamsize>(total));
-  if (!state->out->good()) return 0;
-  return total;
-}
-
-struct MemoryBuffer {
-  std::string data;
-  size_t max_size = 0;
-};
-
-size_t CurlMemoryWriteCallback(char *ptr, size_t size, size_t nmemb,
-                               void *userdata) {
-  auto *buf = static_cast<MemoryBuffer *>(userdata);
-  const size_t total = size * nmemb;
-  if (buf->max_size > 0 && buf->data.size() + total > buf->max_size)
-    return 0;
-  buf->data.append(ptr, total);
-  return total;
-}
-
-struct ProgressState {
-  ProgressCallback cb;
-  uint64_t total_bytes = 0;
-};
-
-int CurlXferInfoCallback(void *userdata, curl_off_t dltotal, curl_off_t dlnow,
-                         curl_off_t /*ultotal*/, curl_off_t /*ulnow*/) {
-  auto *state = static_cast<ProgressState *>(userdata);
-  if (state->cb) {
-    InstallProgress p;
-    p.downloaded_bytes = static_cast<uint64_t>(dlnow);
-    p.total_bytes = static_cast<uint64_t>(dltotal > 0 ? dltotal : state->total_bytes);
-    state->cb(p);
-  }
-  return 0;
-}
 
 bool IsPathWithinRoot(const fs::path &path, const fs::path &root) {
   auto path_it = path.begin();
@@ -80,42 +37,12 @@ bool IsPathWithinRoot(const fs::path &path, const fs::path &root) {
   return true;
 }
 
-std::vector<RemoteModelEntry> FetchRegistryOnce(const std::string &registry_url,
+std::vector<RemoteModelEntry> ParseRegistryJson(const std::string &content,
                                                 std::string *error) {
   std::vector<RemoteModelEntry> entries;
 
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    if (error) *error = "failed to initialize libcurl";
-    return entries;
-  }
-
-  MemoryBuffer buf;
-  buf.max_size = 4 * 1024 * 1024; // 4 MB limit for registry JSON
-  curl_easy_setopt(curl, CURLOPT_URL, registry_url.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlMemoryWriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-
-  CURLcode res = curl_easy_perform(curl);
-  long http_code = 0;
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-  curl_easy_cleanup(curl);
-
-  if (res != CURLE_OK) {
-    if (error)
-      *error = std::string("curl error: ") + curl_easy_strerror(res);
-    return entries;
-  }
-  if (http_code != 200) {
-    if (error)
-      *error = "registry fetch failed with HTTP " + std::to_string(http_code);
-    return entries;
-  }
-
   try {
-    json j = json::parse(buf.data);
+    json j = json::parse(content);
     if (!j.is_object()) {
       if (error) *error = "registry JSON is not an object";
       return entries;
@@ -165,40 +92,36 @@ ModelRepository::ModelRepository(const std::string &base_dir)
 std::vector<RemoteModelEntry>
 ModelRepository::FetchRegistry(const std::string &registry_url,
                                std::string *error) const {
-  return FetchRegistryOnce(registry_url, error);
+  return FetchRegistry(std::vector<std::string>{registry_url}, error, nullptr);
 }
 
 std::vector<RemoteModelEntry> ModelRepository::FetchRegistry(
     const std::vector<std::string> &registry_urls, std::string *error,
     std::string *resolved_registry_url) const {
-  std::vector<RemoteModelEntry> entries;
   if (registry_urls.empty()) {
     if (error) *error = "no registry URLs configured";
-    return entries;
+    return {};
   }
 
-  std::string last_error;
-  for (const auto &registry_url : registry_urls) {
-    if (registry_url.empty()) {
-      continue;
+  std::string content;
+  vinput::download::Options options;
+  options.timeout_seconds = 30;
+  options.max_bytes = 4 * 1024 * 1024;
+
+  vinput::download::Result download_result;
+  if (!vinput::registry::cache::FetchText(
+          registry_urls, vinput::registry::cache::ModelRegistryPath(), options,
+          &content, &download_result, error)) {
+    if (resolved_registry_url) {
+      resolved_registry_url->clear();
     }
-    entries = FetchRegistryOnce(registry_url, &last_error);
-    if (!entries.empty()) {
-      if (resolved_registry_url) {
-        *resolved_registry_url = registry_url;
-      }
-      if (error) {
-        error->clear();
-      }
-      return entries;
-    }
+    return {};
   }
 
-  if (error) {
-    *error = last_error.empty() ? "failed to fetch registry from all sources"
-                                : last_error;
+  if (resolved_registry_url) {
+    *resolved_registry_url = download_result.resolved_url;
   }
-  return entries;
+  return ParseRegistryJson(content, error);
 }
 
 bool ModelRepository::InstallModel(const std::string &registry_url,
@@ -271,21 +194,27 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
   const fs::path archive_path = tmp_dir / archive_name;
 
   // Try each URL in order (fallback on failure)
-  std::string dl_err;
-  bool downloaded = false;
-  for (const auto &url : found->urls) {
-    dl_err.clear();
-    if (DownloadFile(url, archive_path, progress_cb, &dl_err)) {
-      downloaded = true;
-      break;
+  vinput::download::Options download_options;
+  download_options.timeout_seconds = 600;
+  download_options.progress_cb = [progress_cb](
+                                     const vinput::download::Progress &progress) {
+    if (!progress_cb) {
+      return;
     }
-    // Clean up partial download before trying next URL
-    std::error_code rm_ec;
-    fs::remove(archive_path, rm_ec);
-  }
-  if (!downloaded) {
+    InstallProgress install_progress;
+    install_progress.downloaded_bytes = progress.downloaded_bytes;
+    install_progress.total_bytes = progress.total_bytes;
+    install_progress.speed_bps = progress.speed_bps;
+    progress_cb(install_progress);
+  };
+  vinput::download::Result download_result;
+  if (!vinput::download::DownloadFile(found->urls, archive_path,
+                                      download_options, &download_result)) {
     fs::remove_all(tmp_dir, ec);
-    if (error) *error = dl_err;
+    if (error) {
+      *error = download_result.error.empty() ? "download failed"
+                                             : download_result.error;
+    }
     return false;
   }
 
@@ -387,63 +316,6 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
 
   // Clean up temp dir
   fs::remove_all(tmp_dir, ec);
-  return true;
-}
-
-bool ModelRepository::DownloadFile(const std::string &url,
-                                   const fs::path &dest, ProgressCallback cb,
-                                   std::string *error) const {
-  std::string err_msg;
-  if (!vinput::file::EnsureParentDirectory(dest, &err_msg)) {
-    if (error) *error = err_msg;
-    return false;
-  }
-
-  std::ofstream out(dest, std::ios::binary);
-  if (!out.is_open()) {
-    if (error) *error = "failed to open destination file: " + dest.string();
-    return false;
-  }
-
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    if (error) *error = "failed to initialize libcurl";
-    return false;
-  }
-
-  WriteState ws{&out};
-  ProgressState ps{cb, 0};
-
-  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ws);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-  curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-  curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, CurlXferInfoCallback);
-  curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &ps);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 600L);
-
-  CURLcode res = curl_easy_perform(curl);
-  long http_code = 0;
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-  curl_easy_cleanup(curl);
-  out.close();
-
-  if (res != CURLE_OK) {
-    std::error_code ec;
-    fs::remove(dest, ec);
-    if (error)
-      *error = std::string("download failed: ") + curl_easy_strerror(res);
-    return false;
-  }
-  if (http_code != 200) {
-    std::error_code ec;
-    fs::remove(dest, ec);
-    if (error)
-      *error = "download failed with HTTP " + std::to_string(http_code);
-    return false;
-  }
-
   return true;
 }
 

@@ -40,6 +40,17 @@ std::filesystem::path CoreConfigPath() {
          "config.json";
 }
 
+std::filesystem::path RegistryCacheDir() {
+  const char *xdg = std::getenv("XDG_CACHE_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg) / "vinput" / "registry";
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0')
+    return {};
+  return std::filesystem::path(home) / ".cache" / "vinput" / "registry";
+}
+
 std::filesystem::path UserAsrProviderDir() {
   const char *xdg = std::getenv("XDG_CONFIG_HOME");
   if (xdg && xdg[0] != '\0') {

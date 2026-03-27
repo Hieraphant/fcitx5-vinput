@@ -1,33 +1,17 @@
 #include "common/registry_i18n.h"
 
-#include <curl/curl.h>
-
 #include <cstdlib>
 #include <nlohmann/json.hpp>
 
 #include "common/core_config.h"
+#include "common/downloader.h"
+#include "common/registry_cache.h"
 
 namespace vinput::registry {
 
 namespace {
 
 using json = nlohmann::json;
-
-struct MemoryBuffer {
-  std::string data;
-  size_t max_size = 0;
-};
-
-size_t CurlMemoryWriteCallback(char *ptr, size_t size, size_t nmemb,
-                               void *userdata) {
-  auto *buf = static_cast<MemoryBuffer *>(userdata);
-  const size_t total = size * nmemb;
-  if (buf->max_size > 0 && buf->data.size() + total > buf->max_size) {
-    return 0;
-  }
-  buf->data.append(ptr, total);
-  return total;
-}
 
 std::string NormalizeLocale(std::string locale) {
   if (locale.empty()) {
@@ -61,45 +45,11 @@ std::string NormalizeLocale(std::string locale) {
   return locale;
 }
 
-I18nMap FetchI18nMapOnce(const std::string &url, std::string *error) {
+I18nMap ParseI18nJson(const std::string &content, std::string *error) {
   I18nMap map;
 
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    if (error) {
-      *error = "failed to initialize libcurl";
-    }
-    return map;
-  }
-
-  MemoryBuffer buf;
-  buf.max_size = 1024 * 1024;
-  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlMemoryWriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
-
-  CURLcode res = curl_easy_perform(curl);
-  long http_code = 0;
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-  curl_easy_cleanup(curl);
-
-  if (res != CURLE_OK) {
-    if (error) {
-      *error = std::string("curl error: ") + curl_easy_strerror(res);
-    }
-    return map;
-  }
-  if (http_code != 200) {
-    if (error) {
-      *error = "i18n fetch failed with HTTP " + std::to_string(http_code);
-    }
-    return map;
-  }
-
   try {
-    json j = json::parse(buf.data);
+    json j = json::parse(content);
     if (!j.is_object()) {
       if (error) {
         *error = "i18n JSON is not an object";
@@ -134,27 +84,25 @@ std::string DetectPreferredLocale() {
   return "en_US";
 }
 
-I18nMap FetchI18nMap(const std::vector<std::string> &urls, std::string *error) {
-  I18nMap map;
-  std::string last_error;
-  for (const auto &url : urls) {
-    if (url.empty()) {
-      continue;
+I18nMap FetchI18nMap(const std::string &locale,
+                     const std::vector<std::string> &urls, std::string *error) {
+  if (urls.empty()) {
+    if (error) {
+      *error = "no i18n URLs configured";
     }
-    map = FetchI18nMapOnce(url, &last_error);
-    if (!map.empty()) {
-      if (error) {
-        error->clear();
-      }
-      return map;
-    }
+    return {};
   }
-
-  if (error) {
-    *error = last_error.empty() ? "failed to fetch i18n from all sources"
-                                : last_error;
+  std::string content;
+  vinput::download::Result result;
+  vinput::download::Options options;
+  options.timeout_seconds = 20;
+  options.max_bytes = 1024 * 1024;
+  if (!vinput::registry::cache::FetchText(
+          urls, vinput::registry::cache::I18nPath(locale),
+          options, &content, &result, error)) {
+    return {};
   }
-  return {};
+  return ParseI18nJson(content, error);
 }
 
 I18nMap FetchMergedI18nMap(const CoreConfig &config,
@@ -165,16 +113,16 @@ I18nMap FetchMergedI18nMap(const CoreConfig &config,
 
   const auto primary_urls = ResolveRegistryI18nUrls(config, preferred_locale);
   if (!primary_urls.empty()) {
-    merged = FetchI18nMap(primary_urls, &fetch_error);
+    merged = FetchI18nMap(preferred_locale, primary_urls, &fetch_error);
   }
 
   if (merged.empty() && preferred_locale != "en_US") {
     const auto fallback_urls = ResolveRegistryI18nUrls(config, "en_US");
-    auto fallback = FetchI18nMap(fallback_urls, &fetch_error);
+    auto fallback = FetchI18nMap("en_US", fallback_urls, &fetch_error);
     merged.insert(fallback.begin(), fallback.end());
   } else if (preferred_locale != "en_US") {
     const auto fallback_urls = ResolveRegistryI18nUrls(config, "en_US");
-    auto fallback = FetchI18nMap(fallback_urls, nullptr);
+    auto fallback = FetchI18nMap("en_US", fallback_urls, nullptr);
     for (auto &[key, value] : fallback) {
       merged.emplace(std::move(key), std::move(value));
     }

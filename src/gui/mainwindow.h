@@ -51,11 +51,13 @@ private slots:
   void onLlmRemove();
 
   // LLM Adaptor Management
+  void onAdaptorInstallAvailable();
   void onAdaptorEdit();
   void onAdaptorStart();
   void onAdaptorStop();
 
   // ASR Provider Management
+  void onAsrInstallAvailable();
   void onAsrAdd();
   void onAsrEdit();
   void onAsrRemove();
@@ -122,6 +124,7 @@ private:
 
   // Adaptor Tab
   QListWidget *listAdaptors;
+  QPushButton *btnAdaptorInstallOfficial;
   QPushButton *btnAdaptorEdit;
   QPushButton *btnAdaptorStart;
   QPushButton *btnAdaptorStop;
@@ -129,6 +132,7 @@ private:
 
   // ASR Tab
   QListWidget *listAsrProviders;
+  QPushButton *btnAsrInstallOfficial;
   QPushButton *btnAsrAdd;
   QPushButton *btnAsrEdit;
   QPushButton *btnAsrRemove;

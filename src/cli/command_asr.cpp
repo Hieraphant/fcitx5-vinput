@@ -6,6 +6,8 @@
 #include "common/core_config.h"
 #include "common/i18n.h"
 #include "common/path_utils.h"
+#include "common/registry_i18n.h"
+#include "common/script_resource.h"
 #include "common/string_utils.h"
 
 #include <algorithm>
@@ -109,7 +111,6 @@ int RunAsrList(Formatter &fmt, const CliContext &ctx) {
     for (const auto &provider : config.asr.providers) {
       arr.push_back({{"name", provider.name},
                      {"type", provider.type},
-                     {"builtin", provider.builtin},
                      {"active", provider.name == config.asr.activeProvider},
                      {"model", provider.model},
                      {"command", provider.command},
@@ -121,8 +122,7 @@ int RunAsrList(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
 
-  std::vector<std::string> headers = {_("NAME"), _("TYPE"), _("BUILTIN"),
-                                      _("ACTIVE"),
+  std::vector<std::string> headers = {_("NAME"), _("TYPE"), _("ACTIVE"),
                                       _("MODEL"), _("COMMAND"),
                                       _("TIMEOUT")};
   std::vector<std::vector<std::string>> rows;
@@ -134,11 +134,69 @@ int RunAsrList(Formatter &fmt, const CliContext &ctx) {
     rows.push_back(
         {provider.name,
          provider.type,
-         provider.builtin ? _("yes") : _("no"),
          provider.name == config.asr.activeProvider ? _("yes") : _("no"),
          model_display,
          IsCommandProvider(provider) ? JoinCommand(provider) : "-",
          vinput::str::FmtStr("%d ms", provider.timeoutMs)});
+  }
+  fmt.PrintTable(headers, rows);
+  return 0;
+}
+
+int RunAsrListAvailable(Formatter &fmt, const CliContext &ctx) {
+  auto config = LoadCoreConfig();
+  NormalizeCoreConfig(&config);
+
+  const auto registry_urls = ResolveAsrProviderRegistryUrls(config);
+  if (registry_urls.empty()) {
+    fmt.PrintError(
+        _("No ASR provider registry sources configured. Edit config.json and set registry.asrProviders."));
+    return 1;
+  }
+
+  std::string error;
+  const auto entries = vinput::script::FetchRegistry(
+      vinput::script::Kind::kAsrProvider, registry_urls, &error);
+  if (!error.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  const auto locale = vinput::registry::DetectPreferredLocale();
+  const auto i18n_map = vinput::registry::FetchMergedI18nMap(config, locale);
+
+  if (ctx.json_output) {
+    nlohmann::json arr = nlohmann::json::array();
+    for (const auto &entry : entries) {
+      nlohmann::json envs = nlohmann::json::array();
+      for (const auto &env : entry.envs) {
+        envs.push_back({{"name", env.name}, {"required", env.required}});
+      }
+      arr.push_back({{"id", entry.id},
+                     {"title", vinput::registry::LookupI18n(
+                                   i18n_map, entry.id + ".title", entry.id)},
+                     {"description", vinput::registry::LookupI18n(
+                                         i18n_map, entry.id + ".description", "")},
+                     {"command", entry.command},
+                     {"readme_url", entry.readme_url},
+                     {"envs", envs},
+                     {"status", ResolveAsrProvider(config, entry.id) ? "installed"
+                                                                      : "available"}});
+    }
+    fmt.PrintJson(arr);
+    return 0;
+  }
+
+  std::vector<std::string> headers = {_("ID"), _("TITLE"), _("COMMAND"),
+                                      _("STATUS")};
+  std::vector<std::vector<std::string>> rows;
+  for (const auto &entry : entries) {
+    rows.push_back(
+        {entry.id,
+         vinput::registry::LookupI18n(i18n_map, entry.id + ".title", entry.id),
+         entry.command,
+         ResolveAsrProvider(config, entry.id) ? _("installed")
+                                              : _("available")});
   }
   fmt.PrintTable(headers, rows);
   return 0;
@@ -166,7 +224,6 @@ int RunAsrAdd(const std::string &name, const std::string &type,
   AsrProvider provider;
   provider.name = name;
   provider.type = type;
-  provider.builtin = false;
   provider.timeoutMs = timeout_ms;
 
   if (type == vinput::asr::kLocalProviderType) {
@@ -218,6 +275,58 @@ int RunAsrAdd(const std::string &name, const std::string &type,
   return 0;
 }
 
+int RunAsrInstall(const std::string &id, Formatter &fmt, const CliContext &ctx) {
+  (void)ctx;
+  auto config = LoadCoreConfig();
+  NormalizeCoreConfig(&config);
+
+  const auto registry_urls = ResolveAsrProviderRegistryUrls(config);
+  if (registry_urls.empty()) {
+    fmt.PrintError(
+        _("No ASR provider registry sources configured. Edit config.json and set registry.asrProviders."));
+    return 1;
+  }
+
+  std::string error;
+  const auto entries = vinput::script::FetchRegistry(
+      vinput::script::Kind::kAsrProvider, registry_urls, &error);
+  if (!error.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  const auto it = std::find_if(
+      entries.begin(), entries.end(),
+      [&id](const vinput::script::RegistryEntry &entry) { return entry.id == id; });
+  if (it == entries.end()) {
+    fmt.PrintError(vinput::str::FmtStr(
+        _("ASR provider '%s' not found in registry."), id));
+    return 1;
+  }
+
+  std::filesystem::path script_path;
+  if (!vinput::script::DownloadScript(*it, vinput::script::Kind::kAsrProvider,
+                                      &script_path, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  if (!vinput::script::MaterializeAsrProvider(&config, *it, script_path,
+                                              &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  NormalizeCoreConfig(&config);
+  if (!SaveConfigOrFail(config, fmt)) {
+    return 1;
+  }
+
+  fmt.PrintSuccess(vinput::str::FmtStr(
+      _("ASR provider '%s' synchronized to local config."), id));
+  fmt.PrintInfo(
+      vinput::str::FmtStr(_("Local script path: %s"), script_path.string()));
+  return 0;
+}
+
 int RunAsrRemove(const std::string &name, bool force, Formatter &fmt,
                  const CliContext &ctx) {
   (void)ctx;
@@ -236,11 +345,6 @@ int RunAsrRemove(const std::string &name, bool force, Formatter &fmt,
   }
 
   const bool removing_active = name == config.asr.activeProvider;
-  if (it->builtin) {
-    fmt.PrintError(vinput::str::FmtStr(
-        _("Builtin ASR provider '%s' cannot be removed."), name));
-    return 1;
-  }
   if (removing_active && !force) {
     fmt.PrintError(vinput::str::FmtStr(
         _("Cannot remove active ASR provider '%s'. Use --force to override."),

@@ -13,6 +13,7 @@
 #include "cli/command_asr.h"
 #include "cli/command_llm.h"
 #include "cli/command_model.h"
+#include "cli/command_registry.h"
 #include "cli/command_recording.h"
 #include "cli/command_scene.h"
 #include "cli/command_status.h"
@@ -20,24 +21,6 @@
 #include "common/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
-
-namespace {
-
-AsrProvider LoadDefaultAsrProviderTemplate() {
-  CoreConfig config;
-  std::string error;
-  if (!LoadBundledDefaultCoreConfig(&config, &error)) {
-    return {};
-  }
-
-  if (!config.asr.providers.empty()) {
-    return config.asr.providers.front();
-  }
-
-  return {};
-}
-
-}  // namespace
 
 int main(int argc, char *argv[]) {
   vinput::i18n::Init();
@@ -54,17 +37,17 @@ int main(int argc, char *argv[]) {
   model_cmd->alias("m");
   model_cmd->require_subcommand(1);
 
-  bool model_list_remote = false;
+  bool model_list_available = false;
   auto *model_list = model_cmd->add_subcommand(
-      "list", _("List installed (and optionally remote) models"));
+      "list", _("List installed or available models"));
   model_list->alias("ls");
-  model_list->add_flag("-r,--remote", model_list_remote,
-                       _("Include remote models from registry"));
+  model_list->add_flag("-a,--available", model_list_available,
+                       _("Include available models from registry cache"));
 
-  std::string model_add_name;
-  auto *model_add =
-      model_cmd->add_subcommand("add", _("Download and install a model"));
-  model_add->add_option("name", model_add_name, _("Model name"))->required();
+  std::string model_install_name;
+  auto *model_install =
+      model_cmd->add_subcommand("install", _("Download and install a model"));
+  model_install->add_option("name", model_install_name, _("Model name"))->required();
 
   std::string model_use_name;
   auto *model_use = model_cmd->add_subcommand("use", _("Set active model"));
@@ -147,6 +130,11 @@ int main(int argc, char *argv[]) {
   llm_remove->add_option("name", llm_remove_name, _("Provider name"))->required();
   llm_remove->add_flag("-f,--force", llm_remove_force, _("Skip confirmation"));
 
+  auto *registry_cmd = app.add_subcommand("registry", _("Manage registry sources and cache"));
+  registry_cmd->require_subcommand(1);
+  auto *registry_status = registry_cmd->add_subcommand("status", _("Show registry cache status"));
+  auto *registry_sync = registry_cmd->add_subcommand("sync", _("Refresh registry cache"));
+
   // ---- asr subcommand ----
   auto *asr_cmd = app.add_subcommand("asr", _("Manage ASR providers"));
   asr_cmd->require_subcommand(1);
@@ -154,17 +142,17 @@ int main(int argc, char *argv[]) {
   auto *asr_list =
       asr_cmd->add_subcommand("list", _("List configured ASR providers"));
   asr_list->alias("ls");
+  bool asr_list_available = false;
+  asr_list->add_flag("-a,--available", asr_list_available,
+                     _("List available cloud ASR providers from registry cache"));
 
-  const AsrProvider asr_add_default = LoadDefaultAsrProviderTemplate();
   std::string asr_add_name;
-  std::string asr_add_type = asr_add_default.type.empty()
-                                 ? std::string(vinput::asr::kLocalProviderType)
-                                 : asr_add_default.type;
+  std::string asr_add_type = std::string(vinput::asr::kLocalProviderType);
   std::string asr_add_model;
   std::string asr_add_command;
   std::vector<std::string> asr_add_args;
   std::vector<std::string> asr_add_env;
-  int asr_add_timeout_ms = asr_add_default.timeoutMs;
+  int asr_add_timeout_ms = 15000;
   auto *asr_add = asr_cmd->add_subcommand("add", _("Add an ASR provider"));
   asr_add->add_option("name", asr_add_name, _("Provider name"))->required();
   asr_add->add_option("--type", asr_add_type, _("Provider type: local or command"))
@@ -198,14 +186,28 @@ int main(int argc, char *argv[]) {
       asr_cmd->add_subcommand("edit", _("Open an external ASR provider script"));
   asr_edit->add_option("name", asr_edit_name, _("Provider name"))->required();
 
+  std::string asr_install_id;
+  auto *asr_install = asr_cmd->add_subcommand(
+      "install", _("Install an official cloud ASR provider"));
+  asr_install->add_option("id", asr_install_id, _("Registry provider ID"))->required();
+
   // ---- adaptor subcommand ----
   auto *adaptor_cmd =
-      app.add_subcommand("adaptor", _("Manage built-in and user LLM adaptors"));
+      app.add_subcommand("adaptor", _("Manage LLM adaptors"));
   adaptor_cmd->require_subcommand(1);
 
   auto *adaptor_list =
       adaptor_cmd->add_subcommand("list", _("List available LLM adaptors"));
   adaptor_list->alias("ls");
+  bool adaptor_list_available = false;
+  adaptor_list->add_flag("-a,--available", adaptor_list_available,
+                         _("List available adaptors from registry cache"));
+
+  std::string adaptor_install_id;
+  auto *adaptor_install = adaptor_cmd->add_subcommand(
+      "install", _("Install an official adaptor"));
+  adaptor_install->add_option("id", adaptor_install_id, _("Registry adaptor ID"))
+      ->required();
 
   std::string adaptor_start_name;
   auto *adaptor_start =
@@ -349,9 +351,13 @@ int main(int argc, char *argv[]) {
 
   // model
   if (model_list->parsed()) {
-    return RunModelList(model_list_remote, *fmt, ctx);
-  } else if (model_add->parsed()) {
-    return RunModelAdd(model_add_name, *fmt, ctx);
+    return RunModelList(model_list_available, *fmt, ctx);
+  } else if (model_install->parsed()) {
+    return RunModelInstall(model_install_name, *fmt, ctx);
+  } else if (registry_status->parsed()) {
+    return RunRegistryStatus(*fmt, ctx);
+  } else if (registry_sync->parsed()) {
+    return RunRegistrySync(*fmt, ctx);
   } else if (model_use->parsed()) {
     return RunModelUse(model_use_name, *fmt, ctx);
   } else if (model_remove->parsed()) {
@@ -385,11 +391,14 @@ int main(int argc, char *argv[]) {
 
   // asr
   else if (asr_list->parsed()) {
-    return RunAsrList(*fmt, ctx);
+    return asr_list_available ? RunAsrListAvailable(*fmt, ctx)
+                           : RunAsrList(*fmt, ctx);
   } else if (asr_add->parsed()) {
     return RunAsrAdd(asr_add_name, asr_add_type, asr_add_model,
                      asr_add_command, asr_add_args, asr_add_env,
                      asr_add_timeout_ms, *fmt, ctx);
+  } else if (asr_install->parsed()) {
+    return RunAsrInstall(asr_install_id, *fmt, ctx);
   } else if (asr_remove->parsed()) {
     return RunAsrRemove(asr_remove_name, asr_remove_force, *fmt, ctx);
   } else if (asr_use->parsed()) {
@@ -400,7 +409,10 @@ int main(int argc, char *argv[]) {
 
   // adaptor
   else if (adaptor_list->parsed()) {
-    return RunAdaptorList(*fmt, ctx);
+    return adaptor_list_available ? RunAdaptorListAvailable(*fmt, ctx)
+                               : RunAdaptorList(*fmt, ctx);
+  } else if (adaptor_install->parsed()) {
+    return RunAdaptorInstall(adaptor_install_id, *fmt, ctx);
   } else if (adaptor_start->parsed()) {
     return RunAdaptorStart(adaptor_start_name, *fmt, ctx);
   } else if (adaptor_stop->parsed()) {

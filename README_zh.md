@@ -92,8 +92,9 @@ sudo just install
 **1. 安装模型**
 
 ```bash
-vinput model list --remote      # 浏览可用模型
-vinput model add <模型名>        # 下载并安装
+vinput registry sync            # 刷新 registry 缓存
+vinput model list --available   # 浏览可用模型
+vinput model install <模型名>    # 下载并安装
 vinput model use <模型名>        # 设置为当前模型
 ```
 
@@ -153,8 +154,8 @@ vinput-gui
 
 ```bash
 vinput model list               # 列出已安装模型
-vinput model list --remote      # 列出可用远程模型
-vinput model add <名称>          # 下载安装模型
+vinput model list --available   # 列出可用模型
+vinput model install <名称>      # 下载安装模型
 vinput model use <名称>          # 切换当前模型
 vinput model remove <名称>       # 删除模型
 vinput model info <名称>         # 查看模型详情
@@ -198,13 +199,13 @@ LLM provider 由场景引用，不再有单独的“当前 provider”开关。L
 
 ```bash
 vinput asr list                 # 列出已配置 ASR provider
-vinput asr add <名称>            # 添加 builtin 或 command provider
+vinput asr list --available     # 列出可用云端 ASR provider
+vinput asr install <id>         # 按需安装一个云端 ASR provider
+vinput asr add <名称>            # 添加本地或自定义 command provider
 vinput asr use <名称>            # 切换当前 ASR provider
 vinput asr edit <名称>           # 编辑外部 provider 脚本
 vinput asr remove <名称>         # 删除 provider
 ```
-
-内建 ASR provider 脚本可直接用脚本 ID 引用，不必手写完整路径。
 
 </details>
 
@@ -239,8 +240,9 @@ vinput config edit extra                     # 编辑核心配置文件
 vinput config edit fcitx                     # 编辑 Fcitx 插件配置
 ```
 
-高级注册源回退可直接在 `config.json` 里配置 `registry.sources`。
-程序会按顺序依次尝试，直到某个源成功。
+高级注册源回退可直接在 `config.json` 里配置分类型的 source 列表，例如
+`registry.models`、`registry.asr_providers`、`registry.llm_adaptors`、
+`registry.i18n`。程序会按顺序依次尝试这些 URL，直到某个源成功。
 
 </details>
 
@@ -338,7 +340,7 @@ vinput scene use polish
 
 也就是脚本收到的是裸 PCM 字节流，需要脚本自己决定是否封装成 WAV 或转发到云接口。
 
-一个最小的 provider 配置示例：
+一个最小的自定义 provider 配置示例：
 
 ```json
 {
@@ -346,7 +348,7 @@ vinput scene use polish
   "type": "command",
   "command": "python3",
   "args": [
-    "/usr/share/fcitx5-vinput/asr-providers/openai_compatible_speech_to_text.py"
+    "~/.config/vinput/asr-providers/openai-compatible.py"
   ],
   "env": {
     "OPENAI_COMPATIBLE_ASR_API_KEY": "...",
@@ -357,12 +359,11 @@ vinput scene use polish
 }
 ```
 
-内建 ASR provider 脚本默认安装到
-`/usr/share/fcitx5-vinput/asr-providers/`。用户覆盖脚本放到
-`~/.config/vinput/asr-providers/` 即可；同名文件会优先覆盖内建脚本。
+官方云端 ASR provider 脚本现在由 `vinput-registry` 发布，并通过
+`vinput asr install <id>` 按需安装到 `~/.config/vinput/asr-providers/`。
 `command` 应该填写可执行命令或解释器，脚本路径放在 `args` 里。
 
-现在内建的云 ASR provider 包括：
+当前官方云端 ASR provider 包括：
 
 - `elevenlabs`
 - `openai-compatible`
@@ -412,10 +413,10 @@ OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao
 }
 ```
 
-内建 LLM adaptor 默认安装到 `/usr/share/fcitx5-vinput/llm-adaptors/`。
-用户覆盖脚本放到 `~/.config/vinput/llm-adaptors/` 即可。
+官方 LLM adaptor 现在由 `vinput-registry` 发布，并通过
+`vinput adaptor install <id>` 按需安装到 `~/.config/vinput/llm-adaptors/`。
 
-对于内建托管的 LLM adaptor，运行时配置建议统一走环境变量，不要依赖 CLI
+对于托管的 LLM adaptor，运行时配置建议统一走环境变量，不要依赖 CLI
 位置参数。`vinput adaptor start/stop` 直接启动脚本，不会为它注入额外位置参数。
 
 参考实现：
@@ -429,7 +430,7 @@ OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao
 |------|------|
 | Fcitx5 插件配置（按键等） | `~/.config/fcitx5/conf/vinput.conf` |
 | 核心配置（模型、LLM、场景） | `~/.config/vinput/config.json` |
-| 模型目录 | `~/.local/share/fcitx5-vinput/models/` |
+| 模型目录 | `~/.local/share/vinput/models/` |
 
 ## Flatpak
 

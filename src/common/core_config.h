@@ -30,7 +30,6 @@ struct LlmAdaptor {
 struct AsrProvider {
   std::string name;
   std::string type;
-  bool builtin{false};
   std::string model;
   std::string command;
   std::vector<std::string> args;

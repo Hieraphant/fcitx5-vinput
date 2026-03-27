@@ -8,5 +8,7 @@ bool ResolveSymlinkPath(const std::filesystem::path& path,
                         std::filesystem::path* resolved,
                         std::string* error);
 bool EnsureParentDirectory(const std::filesystem::path& path, std::string* error);
+bool ReadTextFile(const std::filesystem::path& path, std::string* content,
+                  std::string* error);
 bool AtomicWriteTextFile(const std::filesystem::path& target, std::string_view content, std::string* error);
 }

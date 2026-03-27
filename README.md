@@ -93,8 +93,9 @@ under `/usr/local`, reinstall from a clean build directory so `vinput.conf` and
 **1. Install a model**
 
 ```bash
-vinput model list --remote      # Browse available models
-vinput model add <model-name>   # Download and install
+vinput registry sync            # Refresh registry cache
+vinput model list --available   # Browse available models
+vinput model install <model-name> # Download and install
 vinput model use <model-name>   # Set as active model
 ```
 
@@ -154,8 +155,8 @@ Use `vinput --help` or `vinput <subcommand> --help` for the full current syntax.
 
 ```bash
 vinput model list               # List installed models
-vinput model list --remote      # List available remote models
-vinput model add <name>         # Download and install
+vinput model list --available   # List available models
+vinput model install <name>     # Download and install
 vinput model use <name>         # Switch active model
 vinput model remove <name>      # Remove model
 vinput model info <name>        # View model details
@@ -200,14 +201,13 @@ provider may point to.
 
 ```bash
 vinput asr list                 # List configured ASR providers
-vinput asr add <name>           # Add a builtin or command provider
+vinput asr list --available     # List available cloud ASR providers
+vinput asr install <id>         # Install one cloud ASR provider
+vinput asr add <name>           # Add a local or custom command provider
 vinput asr use <name>           # Switch active ASR provider
 vinput asr edit <name>          # Edit external provider script
 vinput asr remove <name>        # Remove provider
 ```
-
-Built-in ASR provider scripts can be referenced directly by script ID in
-command providers, without hardcoding a full path.
 
 </details>
 
@@ -242,8 +242,10 @@ vinput config edit extra                    # Edit core config file
 vinput config edit fcitx                    # Edit Fcitx addon config
 ```
 
-Registry fallback is configured directly in `config.json` with
-`registry.sources`. Sources are tried in order until one succeeds.
+Registry fallback is configured directly in `config.json` with typed source
+lists such as `registry.models`, `registry.asr_providers`,
+`registry.llm_adaptors`, and `registry.i18n`. URLs are tried in order until one
+succeeds.
 
 </details>
 
@@ -345,7 +347,7 @@ Today `vinput` sends audio to command providers as:
 That means the script receives raw PCM bytes and is responsible for wrapping
 them as WAV or forwarding them to a cloud API if needed.
 
-A minimal provider config looks like this:
+A minimal custom provider config looks like this:
 
 ```json
 {
@@ -353,7 +355,7 @@ A minimal provider config looks like this:
   "type": "command",
   "command": "python3",
   "args": [
-    "/usr/share/fcitx5-vinput/asr-providers/openai_compatible_speech_to_text.py"
+    "~/.config/vinput/asr-providers/openai-compatible.py"
   ],
   "env": {
     "OPENAI_COMPATIBLE_ASR_API_KEY": "...",
@@ -364,13 +366,12 @@ A minimal provider config looks like this:
 }
 ```
 
-Built-in ASR provider scripts are installed under
-`/usr/share/fcitx5-vinput/asr-providers/` by default. User overrides can be
-placed under `~/.config/vinput/asr-providers/`; user files take precedence over
-built-in scripts with the same script name. `command` should be the executable
-or interpreter, and the script path should live in `args`.
+Official cloud ASR provider scripts are published in `vinput-registry` and are
+installed on demand into `~/.config/vinput/asr-providers/` via
+`vinput asr install <id>`. `command` should be the executable or interpreter, and
+the script path should live in `args`.
 
-Built-in cloud ASR providers now include:
+Official cloud ASR providers currently include:
 
 - `elevenlabs`
 - `openai-compatible`
@@ -422,11 +423,10 @@ the structured payload currently consumed by `vinput`.
 }
 ```
 
-Built-in LLM adaptors are installed under
-`/usr/share/fcitx5-vinput/llm-adaptors/` by default. User overrides can be
-placed under `~/.config/vinput/llm-adaptors/`.
+Official LLM adaptors are published in `vinput-registry` and are installed on
+demand into `~/.config/vinput/llm-adaptors/` via `vinput adaptor install <id>`.
 
-For built-in managed LLM adaptors, prefer environment variables over CLI
+For managed LLM adaptors, prefer environment variables over CLI
 arguments for runtime configuration. `vinput adaptor start/stop` starts the
 script directly and does not inject positional arguments.
 
@@ -441,7 +441,7 @@ Reference implementations:
 |------|------|
 | Plugin config (keybindings, etc.) | `~/.config/fcitx5/conf/vinput.conf` |
 | Core config (model, LLM, scenes) | `~/.config/vinput/config.json` |
-| Model directory | `~/.local/share/fcitx5-vinput/models/` |
+| Model directory | `~/.local/share/vinput/models/` |
 
 ## Flatpak
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-13 03:05+0800\n"
+"POT-Creation-Date: 2026-03-26 12:33+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,546 +17,929 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/addon/vinput.cpp:95
-#, c-format
-msgid " (%d/%d)"
-msgstr ""
-
-#: src/addon/vinput.cpp:193
-msgid " (Current)"
-msgstr ""
-
-#: src/addon/vinput.cpp:52
-msgid "... Commanding ..."
-msgstr ""
-
-#: src/addon/vinput.cpp:56
-msgid "... Postprocessing ..."
-msgstr ""
-
-#: src/addon/vinput.cpp:54
-msgid "... Recognizing ..."
-msgstr ""
-
-#: src/addon/vinput.cpp:50
 msgid "... Recording ..."
 msgstr ""
 
-#: src/cli/main.cpp:100
-msgid "API key"
+msgid "... Commanding ..."
 msgstr ""
 
-#: src/cli/command_llm.cpp:42
-msgid "API_KEY"
+msgid "... Recognizing ..."
 msgstr ""
 
-#: src/cli/command_device.cpp:50 src/cli/command_device.cpp:57
-#: src/cli/command_model.cpp:89
-msgid "Active"
+msgid "... Postprocessing ..."
 msgstr ""
 
-#: src/cli/command_llm.cpp:106
+msgid ""
+"Local ASR model configuration is missing. Please configure a model first."
+msgstr ""
+
 #, c-format
-msgid "Active LLM provider set to '%s'."
+msgid ""
+"Local ASR model configuration is missing for provider '%s'. Please configure "
+"a model first."
 msgstr ""
 
-#: src/cli/command_model.cpp:229
+msgid "Local ASR model metadata is missing model_type."
+msgstr ""
+
 #, c-format
-msgid "Active model set to '%s'. Daemon restarted."
+msgid "Local ASR model metadata is missing model_type for provider '%s'."
 msgstr ""
 
-#: src/cli/main.cpp:65
-msgid "Add a new scene"
+msgid "Local ASR model metadata contains an invalid path."
 msgstr ""
 
-#: src/cli/main.cpp:96
-msgid "Add an LLM provider"
-msgstr ""
-
-#: src/cli/command_llm.cpp:42
-msgid "BASE_URL"
-msgstr ""
-
-#: src/cli/main.cpp:98
-msgid "Base URL"
-msgstr ""
-
-#: src/cli/command_model.cpp:91
-msgid "Broken"
-msgstr ""
-
-#: src/cli/command_model.cpp:239
 #, c-format
-msgid "Cannot remove active model '%s'. Use --force to override."
+msgid "Local ASR model metadata contains an invalid path for provider '%s'."
 msgstr ""
 
-#: src/cli/command_llm.cpp:115
+msgid "Local ASR model tokens file is missing."
+msgstr ""
+
 #, c-format
-msgid "Cannot remove active provider '%s'. Use --force."
+msgid "Local ASR model tokens file is missing for provider '%s'."
 msgstr ""
 
-#: src/cli/command_device.cpp:93
+msgid "Local ASR model files are missing."
+msgstr ""
+
 #, c-format
-msgid "Capture device set to '%s'. Restart daemon to apply changes."
+msgid "Local ASR model files are missing for provider '%s'."
 msgstr ""
 
-#: src/addon/vinput.cpp:42
+msgid "Failed to resolve the local ASR model directory."
+msgstr ""
+
+#, c-format
+msgid "Failed to resolve the local ASR model directory for provider '%s'."
+msgstr ""
+
+msgid "Failed to parse local ASR model metadata."
+msgstr ""
+
+#, c-format
+msgid "Failed to parse local ASR model metadata for provider '%s'."
+msgstr ""
+
+msgid "The local ASR model type is not supported."
+msgstr ""
+
+#, c-format
+msgid "The local ASR model type is not supported for provider '%s'."
+msgstr ""
+
+msgid "Failed to initialize the local ASR recognizer."
+msgstr ""
+
+#, c-format
+msgid "Failed to initialize the local ASR recognizer for provider '%s'."
+msgstr ""
+
+msgid "Failed to initialize VAD."
+msgstr ""
+
+#, c-format
+msgid "Failed to initialize VAD for provider '%s'."
+msgstr ""
+
+msgid "Local ASR model check failed."
+msgstr ""
+
+#, c-format
+msgid "Local ASR model check failed for provider '%s'."
+msgstr ""
+
+msgid "Failed to initialize the local ASR provider."
+msgstr ""
+
+#, c-format
+msgid "Failed to initialize the local ASR provider '%s'."
+msgstr ""
+
+msgid "Audio capture is not initialized."
+msgstr ""
+
+msgid "Failed to create the PipeWire thread loop."
+msgstr ""
+
+msgid "Failed to start the PipeWire thread loop."
+msgstr ""
+
+msgid "Failed to allocate PipeWire properties."
+msgstr ""
+
+msgid "Failed to create the PipeWire stream."
+msgstr ""
+
+msgid "Failed to connect the PipeWire stream."
+msgstr ""
+
+msgid "Failed to initialize daemon notifications."
+msgstr ""
+
+msgid "Failed to connect to the user D-Bus."
+msgstr ""
+
+msgid "Failed to register the daemon D-Bus interface."
+msgstr ""
+
+msgid "Failed to acquire the daemon D-Bus name."
+msgstr ""
+
+msgid "Failed to start recording."
+msgstr ""
+
+msgid "Failed to start command recording."
+msgstr ""
+
+msgid "ASR provider failed to start."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' failed to start."
+msgstr ""
+
+msgid "ASR provider timed out."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' timed out."
+msgstr ""
+
+msgid "ASR provider failed."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' failed."
+msgstr ""
+
+msgid "ASR provider returned no text."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' returned no text."
+msgstr ""
+
+msgid "LLM request failed."
+msgstr ""
+
+msgid "LLM request returned an HTTP error."
+msgstr ""
+
+msgid "Unknown error during processing."
+msgstr ""
+
+msgid "Failed to start the daemon."
+msgstr ""
+
+msgid "Failed to restart the daemon."
+msgstr ""
+
+msgid "Unknown error."
+msgstr ""
+
+msgid "Voice Input"
+msgstr ""
+
+msgid "Please select text first."
+msgstr ""
+
+msgid "Command mode is disabled (candidate count is 0)."
+msgstr ""
+
+msgid "No LLM provider configured for command mode."
+msgstr ""
+
 msgid "Choose Postprocess Menu"
 msgstr ""
 
-#: src/addon/vinput.cpp:46
 #, c-format
 msgid "Choose Result (%zu)"
 msgstr ""
 
-#: src/cli/main.cpp:185
-msgid "Clear hotwords file path"
+msgid "Original"
 msgstr ""
 
-#: src/common/postprocess_scene.cpp:31
-msgid "Command"
+msgid "Voice Command"
 msgstr ""
 
-#: src/common/postprocess_scene.cpp:28
-msgid "Raw"
-msgstr ""
-
-#: src/common/vinput_config.cpp:48
-msgid "Command Keys"
-msgstr ""
-
-#: src/cli/command_init.cpp:27
 #, c-format
-msgid "Config already exists: %s"
+msgid " (%d/%d)"
 msgstr ""
 
-#: src/cli/main.cpp:137
-msgid "Config dotpath"
+msgid " (Current)"
 msgstr ""
 
-#: src/cli/main.cpp:129
-msgid "Config dotpath (e.g. fcitx.triggerKey)"
+msgid "Failed to save active scene."
 msgstr ""
 
-#: src/cli/main.cpp:146
-msgid "Config target: fcitx or extra"
+msgid "Failed to save config."
 msgstr ""
 
-#: src/cli/command_config.cpp:41
+msgid "COMMAND"
+msgstr ""
+
+msgid "ID"
+msgstr ""
+
+msgid "STATE"
+msgstr ""
+
+msgid "(not set)"
+msgstr ""
+
+msgid ""
+"No LLM adaptor registry sources configured. Edit config.json and set "
+"registry.llmAdaptors."
+msgstr ""
+
+msgid "TITLE"
+msgstr ""
+
+msgid "STATUS"
+msgstr ""
+
+msgid "installed"
+msgstr ""
+
+msgid "available"
+msgstr ""
+
+#, c-format
+msgid "Adaptor '%s' not found in registry."
+msgstr ""
+
+msgid "Failed to save configuration."
+msgstr ""
+
+#, c-format
+msgid "Adaptor '%s' synchronized to local config."
+msgstr ""
+
+#, c-format
+msgid "Local script path: %s"
+msgstr ""
+
+#, c-format
+msgid "Adaptor '%s' started."
+msgstr ""
+
+#, c-format
+msgid "Adaptor '%s' stopped."
+msgstr ""
+
+msgid "ACTIVE"
+msgstr ""
+
+msgid "NAME"
+msgstr ""
+
+msgid "TYPE"
+msgstr ""
+
+msgid "MODEL"
+msgstr ""
+
+msgid "TIMEOUT"
+msgstr ""
+
+msgid "no"
+msgstr ""
+
+msgid "yes"
+msgstr ""
+
+msgid ""
+"No ASR provider registry sources configured. Edit config.json and set "
+"registry.asrProviders."
+msgstr ""
+
+msgid "Timeout must be greater than zero."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' already exists."
+msgstr ""
+
+msgid "Local ASR providers do not accept command or env fields."
+msgstr ""
+
+msgid "Command ASR providers do not accept a model field."
+msgstr ""
+
+msgid "Command ASR providers require --command."
+msgstr ""
+
+#, c-format
+msgid "Invalid env entry '%s'. Use KEY=VALUE."
+msgstr ""
+
+#, c-format
+msgid "Unsupported ASR provider type '%s'."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' added."
+msgstr ""
+
+#, c-format
+msgid "Run `vinput asr use %s` to activate"
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' not found in registry."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' synchronized to local config."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' not found."
+msgstr ""
+
+#, c-format
+msgid "Cannot remove active ASR provider '%s'. Use --force to override."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' removed. Active provider is now '%s'."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' removed."
+msgstr ""
+
+#, c-format
+msgid ""
+"Active ASR provider set to '%s', but daemon restart failed (exit code: %d)."
+msgstr ""
+
+msgid "Restart the daemon manually to apply the new provider."
+msgstr ""
+
+#, c-format
+msgid "Active ASR provider set to '%s'. Daemon restarted."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' is not a command provider and cannot be edited."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' does not reference an editable script file."
+msgstr ""
+
+msgid "Editor exited with error."
+msgstr ""
+
+#, c-format
+msgid "Updated ASR provider script: %s"
+msgstr ""
+
 msgid "Config value set."
 msgstr ""
 
-#: src/common/vinput_config.cpp:58
-msgid ""
-"Configure one or more keys to open the postprocess menu. The default is "
-"Right Alt + Control."
-msgstr ""
-
-#. ---- daemon subcommand ----
-#: src/cli/main.cpp:150
-msgid "Control the vinput daemon"
-msgstr ""
-
-#: src/cli/command_init.cpp:40
-#, c-format
-msgid "Created config: %s"
-msgstr ""
-
-#: src/cli/command_init.cpp:62
-#, c-format
-msgid "Created model dir: %s"
-msgstr ""
-
-#: src/cli/command_device.cpp:45
-msgid "DESCRIPTION"
-msgstr ""
-
-#: src/cli/command_status.cpp:18
-msgid "Daemon is not running."
-msgstr ""
-
-#: src/cli/command_daemon.cpp:38
-msgid "Daemon restarted."
-msgstr ""
-
-#: src/cli/command_daemon.cpp:10
 msgid "Daemon started."
 msgstr ""
 
-#: src/cli/command_status.cpp:39
 #, c-format
-msgid "Daemon status: %s"
+msgid "systemctl start failed (exit code: %d)"
 msgstr ""
 
-#: src/cli/command_daemon.cpp:24
 msgid "Daemon stopped."
 msgstr ""
 
-#: src/cli/command_scene.cpp:99
 #, c-format
-msgid "Default scene set to '%s'."
+msgid "systemctl stop failed (exit code: %d)"
 msgstr ""
 
-#: src/cli/command_device.cpp:81
+msgid "Daemon restarted."
+msgstr ""
+
+#, c-format
+msgid "systemctl restart failed (exit code: %d)"
+msgstr ""
+
+msgid "No audio capture devices found or PipeWire is not running."
+msgstr ""
+
+msgid "DESCRIPTION"
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "System Default"
+msgstr ""
+
 #, c-format
 msgid "Device '%s' not found in PipeWire. Setting it anyway."
 msgstr ""
 
-#: src/cli/main.cpp:199
-msgid "Device name or 'default'"
-msgstr ""
-
-#: src/cli/main.cpp:117
-msgid "Disable LLM processing globally"
-msgstr ""
-
-#: src/cli/main.cpp:70
-msgid "Display label"
-msgstr ""
-
-#: src/cli/main.cpp:41
-msgid "Download and install a model"
-msgstr ""
-
-#: src/cli/command_model.cpp:184
 #, c-format
-msgid "Downloading %s..."
+msgid "Capture device set to '%s'. Restart daemon to apply changes."
 msgstr ""
 
-#: src/cli/main.cpp:187
-msgid "Edit hotwords file in editor"
+msgid "No hotwords file configured."
 msgstr ""
 
-#: src/cli/command_hotword.cpp:61
-msgid "Editor exited with error."
-msgstr ""
-
-#: src/cli/main.cpp:115
-msgid "Enable LLM processing globally"
-msgstr ""
-
-#: src/cli/command_init.cpp:67
-msgid "Everything already initialized"
-msgstr ""
-
-#: src/cli/command_init.cpp:43
-msgid "Failed to create config"
-msgstr ""
-
-#: src/cli/command_init.cpp:58
-#, c-format
-msgid "Failed to create model dir: %s"
-msgstr ""
-
-#: src/cli/command_model.cpp:276
-#, c-format
-msgid "Failed to parse vinput-model.json: %s"
-msgstr ""
-
-#: src/cli/command_model.cpp:270
-#, c-format
-msgid "Failed to read: %s"
-msgstr ""
-
-#: src/cli/command_device.cpp:88 src/cli/command_hotword.cpp:31
-#: src/cli/command_hotword.cpp:43 src/cli/command_llm.cpp:80
-#: src/cli/command_llm.cpp:103 src/cli/command_llm.cpp:128
-#: src/cli/command_llm.cpp:144 src/cli/command_llm.cpp:160
-#: src/cli/command_scene.cpp:71 src/cli/command_scene.cpp:94
-#: src/cli/command_scene.cpp:118
-msgid "Failed to save config."
-msgstr ""
-
-#: src/cli/command_model.cpp:222
-msgid "Failed to save configuration."
-msgstr ""
-
-#: src/cli/main.cpp:161
-msgid "Follow log output"
-msgstr ""
-
-#: src/cli/main.cpp:82
-msgid "Force removal of built-in scenes"
-msgstr ""
-
-#: src/cli/main.cpp:126
-msgid "Get a config value by dotpath"
-msgstr ""
-
-#: src/cli/command_model.cpp:84 src/cli/command_model.cpp:144
-msgid "HOTWORDS"
-msgstr ""
-
-#: src/cli/command_hotword.cpp:46
-msgid "Hotwords file path cleared."
-msgstr ""
-
-#: src/cli/command_hotword.cpp:34
 msgid "Hotwords file path saved."
 msgstr ""
 
-#: src/cli/command_hotword.cpp:65
+msgid "Hotwords file path cleared."
+msgstr ""
+
+msgid "No hotwords file configured. Use 'hotword set <path>' first."
+msgstr ""
+
 msgid "Hotwords file updated."
 msgstr ""
 
-#: src/cli/command_scene.cpp:40
-msgid "ID"
-msgstr ""
-
-#: src/cli/main.cpp:37
-msgid "Include remote models from registry"
-msgstr ""
-
-#: src/cli/main.cpp:167
-msgid "Initialize default config and directories"
-msgstr ""
-
-#: src/cli/command_model.cpp:93
-msgid "Installed"
-msgstr ""
-
-#: src/common/vinput_config.cpp:73
-msgid ""
-"Keys for paging to the next page in the postprocess menu and the postprocess "
-"candidate menu. Defaults to Page Down and keypad Page Down."
-msgstr ""
-
-#: src/common/vinput_config.cpp:65
-msgid ""
-"Keys for paging to the previous page in the postprocess menu and the "
-"postprocess candidate menu. Defaults to Page Up and keypad Page Up."
-msgstr ""
-
-#: src/cli/command_scene.cpp:40
-msgid "LABEL"
-msgstr ""
-
-#: src/cli/command_model.cpp:84 src/cli/command_model.cpp:144
-msgid "LANGUAGE"
-msgstr ""
-
-#: src/cli/command_llm.cpp:163
-msgid "LLM features are now DISABLED. Restart the daemon to apply."
-msgstr ""
-
-#: src/cli/command_llm.cpp:147
-msgid "LLM features are now ENABLED. Restart the daemon to apply."
-msgstr ""
-
-#: src/cli/command_llm.cpp:155
-msgid "LLM is already disabled."
-msgstr ""
-
-#: src/cli/command_llm.cpp:139
-msgid "LLM is already enabled."
-msgstr ""
-
-#: src/cli/main.cpp:71
-msgid "LLM prompt"
-msgstr ""
-
-#: src/cli/command_llm.cpp:83
 #, c-format
-msgid "LLM provider '%s' added."
+msgid "Config already exists: %s"
 msgstr ""
 
-#: src/cli/command_llm.cpp:61
 #, c-format
-msgid "LLM provider '%s' already exists."
+msgid "Created config: %s"
 msgstr ""
 
-#: src/cli/command_llm.cpp:98 src/cli/command_llm.cpp:123
-#, c-format
-msgid "LLM provider '%s' not found."
+msgid "Failed to create config"
 msgstr ""
 
-#: src/cli/command_llm.cpp:131
-#, c-format
-msgid "LLM provider '%s' removed."
-msgstr ""
-
-#: src/cli/main.cpp:63
-msgid "List all scenes"
-msgstr ""
-
-#: src/cli/main.cpp:194
-msgid "List available audio input devices"
-msgstr ""
-
-#: src/cli/main.cpp
-msgid "List available LLM adaptors"
-msgstr ""
-
-#: src/cli/main.cpp:89
-msgid "List configured LLM providers"
-msgstr ""
-
-#: src/cli/main.cpp:35
-msgid "List installed (and optionally remote) models"
-msgstr ""
-
-#: src/cli/command_llm.cpp:42
-msgid "MODEL"
-msgstr ""
-
-#. ---- model subcommand ----
-#: src/cli/main.cpp:30
-msgid "Manage ASR models"
-msgstr ""
-
-#. ---- llm subcommand ----
-#: src/cli/main.cpp:85
-msgid "Manage LLM providers"
-msgstr ""
-
-#. ---- device subcommand ----
-#: src/cli/main.cpp:190
-msgid "Manage capture devices"
-msgstr ""
-
-#. ---- adaptor subcommand ----
-#: src/cli/main.cpp
-msgid "Manage built-in and user LLM adaptors"
-msgstr ""
-
-#. ---- hotword subcommand ----
-#: src/cli/main.cpp:172
-msgid "Manage hotwords file"
-msgstr ""
-
-#. ---- scene subcommand ----
-#: src/cli/main.cpp:60
-msgid "Manage recognition scenes"
-msgstr ""
-
-#: src/cli/command_model.cpp:202
-#, c-format
-msgid "Model '%s' installed successfully."
-msgstr ""
-
-#: src/cli/command_model.cpp:216
-#, c-format
-msgid "Model '%s' is not valid: %s"
-msgstr ""
-
-#: src/cli/command_model.cpp:262
-#, c-format
-msgid "Model '%s' not found at: %s"
-msgstr ""
-
-#: src/cli/command_model.cpp:250
-#, c-format
-msgid "Model '%s' removed."
-msgstr ""
-
-#: src/cli/command_init.cpp:52
 #, c-format
 msgid "Model dir already exists: %s"
 msgstr ""
 
-#: src/cli/main.cpp:42 src/cli/main.cpp:46 src/cli/main.cpp:52
-#: src/cli/main.cpp:57 src/cli/main.cpp:99
-msgid "Model name"
+#, c-format
+msgid "Failed to create model dir: %s"
 msgstr ""
 
-#: src/cli/command_device.cpp:45 src/cli/command_llm.cpp:42
-#: src/cli/command_model.cpp:84 src/cli/command_model.cpp:144
-msgid "NAME"
+#, c-format
+msgid "Created model dir: %s"
 msgstr ""
 
-#: src/cli/command_model.cpp:293
+msgid "Everything already initialized"
+msgstr ""
+
+msgid "API_KEY"
+msgstr ""
+
+msgid "BASE_URL"
+msgstr ""
+
+#, c-format
+msgid "LLM provider '%s' already exists."
+msgstr ""
+
+#, c-format
+msgid "LLM provider '%s' added."
+msgstr ""
+
+#, c-format
+msgid "LLM provider '%s' not found."
+msgstr ""
+
+#, c-format
+msgid "LLM provider '%s' removed."
+msgstr ""
+
+msgid "HOTWORDS"
+msgstr ""
+
+msgid "LANGUAGE"
+msgstr ""
+
+msgid "SIZE"
+msgstr ""
+
+msgid "Broken"
+msgstr ""
+
+msgid "Installed"
+msgstr ""
+
+msgid ""
+"No model registry sources configured. Edit config.json and set "
+"registry.models."
+msgstr ""
+
+#, c-format
+msgid "Downloading %s..."
+msgstr ""
+
+#, c-format
+msgid "Model '%s' installed successfully."
+msgstr ""
+
+#, c-format
+msgid "Run `vinput model use %s` to activate"
+msgstr ""
+
+#, c-format
+msgid "Model '%s' is not valid: %s"
+msgstr ""
+
+#, c-format
+msgid "Active model set to '%s', but daemon restart failed (exit code: %d)."
+msgstr ""
+
+msgid "Restart the daemon manually to apply the new model."
+msgstr ""
+
+#, c-format
+msgid "Active model set to '%s'. Daemon restarted."
+msgstr ""
+
+#, c-format
+msgid "Cannot remove active model '%s'. Use --force to override."
+msgstr ""
+
+#, c-format
+msgid "Model '%s' removed."
+msgstr ""
+
+#, c-format
+msgid "Model '%s' not found at: %s"
+msgstr ""
+
+#, c-format
+msgid "Failed to read: %s"
+msgstr ""
+
+#, c-format
+msgid "Failed to parse vinput-model.json: %s"
+msgstr ""
+
 msgid "Name"
 msgstr ""
 
-#: src/cli/main.cpp:138
-msgid "New value"
-msgstr ""
-
-#: src/common/vinput_config.cpp:70
-msgid "Next Page Keys"
-msgstr ""
-
-#: src/cli/command_device.cpp:27
-msgid "No audio capture devices found or PipeWire is not running."
-msgstr ""
-
-#: src/cli/command_hotword.cpp:18
-msgid "No hotwords file configured."
-msgstr ""
-
-#: src/cli/command_hotword.cpp:55
-msgid "No hotwords file configured. Use 'hotword set <path>' first."
-msgstr ""
-
-#: src/daemon/main.cpp
-msgid "No active ASR provider configured."
-msgstr ""
-
-#: src/daemon/main.cpp
-msgid "No builtin ASR model configured."
-msgstr ""
-
-#: src/cli/command_model.cpp:104 src/cli/command_model.cpp:161
-msgid ""
-"No registry URL configured. Set with: vinput config set extra.registry_url "
-"<url>"
-msgstr ""
-
-#: src/cli/main.cpp:162
-msgid "Number of lines to show"
-msgstr ""
-
-#: src/common/vinput_config.cpp:96
-msgid "Open Vinput Settings"
-msgstr ""
-
-#: src/cli/main.cpp:143
-msgid "Open config file in editor"
-msgstr ""
-
-#: src/addon/vinput.cpp:64
-msgid "Original"
-msgstr ""
-
-#: src/cli/main.cpp:27
-msgid "Output in JSON format"
-msgstr ""
-
-#: src/cli/main.cpp:169
-msgid "Overwrite existing config"
-msgstr ""
-
-#: src/daemon/main.cpp
-msgid "ASR disabled by command line."
-msgstr ""
-
-#: src/cli/command_model.cpp:294
 msgid "Path"
 msgstr ""
 
-#: src/cli/main.cpp:181
+msgid "Size"
+msgstr ""
+
+msgid "Daemon is not running."
+msgstr ""
+
+msgid "Recording started."
+msgstr ""
+
+msgid "Recording stopped."
+msgstr ""
+
+#, c-format
+msgid "Recording stopped (scene: %s)."
+msgstr ""
+
+#, c-format
+msgid "Daemon is busy (status: %s)."
+msgstr ""
+
+msgid "Daemon is in error state."
+msgstr ""
+
+msgid "Cache Dir"
+msgstr ""
+
+msgid "KIND"
+msgstr ""
+
+msgid "PATH"
+msgstr ""
+
+msgid "cached"
+msgstr ""
+
+msgid "missing"
+msgstr ""
+
+msgid "models"
+msgstr ""
+
+msgid "asr_providers"
+msgstr ""
+
+msgid "llm_adaptors"
+msgstr ""
+
+msgid "Registry cache synchronized."
+msgstr ""
+
+msgid "CANDIDATES"
+msgstr ""
+
+msgid "LABEL"
+msgstr ""
+
+msgid "PROVIDER"
+msgstr ""
+
+#, c-format
+msgid "Scene '%s' added."
+msgstr ""
+
+#, c-format
+msgid "Default scene set to '%s'."
+msgstr ""
+
+#, c-format
+msgid "Scene '%s' removed."
+msgstr ""
+
+#, c-format
+msgid "Daemon status: %s"
+msgstr ""
+
+msgid "vinput - Voice input model and daemon manager"
+msgstr ""
+
+msgid "Print this help message and exit"
+msgstr ""
+
+msgid "Output in JSON format"
+msgstr ""
+
+msgid "Manage ASR models"
+msgstr ""
+
+msgid "List installed or available models"
+msgstr ""
+
+msgid "Include available models from registry cache"
+msgstr ""
+
+msgid "Download and install a model"
+msgstr ""
+
+msgid "Model name"
+msgstr ""
+
+msgid "Set active model"
+msgstr ""
+
+msgid "Remove an installed model"
+msgstr ""
+
+msgid "Skip confirmation"
+msgstr ""
+
+msgid "Show model details"
+msgstr ""
+
+msgid "Manage recognition scenes"
+msgstr ""
+
+msgid "List all scenes"
+msgstr ""
+
+msgid "Add a new scene"
+msgstr ""
+
+msgid "Scene ID"
+msgstr ""
+
+msgid "Display label"
+msgstr ""
+
+msgid "LLM prompt"
+msgstr ""
+
+msgid "LLM provider name"
+msgstr ""
+
+msgid "LLM model name"
+msgstr ""
+
+msgid "Candidate count"
+msgstr ""
+
+msgid "Request timeout in milliseconds"
+msgstr ""
+
+msgid "Set active scene"
+msgstr ""
+
+msgid "Remove a scene"
+msgstr ""
+
+msgid "Force removal of built-in scenes"
+msgstr ""
+
+msgid "Manage LLM providers"
+msgstr ""
+
+msgid "List configured LLM providers"
+msgstr ""
+
+msgid "Add an LLM provider"
+msgstr ""
+
+msgid "Provider name"
+msgstr ""
+
+msgid "Base URL"
+msgstr ""
+
+msgid "API key"
+msgstr ""
+
+msgid "Remove an LLM provider"
+msgstr ""
+
+msgid "Manage registry sources and cache"
+msgstr ""
+
+msgid "Show registry cache status"
+msgstr ""
+
+msgid "Refresh registry cache"
+msgstr ""
+
+msgid "Manage ASR providers"
+msgstr ""
+
+msgid "List configured ASR providers"
+msgstr ""
+
+msgid "List available cloud ASR providers from registry cache"
+msgstr ""
+
+msgid "Add an ASR provider"
+msgstr ""
+
+msgid "Provider type: local or command"
+msgstr ""
+
+msgid "Local model name"
+msgstr ""
+
+msgid "Command or executable path for command providers"
+msgstr ""
+
+msgid "Command argument"
+msgstr ""
+
+msgid "Environment entry as KEY=VALUE"
+msgstr ""
+
+msgid "Provider timeout in milliseconds"
+msgstr ""
+
+msgid "Remove an ASR provider"
+msgstr ""
+
+msgid "Skip active-provider protection"
+msgstr ""
+
+msgid "Set active ASR provider"
+msgstr ""
+
+msgid "Open an external ASR provider script"
+msgstr ""
+
+msgid "Install an official cloud ASR provider"
+msgstr ""
+
+msgid "Registry provider ID"
+msgstr ""
+
+msgid "Manage LLM adaptors"
+msgstr ""
+
+msgid "List available LLM adaptors"
+msgstr ""
+
+msgid "List available adaptors from registry cache"
+msgstr ""
+
+msgid "Install an official adaptor"
+msgstr ""
+
+msgid "Registry adaptor ID"
+msgstr ""
+
+msgid "Start an LLM adaptor"
+msgstr ""
+
+msgid "Adaptor ID"
+msgstr ""
+
+msgid "Stop an LLM adaptor"
+msgstr ""
+
+msgid "Read or write configuration values"
+msgstr ""
+
+msgid "Get a config value by dotpath"
+msgstr ""
+
+msgid "Config dotpath (e.g. fcitx.triggerKey)"
+msgstr ""
+
+msgid "Set a config value by dotpath"
+msgstr ""
+
+msgid "Config dotpath"
+msgstr ""
+
+msgid "New value"
+msgstr ""
+
+msgid "Read value from stdin"
+msgstr ""
+
+msgid "Open config file in editor"
+msgstr ""
+
+msgid "Config target: fcitx or extra"
+msgstr ""
+
+msgid "Control the vinput daemon"
+msgstr ""
+
+msgid "Start the daemon"
+msgstr ""
+
+msgid "Stop the daemon"
+msgstr ""
+
+msgid "Restart the daemon"
+msgstr ""
+
+msgid "Show daemon logs"
+msgstr ""
+
+msgid "Follow log output"
+msgstr ""
+
+msgid "Number of lines to show"
+msgstr ""
+
+msgid "Initialize default config and directories"
+msgstr ""
+
+msgid "Overwrite existing config"
+msgstr ""
+
+msgid "Manage hotwords file"
+msgstr ""
+
+msgid "Show configured hotwords file path"
+msgstr ""
+
+msgid "Set hotwords file path"
+msgstr ""
+
 msgid "Path to hotwords file"
 msgstr ""
 
-#: src/addon/vinput.cpp:60
-msgid "Please enable LLM first."
+msgid "Clear hotwords file path"
 msgstr ""
 
-#: src/addon/vinput.cpp:58
-msgid "Please select text first."
+msgid "Edit hotwords file in editor"
 msgstr ""
 
-#: src/common/vinput_config.cpp:55
-msgid "Postprocess Menu Keys"
+msgid "Manage capture devices"
 msgstr ""
 
-#: src/common/vinput_config.cpp:51
-msgid ""
-"Press and hold this key to record a voice command to operate on the selected "
-"text. Default is Right Control."
+msgid "List available audio input devices"
 msgstr ""
 
-#: src/common/vinput_config.cpp:41
+msgid "Set active capture device"
+msgstr ""
+
+msgid "Device name or 'default'"
+msgstr ""
+
+msgid "Control voice recording"
+msgstr ""
+
+msgid "Start recording"
+msgstr ""
+
+msgid "Stop recording and recognize"
+msgstr ""
+
+msgid "Scene ID (default: active scene)"
+msgstr ""
+
+msgid "Toggle recording start/stop"
+msgstr ""
+
+msgid "Show overall vinput status"
+msgstr ""
+
+msgid "Raw"
+msgstr ""
+
+msgid "Command"
+msgstr ""
+
+msgid "Trigger Key"
+msgstr ""
+
 #, c-format
 msgid ""
 "Press and hold this key to record. Release it to start recognition. Supports "
@@ -564,198 +947,38 @@ msgid ""
 "configure multiple trigger keys. The config is stored at %s."
 msgstr ""
 
-#: src/common/vinput_config.cpp:62
+msgid "Command Keys"
+msgstr ""
+
+msgid ""
+"Press and hold this key to record a voice command to operate on the selected "
+"text. If there is no active selection, vinput falls back to the current "
+"primary-selection clipboard text. Default is Right Control."
+msgstr ""
+
+msgid "Postprocess Menu Keys"
+msgstr ""
+
+msgid ""
+"Configure one or more keys to open the postprocess menu. The default is "
+"Right Alt + Control."
+msgstr ""
+
 msgid "Previous Page Keys"
 msgstr ""
 
-#: src/cli/main.cpp:24
-msgid "Print this help message and exit"
+msgid ""
+"Keys for paging to the previous page in the postprocess menu and the "
+"postprocess candidate menu. Defaults to Page Up and keypad Page Up."
 msgstr ""
 
-#: src/cli/main.cpp:97 src/cli/main.cpp:105 src/cli/main.cpp:111
-msgid "Provider name"
+msgid "Next Page Keys"
 msgstr ""
 
-#: src/cli/main.cpp:121
-msgid "Read or write configuration values"
+msgid ""
+"Keys for paging to the next page in the postprocess menu and the postprocess "
+"candidate menu. Defaults to Page Down and keypad Page Down."
 msgstr ""
 
-#: src/cli/main.cpp:139
-msgid "Read value from stdin"
-msgstr ""
-
-#: src/cli/main.cpp:79
-msgid "Remove a scene"
-msgstr ""
-
-#: src/cli/main.cpp:110
-msgid "Remove an LLM provider"
-msgstr ""
-
-#: src/cli/main.cpp:51
-msgid "Remove an installed model"
-msgstr ""
-
-#: src/cli/main.cpp:101
-msgid "Request timeout in milliseconds"
-msgstr ""
-
-#: src/cli/main.cpp:156
-msgid "Restart the daemon"
-msgstr ""
-
-#: src/cli/command_model.cpp:204
-#, c-format
-msgid "Run `vinput model use %s` to activate"
-msgstr ""
-
-#: src/cli/command_model.cpp:144
-msgid "SIZE"
-msgstr ""
-
-#: src/cli/command_device.cpp:45 src/cli/command_model.cpp:84
-#: src/cli/command_model.cpp:144 src/cli/command_scene.cpp:40
-msgid "STATUS"
-msgstr ""
-
-#: src/cli/command_scene.cpp:76
-#, c-format
-msgid "Scene '%s' added."
-msgstr ""
-
-#: src/cli/command_scene.cpp:123
-#, c-format
-msgid "Scene '%s' removed."
-msgstr ""
-
-#: src/cli/main.cpp:69 src/cli/main.cpp:75 src/cli/main.cpp:80
-msgid "Scene ID"
-msgstr ""
-
-#: src/cli/main.cpp:136
-msgid "Set a config value by dotpath"
-msgstr ""
-
-#: src/cli/main.cpp:104
-msgid "Set active LLM provider"
-msgstr ""
-
-#: src/cli/main.cpp:198
-msgid "Set active capture device"
-msgstr ""
-
-#: src/cli/main.cpp:45
-msgid "Set active model"
-msgstr ""
-
-#: src/cli/main.cpp:74
-msgid "Set active scene"
-msgstr ""
-
-#: src/cli/main.cpp:180
-msgid "Set hotwords file path"
-msgstr ""
-
-#: src/cli/main.cpp:176
-msgid "Show configured hotwords file path"
-msgstr ""
-
-#: src/cli/main.cpp:160
-msgid "Show daemon logs"
-msgstr ""
-
-#: src/cli/main.cpp:56
-msgid "Show model details"
-msgstr ""
-
-#. ---- status subcommand ----
-#: src/cli/main.cpp:203
-msgid "Show overall vinput status"
-msgstr ""
-
-#: src/cli/command_model.cpp:295
-msgid "Size"
-msgstr ""
-
-#: src/cli/main.cpp:53 src/cli/main.cpp:112
-msgid "Skip confirmation"
-msgstr ""
-
-#: src/cli/main.cpp:153
-msgid "Start the daemon"
-msgstr ""
-
-#: src/cli/main.cpp
-msgid "Start an LLM adaptor"
-msgstr ""
-
-#: src/cli/main.cpp:154
-msgid "Stop the daemon"
-msgstr ""
-
-#: src/cli/main.cpp
-msgid "Stop an LLM adaptor"
-msgstr ""
-
-#: src/cli/command_device.cpp:52
-msgid "System Default"
-msgstr ""
-
-#: src/cli/command_adaptor.cpp
-#, c-format
-msgid "Adaptor '%s' started."
-msgstr ""
-
-#: src/cli/command_adaptor.cpp
-#, c-format
-msgid "Adaptor '%s' stopped."
-msgstr ""
-
-#: src/cli/command_adaptor.cpp
-#, c-format
-msgid "Log file: %s"
-msgstr ""
-
-#: src/cli/command_adaptor.cpp
-msgid "SOURCE"
-msgstr ""
-
-#: src/cli/command_adaptor.cpp src/cli/command_scene.cpp:40
-msgid "ID"
-msgstr ""
-
-#: src/cli/command_model.cpp:84 src/cli/command_model.cpp:144
-msgid "TYPE"
-msgstr ""
-
-#: src/common/vinput_config.cpp:34
-msgid "Trigger Key"
-msgstr ""
-
-#: src/addon/vinput.cpp:67
-msgid "Voice Command"
-msgstr ""
-
-#: src/cli/command_model.cpp:147
-msgid "available"
-msgstr ""
-
-#: src/cli/command_model.cpp:147
-msgid "installed"
-msgstr ""
-
-#: src/cli/command_model.cpp:95 src/cli/command_model.cpp:148
-msgid "no"
-msgstr ""
-
-#: src/cli/main.cpp:22
-msgid "vinput - Voice input model and daemon manager"
-msgstr ""
-
-#: src/cli/command_model.cpp:95 src/cli/command_model.cpp:148
-msgid "yes"
-msgstr ""
-
-#: src/addon/vinput.cpp
-msgid "Voice Input"
+msgid "Open Vinput Settings"
 msgstr ""

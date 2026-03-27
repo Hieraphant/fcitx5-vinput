@@ -1,4 +1,5 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
     <name>MainWindow</name>
@@ -13,18 +14,6 @@
     <message>
         <source>Capture Device:</source>
         <translation>录音设备：</translation>
-    </message>
-    <message>
-        <source>Active Model:</source>
-        <translation>当前模型：</translation>
-    </message>
-    <message>
-        <source>Enable LLM Global Features</source>
-        <translation>启用 LLM 全局功能</translation>
-    </message>
-    <message>
-        <source>LLM:</source>
-        <translation>LLM：</translation>
     </message>
     <message>
         <source>General Settings</source>
@@ -75,10 +64,6 @@
         <translation>大小</translation>
     </message>
     <message>
-        <source>Display Name</source>
-        <translation>显示名称</translation>
-    </message>
-    <message>
         <source>yes</source>
         <translation>是</translation>
     </message>
@@ -99,7 +84,7 @@
         <translation>确认</translation>
     </message>
     <message>
-        <source>Are you sure you want to remove model '%1'?</source>
+        <source>Are you sure you want to remove model &apos;%1&apos;?</source>
         <translation>确定要移除模型“%1”吗？</translation>
     </message>
     <message>
@@ -121,14 +106,6 @@
     <message>
         <source>Failed to save configuration.</source>
         <translation>保存配置失败。</translation>
-    </message>
-    <message>
-        <source>Flatpak Vinput CLI not found at %1</source>
-        <translation>未在 %1 找到 Flatpak Vinput CLI</translation>
-    </message>
-    <message>
-        <source>Failed to launch %1</source>
-        <translation>启动 %1 失败</translation>
     </message>
     <message>
         <source>Daemon Status:</source>
@@ -207,24 +184,8 @@
         <translation>编辑场景</translation>
     </message>
     <message>
-        <source>Are you sure you want to remove scene '%1'?</source>
+        <source>Are you sure you want to remove scene &apos;%1&apos;?</source>
         <translation>确定要移除场景“%1”吗？</translation>
-    </message>
-    <message>
-        <source>Warning</source>
-        <translation>警告</translation>
-    </message>
-    <message>
-        <source>Raw</source>
-        <translation>原始</translation>
-    </message>
-    <message>
-        <source>Command</source>
-        <translation>命令</translation>
-    </message>
-    <message>
-        <source>The scene '%1' is either active or builtin. Are you SURE you want to forcibly remove it?</source>
-        <translation>场景“%1”处于活动状态或者是内置场景，您确定必须强制移除它吗？</translation>
     </message>
     <message>
         <source>LLM Providers</source>
@@ -243,14 +204,6 @@
         <translation>地址：</translation>
     </message>
     <message>
-        <source>Provider name must not be empty.</source>
-        <translation>提供商名称不能为空。</translation>
-    </message>
-    <message>
-        <source>Base URL must be a valid http:// or https:// URL.</source>
-        <translation>地址必须是有效的 http:// 或 https:// URL。</translation>
-    </message>
-    <message>
         <source>Timeout (ms):</source>
         <translation>超时（毫秒）：</translation>
     </message>
@@ -263,7 +216,7 @@
         <translation>编辑 LLM 提供商</translation>
     </message>
     <message>
-        <source>Are you sure you want to remove LLM provider '%1'?</source>
+        <source>Are you sure you want to remove LLM provider &apos;%1&apos;?</source>
         <translation>确定要移除 LLM 提供商“%1”吗？</translation>
     </message>
     <message>
@@ -277,10 +230,6 @@
     <message>
         <source>Candidate Count:</source>
         <translation>候选词数量：</translation>
-    </message>
-    <message>
-        <source>Command Candidate Count:</source>
-        <translation>命令候选词数量：</translation>
     </message>
     <message>
         <source>&lt;b&gt;Installed Models&lt;/b&gt;</source>
@@ -299,24 +248,8 @@
         <translation>模型：</translation>
     </message>
     <message>
-        <source>Provider '%1' already exists.</source>
+        <source>Provider &apos;%1&apos; already exists.</source>
         <translation>提供商“%1”已存在。</translation>
-    </message>
-    <message>
-        <source>No models returned. You can type one manually.</source>
-        <translation>没有返回任何模型。你也可以手动输入模型名。</translation>
-    </message>
-    <message>
-        <source>Failed to load models. Type one manually or reselect the provider to retry.</source>
-        <translation>加载模型失败。你可以手动输入模型名，或重新选择提供商后重试。</translation>
-    </message>
-    <message>
-        <source>Loading models...</source>
-        <translation>正在加载模型...</translation>
-    </message>
-    <message>
-        <source>Provider returned invalid JSON for /v1/models.</source>
-        <translation>提供商为 /v1/models 返回了无效的 JSON。</translation>
     </message>
     <message>
         <source>Path to hotwords file...</source>
@@ -327,8 +260,8 @@
         <translation>浏览...</translation>
     </message>
     <message>
-        <source>Hotwords (one per line, optional per-word score: "word 2.0"):</source>
-        <translation>热词（每行一个，可选每词权重："词 2.0"）：</translation>
+        <source>Hotwords (one per line, optional per-word score: &quot;word 2.0&quot;):</source>
+        <translation>热词（每行一个，可选每词权重：&quot;词 2.0&quot;）：</translation>
     </message>
     <message>
         <source>Select Hotwords File</source>
@@ -355,14 +288,6 @@
         <translation>正在移除 %1...</translation>
     </message>
     <message>
-        <source> *</source>
-        <translation> *</translation>
-    </message>
-    <message>
-        <source>(not set)</source>
-        <translation>（未设置）</translation>
-    </message>
-    <message>
         <source>&lt;b&gt;ASR Providers&lt;/b&gt;</source>
         <translation>&lt;b&gt;ASR 提供商&lt;/b&gt;</translation>
     </message>
@@ -375,52 +300,12 @@
         <translation>添加 ASR 提供商</translation>
     </message>
     <message>
-        <source>Adaptor ID:</source>
-        <translation>适配器 ID：</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to remove ASR provider '%1'?</source>
+        <source>Are you sure you want to remove ASR provider &apos;%1&apos;?</source>
         <translation>确定要移除 ASR 提供商“%1”吗？</translation>
-    </message>
-    <message>
-        <source>Args:</source>
-        <translation>参数：</translation>
-    </message>
-    <message>
-        <source>Command providers require a command.</source>
-        <translation>命令型提供商必须填写命令。</translation>
-    </message>
-    <message>
-        <source>Command:</source>
-        <translation>命令：</translation>
-    </message>
-    <message>
-        <source>Command / Interpreter:</source>
-        <translation>命令 / 解释器：</translation>
-    </message>
-    <message>
-        <source>Configure LLM Adaptor</source>
-        <translation>配置 LLM 适配器</translation>
     </message>
     <message>
         <source>Edit ASR Provider</source>
         <translation>编辑 ASR 提供商</translation>
-    </message>
-    <message>
-        <source>Env:</source>
-        <translation>环境变量：</translation>
-    </message>
-    <message>
-        <source>Failed to restart daemon automatically.</source>
-        <translation>自动重启守护进程失败。</translation>
-    </message>
-    <message>
-        <source>Failed to load LLM adaptors: %1</source>
-        <translation>加载 LLM adaptor 失败：%1</translation>
-    </message>
-    <message>
-        <source>Invalid env entry '%1'. Use KEY=VALUE.</source>
-        <translation>无效的环境变量项“%1”，请使用 KEY=VALUE。</translation>
     </message>
     <message>
         <source>LLM Adaptors</source>
@@ -431,7 +316,7 @@
         <translation>LLM Adaptor 已启动</translation>
     </message>
     <message>
-        <source>Adaptor '%1' started.</source>
+        <source>Adaptor &apos;%1&apos; started.</source>
         <translation>Adaptor “%1” 已启动。</translation>
     </message>
     <message>
@@ -451,19 +336,7 @@
         <translation>环境变量：%1</translation>
     </message>
     <message>
-        <source>Supported env entries:</source>
-        <translation>支持的环境变量项：</translation>
-    </message>
-    <message>
-        <source>One KEY=VALUE entry per line</source>
-        <translation>每行一个 KEY=VALUE</translation>
-    </message>
-    <message>
-        <source>One argument per line</source>
-        <translation>每行一个参数</translation>
-    </message>
-    <message>
-        <source>Selected model '%1' has been assigned to the preferred local ASR provider.</source>
+        <source>Selected model &apos;%1&apos; has been assigned to the preferred local ASR provider.</source>
         <translation>已将所选模型“%1”分配给首选的本地 ASR 提供商。</translation>
     </message>
     <message>
@@ -479,34 +352,6 @@
         <translation>停止</translation>
     </message>
     <message>
-        <source>Type:</source>
-        <translation>类型：</translation>
-    </message>
-    <message>
-        <source>builtin</source>
-        <translation>内置</translation>
-    </message>
-    <message>
-        <source>local</source>
-        <translation>本地</translation>
-    </message>
-    <message>
-        <source>user</source>
-        <translation>用户</translation>
-    </message>
-    <message>
-        <source>running</source>
-        <translation>运行中</translation>
-    </message>
-    <message>
-        <source>stopped</source>
-        <translation>已停止</translation>
-    </message>
-    <message>
-        <source>command</source>
-        <translation>命令</translation>
-    </message>
-    <message>
         <source>Additional Install Required</source>
         <translation>需要额外配置</translation>
     </message>
@@ -517,12 +362,60 @@ Please follow the instructions.</source>
 请参考说明文档</translation>
     </message>
     <message>
-        <source>Command or interpreter</source>
-        <translation>命令或解释器</translation>
+        <source>Install Available...</source>
+        <translation>安装可用项...</translation>
     </message>
     <message>
-        <source>Builtin ASR providers cannot be removed.</source>
-        <translation>内建 ASR 提供商不能被移除。</translation>
+        <source>Title</source>
+        <translation>标题</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>描述</translation>
+    </message>
+    <message>
+        <source>Adaptor &apos;%1&apos; not found in configuration.</source>
+        <translation>配置中未找到 adaptor “%1”。</translation>
+    </message>
+    <message>
+        <source>No official adaptors are available.</source>
+        <translation>没有可用的官方 adaptor。</translation>
+    </message>
+    <message>
+        <source>Install Available Adaptor</source>
+        <translation>安装可用 Adaptor</translation>
+    </message>
+    <message>
+        <source>Select an available adaptor to install:</source>
+        <translation>请选择要安装的可用 adaptor：</translation>
+    </message>
+    <message>
+        <source>LLM Adaptor Installed</source>
+        <translation>LLM Adaptor 已安装</translation>
+    </message>
+    <message>
+        <source>Adaptor &apos;%1&apos; has been installed.</source>
+        <translation>Adaptor “%1” 已安装。</translation>
+    </message>
+    <message>
+        <source>No official ASR providers are available.</source>
+        <translation>没有可用的官方 ASR provider。</translation>
+    </message>
+    <message>
+        <source>Install Available ASR Provider</source>
+        <translation>安装可用 ASR Provider</translation>
+    </message>
+    <message>
+        <source>Select an available ASR provider to install:</source>
+        <translation>请选择要安装的可用 ASR provider：</translation>
+    </message>
+    <message>
+        <source>ASR Provider Installed</source>
+        <translation>ASR Provider 已安装</translation>
+    </message>
+    <message>
+        <source>ASR provider &apos;%1&apos; has been installed.</source>
+        <translation>ASR provider “%1” 已安装。</translation>
     </message>
 </context>
 <context>
@@ -538,6 +431,14 @@ Please follow the instructions.</source>
     <message>
         <source>vinput command failed</source>
         <translation>vinput 命令失败</translation>
+    </message>
+    <message>
+        <source>Flatpak Vinput CLI not found at %1</source>
+        <translation>未在 %1 找到 Flatpak Vinput CLI</translation>
+    </message>
+    <message>
+        <source>Failed to launch %1</source>
+        <translation>启动 %1 失败</translation>
     </message>
 </context>
 </TS>

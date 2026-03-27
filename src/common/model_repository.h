@@ -50,9 +50,6 @@ public:
                     std::string *resolved_registry_url = nullptr) const;
 
 private:
-  bool DownloadFile(const std::string &url,
-                    const std::filesystem::path &dest, ProgressCallback cb,
-                    std::string *error) const;
   bool VerifySha256(const std::filesystem::path &file,
                     const std::string &expected, std::string *error) const;
   bool ExtractArchive(const std::filesystem::path &archive,
