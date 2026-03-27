@@ -23,6 +23,8 @@ add_executable(vinput
     utils/formatter.cpp
     utils/editor_utils.cpp
     control/register.cpp
+    control/register_daemon.cpp
+    control/daemon_actions.cpp
     control/register_recording.cpp
     control/recording_actions.cpp
     config/asr_actions.cpp
@@ -51,7 +53,7 @@ target_include_directories(vinput PRIVATE
 )
 
 target_link_libraries(vinput PRIVATE
-    vinput-config
+    vinput-common
     CLI11::CLI11
     ${PIPEWIRE_LIBRARIES}
     ${SDBUS_LIBRARIES}
