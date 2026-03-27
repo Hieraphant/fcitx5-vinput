@@ -1,15 +1,17 @@
 #include "cli/command_model.h"
-#include "cli/utils/cli_helpers.h"
 #include "cli/runtime/systemd_client.h"
-#include "common/i18n.h"
-#include "cli/progress.h"
+#include "cli/utils/cli_helpers.h"
 #include "common/config/core_config.h"
+#include "common/i18n.h"
 #include "common/model_manager.h"
 #include "common/model_repository.h"
 #include "common/registry_i18n.h"
+#include "common/utils/download_progress.h"
 #include "common/utils/string_utils.h"
+
 #include <filesystem>
 #include <fstream>
+
 #include <nlohmann/json.hpp>
 
 int RunModelList(bool available, Formatter& fmt, const CliContext& ctx) {

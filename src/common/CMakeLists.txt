@@ -26,6 +26,7 @@ add_library(vinput-common STATIC
     registry_cache.cpp
     registry_i18n.cpp
     adaptor_manager.cpp
+    utils/download_progress.cpp
     utils/downloader.cpp
     utils/process_utils.cpp
 )
