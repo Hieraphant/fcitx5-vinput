@@ -17,6 +17,7 @@ std::filesystem::path RegistryCacheDir();
 bool IsInsideFlatpak();
 std::filesystem::path FlatpakInfoPath();
 std::filesystem::path UserSystemdUnitDir();
+std::filesystem::path ManagedResourceDir(std::string_view category);
 std::filesystem::path ManagedAsrProviderDir();
 std::filesystem::path ManagedLlmAdaptorDir();
 std::filesystem::path AdaptorRuntimeDir();

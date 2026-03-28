@@ -143,12 +143,16 @@ std::filesystem::path UserSystemdUnitDir() {
   return XdgConfigHome() / "systemd" / "user";
 }
 
+std::filesystem::path ManagedResourceDir(std::string_view category) {
+  return VinputDataDir() / std::filesystem::path(category);
+}
+
 std::filesystem::path ManagedAsrProviderDir() {
-  return VinputDataDir() / "asr-providers";
+  return ManagedResourceDir("providers");
 }
 
 std::filesystem::path ManagedLlmAdaptorDir() {
-  return VinputDataDir() / "llm-adaptors";
+  return ManagedResourceDir("adapters");
 }
 
 std::filesystem::path AdaptorRuntimeDir() {

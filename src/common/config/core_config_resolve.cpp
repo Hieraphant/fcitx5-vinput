@@ -114,11 +114,11 @@ std::vector<std::string> ResolveModelRegistryUrls(const CoreConfig &config) {
 }
 
 std::vector<std::string> ResolveAsrProviderRegistryUrls(const CoreConfig &config) {
-  return ResolveRegistryUrlsForPath(config, "registry/asr-providers.json");
+  return ResolveRegistryUrlsForPath(config, "registry/providers.json");
 }
 
 std::vector<std::string> ResolveLlmAdaptorRegistryUrls(const CoreConfig &config) {
-  return ResolveRegistryUrlsForPath(config, "registry/llm-adaptors.json");
+  return ResolveRegistryUrlsForPath(config, "registry/adapters.json");
 }
 
 std::vector<std::string> ResolveRegistryI18nUrls(const CoreConfig &config,

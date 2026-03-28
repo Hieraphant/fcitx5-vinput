@@ -2,6 +2,7 @@
 
 #include "common/asr/model_manager.h"
 #include "daemon/asr/backends/command_batch_backend.h"
+#include "daemon/asr/backends/command_streaming_backend.h"
 #include "daemon/asr/backends/sherpa_offline_backend.h"
 #include "daemon/asr/backends/sherpa_streaming_backend.h"
 #ifdef VINPUT_HAVE_VOSK
@@ -12,6 +13,13 @@
 namespace vinput::daemon::asr {
 
 namespace {
+
+bool IsStreamingCommandProvider(const CommandAsrProvider &provider) {
+  static constexpr std::string_view kSuffix = ".streaming";
+  const std::string_view id = provider.id;
+  return id.size() >= kSuffix.size() &&
+         id.substr(id.size() - kSuffix.size()) == kSuffix;
+}
 
 std::unique_ptr<AsrBackend> CreateLocalBackend(const CoreConfig &config,
                                                const LocalAsrProvider &provider,
@@ -89,6 +97,9 @@ std::unique_ptr<AsrBackend> CreateBackend(const CoreConfig &config,
     return CreateLocalBackend(config, *local, error);
   }
   if (const auto *command = std::get_if<CommandAsrProvider>(provider)) {
+    if (IsStreamingCommandProvider(*command)) {
+      return CreateCommandStreamingBackend(*command, error);
+    }
     return CreateCommandBatchBackend(*command, error);
   }
 

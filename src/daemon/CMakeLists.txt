@@ -29,6 +29,7 @@ add_executable(vinput-daemon
     asr/backends/sherpa_offline_backend.cpp
     asr/backends/sherpa_streaming_backend.cpp
     asr/backends/command_batch_backend.cpp
+    asr/backends/command_streaming_backend.cpp
     audio/audio_capture.cpp
     asr/asr_engine.cpp
     audio/audio_utils.cpp

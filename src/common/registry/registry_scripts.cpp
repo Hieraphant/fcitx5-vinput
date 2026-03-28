@@ -207,13 +207,14 @@ std::filesystem::path RelativePathForId(std::string_view id) {
 }
 
 std::filesystem::path DefaultLocalScriptPath(Kind kind, std::string_view id) {
-  const fs::path base = kind == Kind::kAsrProvider
-                            ? vinput::path::ManagedAsrProviderDir()
-                            : vinput::path::ManagedLlmAdaptorDir();
-  const fs::path relative_path = RelativePathForId(id);
-  if (relative_path.empty()) {
+  (void)kind;
+  const auto segments = SplitResourceId(id);
+  if (segments.size() < 3) {
     return {};
   }
+
+  const fs::path base = vinput::path::ManagedResourceDir(segments.front());
+  const fs::path relative_path = RelativePathForId(id);
   return base / relative_path;
 }
 

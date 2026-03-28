@@ -97,11 +97,11 @@ std::filesystem::path ModelRegistryPath() {
 }
 
 std::filesystem::path AsrProviderRegistryPath() {
-  return CachePath("asr-providers.json");
+  return CachePath("providers.json");
 }
 
 std::filesystem::path LlmAdaptorRegistryPath() {
-  return CachePath("llm-adaptors.json");
+  return CachePath("adapters.json");
 }
 
 std::filesystem::path I18nPath(const std::string &locale) {
