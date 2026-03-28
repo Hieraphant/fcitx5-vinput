@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 
 #include "cli/utils/cli_helpers.h"
+#include "cli/runtime/dbus_client.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/registry/registry_i18n.h"
@@ -269,6 +270,32 @@ int RunLlmConfigInstallAdaptor(const std::string &selector, Formatter &fmt,
       vinput::str::FmtStr(_("Adaptor '%s' synchronized to local config."), id));
   fmt.PrintInfo(
       vinput::str::FmtStr(_("Local script path: %s"), scriptPath.string()));
+  return 0;
+}
+
+int RunLlmConfigStartAdaptor(const std::string &id, Formatter &fmt,
+                             const CliContext &ctx) {
+  (void)ctx;
+  std::string error;
+  vinput::cli::DbusClient dbus;
+  if (!dbus.StartAdaptor(id, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Adaptor '%s' started."), id));
+  return 0;
+}
+
+int RunLlmConfigStopAdaptor(const std::string &id, Formatter &fmt,
+                            const CliContext &ctx) {
+  (void)ctx;
+  std::string error;
+  vinput::cli::DbusClient dbus;
+  if (!dbus.StopAdaptor(id, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Adaptor '%s' stopped."), id));
   return 0;
 }
 

@@ -43,6 +43,16 @@ void RegisterAsrCommands(CLI::App &app, CliAction *action) {
     };
   });
 
+  auto editId = std::make_shared<std::string>();
+  auto *edit = asr->add_subcommand("edit", _("Edit an ASR provider script"));
+  edit->alias("e");
+  edit->add_option("id", *editId, _("Provider id"))->required();
+  edit->callback([action, editId]() {
+    *action = [editId](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigEdit(*editId, fmt, ctx);
+    };
+  });
+
   auto *listModels = asr->add_subcommand("list-models", _("List ASR models"));
   listModels->alias("lsm");
   auto availableModels = std::make_shared<bool>(false);

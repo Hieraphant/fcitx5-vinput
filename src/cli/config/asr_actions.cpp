@@ -1,6 +1,7 @@
 #include "cli/config/asr_actions.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <nlohmann/json.hpp>
@@ -14,6 +15,7 @@
 #include "common/registry/registry_i18n.h"
 #include "common/registry/registry_models.h"
 #include "common/registry/registry_scripts.h"
+#include "common/utils/path_utils.h"
 #include "common/utils/download_progress.h"
 #include "common/utils/string_utils.h"
 
@@ -28,6 +30,10 @@ std::string CommandText(const CommandAsrProvider &provider) {
     text += arg;
   }
   return text;
+}
+
+bool IsCommandProvider(const AsrProvider &provider) {
+  return std::holds_alternative<CommandAsrProvider>(provider);
 }
 
 const LocalAsrProvider *PreferredLocalProvider(const CoreConfig &config) {
@@ -53,6 +59,57 @@ LocalAsrProvider *PreferredLocalProvider(CoreConfig *config) {
     }
   }
   return nullptr;
+}
+
+std::filesystem::path ResolveExistingFilePath(const std::string &candidate) {
+  if (candidate.empty()) {
+    return {};
+  }
+
+  std::filesystem::path path = vinput::path::ExpandUserPath(candidate);
+  if (path.empty()) {
+    return {};
+  }
+  if (path.is_relative()) {
+    std::error_code ec;
+    const std::filesystem::path cwd = std::filesystem::current_path(ec);
+    if (ec) {
+      return {};
+    }
+    path = cwd / path;
+  }
+
+  std::error_code ec;
+  if (!std::filesystem::exists(path, ec) || ec) {
+    return {};
+  }
+  if (!std::filesystem::is_regular_file(path, ec) || ec) {
+    return {};
+  }
+  return path;
+}
+
+std::filesystem::path ResolveEditableScriptPath(const AsrProvider &provider) {
+  if (!IsCommandProvider(provider)) {
+    return {};
+  }
+
+  const auto &commandProvider = std::get<CommandAsrProvider>(provider);
+  if (commandProvider.command.find('/') != std::string::npos ||
+      commandProvider.command.rfind(".", 0) == 0 ||
+      commandProvider.command.rfind("~", 0) == 0) {
+    if (auto path = ResolveExistingFilePath(commandProvider.command); !path.empty()) {
+      return path;
+    }
+  }
+
+  for (const auto &arg : commandProvider.args) {
+    if (auto path = ResolveExistingFilePath(arg); !path.empty()) {
+      return path;
+    }
+  }
+
+  return {};
 }
 
 bool TryParseOneBasedIndex(const std::string &text, std::size_t *index) {
@@ -375,6 +432,42 @@ int RunAsrConfigInstallProvider(const std::string &selector, Formatter &fmt,
       _("ASR provider '%s' synchronized to local config."), id));
   fmt.PrintInfo(
       vinput::str::FmtStr(_("Local script path: %s"), scriptPath.string()));
+  return 0;
+}
+
+int RunAsrConfigEdit(const std::string &id, Formatter &fmt,
+                     const CliContext &ctx) {
+  (void)ctx;
+  CoreConfig config = LoadCoreConfig();
+  const AsrProvider *provider = ResolveAsrProvider(config, id);
+  if (!provider) {
+    fmt.PrintError(
+        vinput::str::FmtStr(_("ASR provider '%s' not found."), id));
+    return 1;
+  }
+  if (!IsCommandProvider(*provider)) {
+    fmt.PrintError(vinput::str::FmtStr(
+        _("ASR provider '%s' is not a command provider and cannot be edited."),
+        id));
+    return 1;
+  }
+
+  const std::filesystem::path scriptPath = ResolveEditableScriptPath(*provider);
+  if (scriptPath.empty()) {
+    fmt.PrintError(vinput::str::FmtStr(
+        _("ASR provider '%s' does not reference an editable script file."),
+        id));
+    return 1;
+  }
+
+  const int ret = OpenInEditor(scriptPath);
+  if (ret != 0) {
+    fmt.PrintError(_("Editor exited with error."));
+    return ret;
+  }
+
+  fmt.PrintSuccess(vinput::str::FmtStr(
+      _("Updated ASR provider script: %s"), scriptPath.string()));
   return 0;
 }
 

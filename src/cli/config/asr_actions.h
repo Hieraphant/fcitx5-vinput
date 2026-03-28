@@ -14,6 +14,8 @@ int RunAsrConfigUse(const std::string &id, Formatter &fmt,
                     const CliContext &ctx);
 int RunAsrConfigInstallProvider(const std::string &selector, Formatter &fmt,
                                 const CliContext &ctx);
+int RunAsrConfigEdit(const std::string &id, Formatter &fmt,
+                     const CliContext &ctx);
 int RunAsrConfigListModels(bool available, Formatter &fmt,
                            const CliContext &ctx);
 int RunAsrConfigInstallModel(const std::string &selector, Formatter &fmt,

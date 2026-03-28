@@ -56,6 +56,26 @@ void RegisterLlmCommands(CLI::App &app, CliAction *action) {
     };
   });
 
+  auto adaptorId = std::make_shared<std::string>();
+  auto *startAdaptor =
+      llm->add_subcommand("start-adaptor", _("Start an LLM adaptor"));
+  startAdaptor->add_option("id", *adaptorId, _("Adaptor id"))->required();
+  startAdaptor->callback([action, adaptorId]() {
+    *action = [adaptorId](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigStartAdaptor(*adaptorId, fmt, ctx);
+    };
+  });
+
+  auto stopAdaptorId = std::make_shared<std::string>();
+  auto *stopAdaptor =
+      llm->add_subcommand("stop-adaptor", _("Stop an LLM adaptor"));
+  stopAdaptor->add_option("id", *stopAdaptorId, _("Adaptor id"))->required();
+  stopAdaptor->callback([action, stopAdaptorId]() {
+    *action = [stopAdaptorId](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigStopAdaptor(*stopAdaptorId, fmt, ctx);
+    };
+  });
+
   auto removeId = std::make_shared<std::string>();
   auto *remove = llm->add_subcommand("remove", _("Remove an LLM provider"));
   remove->alias("rm");
