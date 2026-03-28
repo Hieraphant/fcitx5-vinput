@@ -6,7 +6,7 @@
 #include "cli/utils/cli_helpers.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/pipewire_device.h"
+#include "common/audio/pipewire_device.h"
 #include "common/utils/string_utils.h"
 
 int RunDeviceConfigList(Formatter &fmt, const CliContext &ctx) {

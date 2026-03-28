@@ -1,5 +1,5 @@
 #include "dbus_service.h"
-#include "common/dbus_interface.h"
+#include "common/dbus/dbus_interface.h"
 
 #include <sys/eventfd.h>
 #include <unistd.h>

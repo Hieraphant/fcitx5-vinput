@@ -2,7 +2,7 @@
 #include "audio_capture.h"
 #include "common/llm/adaptor_manager.h"
 #include "common/config/core_config.h"
-#include "common/dbus_interface.h"
+#include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"
 #include "common/utils/process_utils.h"
 #include "common/asr/recognition_result.h"

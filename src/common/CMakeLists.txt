@@ -18,7 +18,7 @@ add_library(vinput-config STATIC
 )
 
 add_library(vinput-common STATIC
-    error_info.cpp
+    dbus/error_info.cpp
     ${VINPUT_CONFIG_SOURCES}
     asr/recognition_result.cpp
     asr/model_manager.cpp

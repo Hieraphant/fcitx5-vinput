@@ -1,7 +1,7 @@
 #include "vinput.h"
 #include "notifier_dbus_object.h"
 #include "common/config/core_config.h"
-#include "common/dbus_interface.h"
+#include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"
 #include "common/utils/file_utils.h"
 #include "common/utils/path_utils.h"

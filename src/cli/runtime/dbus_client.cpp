@@ -1,6 +1,6 @@
 #include "cli/runtime/dbus_client.h"
 
-#include "common/dbus_interface.h"
+#include "common/dbus/dbus_interface.h"
 
 #include <systemd/sd-bus.h>
 

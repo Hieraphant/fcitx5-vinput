@@ -1,4 +1,4 @@
-#include "common/error_info.h"
+#include "common/dbus/error_info.h"
 
 #include <cctype>
 #include <utility>

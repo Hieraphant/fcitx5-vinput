@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/dbus_interface.h"
-#include "common/error_info.h"
+#include "common/dbus/dbus_interface.h"
+#include "common/dbus/error_info.h"
 
 #include <fcitx-utils/dbus/objectvtable.h>
 

@@ -1,6 +1,6 @@
 #include "vinput.h"
 #include "common/config/core_config.h"
-#include "common/dbus_interface.h"
+#include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"
 #include "common/scene/postprocess_scene.h"
 

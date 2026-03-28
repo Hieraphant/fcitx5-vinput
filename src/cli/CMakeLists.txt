@@ -42,7 +42,7 @@ add_executable(vinput
     config/scene_actions.cpp
     runtime/dbus_client.cpp
     runtime/systemd_client.cpp
-    ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/audio/pipewire_device.cpp
 )
 
 target_include_directories(vinput PRIVATE

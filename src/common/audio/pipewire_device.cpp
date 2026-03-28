@@ -1,4 +1,4 @@
-#include "common/pipewire_device.h"
+#include "common/audio/pipewire_device.h"
 
 #include <pipewire/pipewire.h>
 #include <spa/pod/builder.h>

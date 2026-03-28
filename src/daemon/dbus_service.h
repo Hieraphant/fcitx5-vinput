@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/error_info.h"
+#include "common/dbus/error_info.h"
 
 #include <systemd/sd-bus.h>
 #include <sys/eventfd.h>

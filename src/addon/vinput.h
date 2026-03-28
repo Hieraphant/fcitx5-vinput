@@ -16,7 +16,7 @@
 #include "common/scene/postprocess_scene.h"
 #include "common/asr/recognition_result.h"
 #include "common/config/vinput_config.h"
-#include "common/error_info.h"
+#include "common/dbus/error_info.h"
 
 class VinputNotifierDBusObject;
 

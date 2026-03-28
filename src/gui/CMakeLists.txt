@@ -21,7 +21,7 @@ set(CMAKE_AUTOUIC ON)
 set(VINPUT_GUI_SOURCES
     main.cpp
     mainwindow.cpp
-    ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/audio/pipewire_device.cpp
 )
 
 set(VINPUT_GUI_HEADERS
