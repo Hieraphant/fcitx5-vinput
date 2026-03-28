@@ -175,7 +175,7 @@ ErrorInfo ClassifyKnownDetail(std::string_view text) {
   }
 
   if (ParseQuotedValue(normalized, "", &value, &tail) &&
-      ConsumePrefix(&tail, " is missing model_type for model '") &&
+      ConsumePrefix(&tail, " is missing family for model '") &&
       !tail.empty() && tail.back() == '\'') {
     tail.remove_suffix(1);
     return MakeErrorInfo(kErrorCodeLocalAsrModelTypeMissing,
@@ -213,14 +213,14 @@ ErrorInfo ClassifyKnownDetail(std::string_view text) {
                          TrimAsciiWhitespace(tail), original);
   }
 
-  if (ParseQuotedValue(normalized, "unsupported model type ", &value,
+  if (ParseQuotedValue(normalized, "unsupported model family ", &value,
                        nullptr)) {
     return MakeErrorInfo(kErrorCodeLocalAsrUnsupportedModelType,
                          std::string(value), {}, original);
   }
 
   if (ParseQuotedValue(normalized,
-                       "failed to create sherpa-onnx recognizer for type ",
+                       "failed to create sherpa-onnx recognizer for family ",
                        &value, nullptr)) {
     return MakeErrorInfo(kErrorCodeLocalAsrRecognizerCreateFailed,
                          std::string(value), {}, original);

@@ -80,6 +80,7 @@ struct CoreConfig {
   struct Asr {
     std::string activeProvider;
     bool normalizeAudio{true};
+    double inputGain{1.0};
     struct Vad {
       bool enabled{true};
     } vad;

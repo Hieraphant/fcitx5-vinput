@@ -14,6 +14,7 @@
   "asr": {
     "active_provider": "sherpa-onnx",
     "normalize_audio": true,
+    "input_gain": 1.0,
     "vad": {
       "enabled": true
     },

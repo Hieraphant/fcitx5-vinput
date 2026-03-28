@@ -2,20 +2,29 @@
 
 #include <filesystem>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
 
 struct ModelInfo {
-  std::string model_type; // e.g. "paraformer", "sense_voice", "whisper"
+  std::string backend; // e.g. "sherpa-offline", "sherpa-streaming"
+  std::string runtime; // "online" or "offline"
+  std::string family;  // sherpa-onnx C API family
+  std::string model_type; // compatibility alias for family
+  std::string language = "auto";
+  bool supports_hotwords = false;
+  uint64_t size_bytes = 0;
   // All file paths (absolute), keyed by role:
   //   "model", "tokens", "encoder", "decoder", "joiner",
   //   "preprocessor", "uncached_decoder", "cached_decoder", "merged_decoder"
   std::map<std::string, std::string> files;
   // Rejected file paths from metadata that resolved outside the model root.
   std::map<std::string, std::string> rejected_files;
-  // Model-specific parameters from vinput-model.json "params"
+  // Flattened scalar parameters for compatibility with old callers.
   std::map<std::string, std::string> params;
+  nlohmann::json recognizer_config;
+  nlohmann::json model_config;
 
   // Convenience accessors
   std::string File(const std::string &key) const {
@@ -32,6 +41,7 @@ struct ModelInfo {
     if (it == params.end()) return default_val;
     return it->second == "true" || it->second == "1";
   }
+  std::string RuntimeLanguageHint() const;
 };
 
 enum class ModelState { Installed, Active, Broken };

@@ -22,6 +22,7 @@ constexpr const char *kMethodStopAdaptor = "StopAdaptor";
 constexpr const char *kMethodNotifyError = "NotifyError";
 
 constexpr const char *kSignalRecognitionResult = "RecognitionResult";
+constexpr const char *kSignalRecognitionPartial = "RecognitionPartial";
 constexpr const char *kSignalStatusChanged = "StatusChanged";
 constexpr const char *kSignalDaemonError = "DaemonError";
 

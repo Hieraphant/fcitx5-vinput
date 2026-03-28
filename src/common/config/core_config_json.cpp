@@ -234,6 +234,7 @@ void to_json(json &j, const CoreConfig::Asr &a) {
   j = json::object();
   j["active_provider"] = a.activeProvider;
   j["normalize_audio"] = a.normalizeAudio;
+  j["input_gain"] = a.inputGain;
   j["vad"] = a.vad;
   j["providers"] = a.providers;
 }
@@ -241,6 +242,7 @@ void to_json(json &j, const CoreConfig::Asr &a) {
 void from_json(const json &j, CoreConfig::Asr &a) {
   a.activeProvider = j.value("active_provider", a.activeProvider);
   a.normalizeAudio = j.value("normalize_audio", a.normalizeAudio);
+  a.inputGain = j.value("input_gain", a.inputGain);
   if (j.contains("vad")) {
     a.vad = j.at("vad").get<CoreConfig::Asr::Vad>();
   }

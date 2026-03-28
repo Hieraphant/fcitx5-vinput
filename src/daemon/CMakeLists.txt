@@ -2,6 +2,8 @@ find_library(SHERPA_ONNX_CXX_LIB sherpa-onnx-cxx-api REQUIRED)
 find_library(SHERPA_ONNX_C_LIB sherpa-onnx-c-api REQUIRED)
 find_library(ONNXRUNTIME_LIB onnxruntime REQUIRED)
 find_path(SHERPA_ONNX_INCLUDE_DIR sherpa-onnx/c-api/c-api.h REQUIRED)
+find_library(VOSK_LIB vosk)
+find_path(VOSK_INCLUDE_DIR vosk_api.h)
 
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 set(VINPUT_SYSTEMD_SERVICE_FILE
@@ -22,14 +24,29 @@ set(VINPUT_VAD_MODEL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/fcitx
 
 add_executable(vinput-daemon
     main.cpp
-    asr_provider.cpp
-    audio_capture.cpp
-    asr_engine.cpp
-    audio_utils.cpp
-    vad_trimmer.cpp
-    dbus_service.cpp
-    post_processor.cpp
+    asr/runtime/backend_factory.cpp
+    asr/runtime/recognition_session_manager.cpp
+    asr/backends/sherpa_offline_backend.cpp
+    asr/backends/sherpa_streaming_backend.cpp
+    asr/backends/command_batch_backend.cpp
+    audio/audio_capture.cpp
+    asr/asr_engine.cpp
+    audio/audio_utils.cpp
+    asr/vad_trimmer.cpp
+    runtime/dbus_service.cpp
+    runtime/daemon_runtime_controller.cpp
+    runtime/recognition_pipeline.cpp
+    postprocess/post_processor.cpp
 )
+
+if(VOSK_LIB AND VOSK_INCLUDE_DIR)
+    target_sources(vinput-daemon PRIVATE
+        asr/backends/vosk_streaming_backend.cpp
+    )
+    target_compile_definitions(vinput-daemon PRIVATE
+        VINPUT_HAVE_VOSK=1
+    )
+endif()
 
 target_compile_definitions(vinput-daemon PRIVATE
     VINPUT_VAD_MODEL_PATH="${VINPUT_VAD_MODEL_DIR}/silero_vad.onnx"
@@ -41,6 +58,12 @@ target_include_directories(vinput-daemon PRIVATE
     ${SHERPA_ONNX_INCLUDE_DIR}
 )
 
+if(VOSK_INCLUDE_DIR)
+    target_include_directories(vinput-daemon PRIVATE
+        ${VOSK_INCLUDE_DIR}
+    )
+endif()
+
 target_link_libraries(vinput-daemon PRIVATE
     vinput-common
     ${PIPEWIRE_LIBRARIES}
@@ -50,6 +73,12 @@ target_link_libraries(vinput-daemon PRIVATE
     ${SHERPA_ONNX_C_LIB}
     pthread
 )
+
+if(VOSK_LIB)
+    target_link_libraries(vinput-daemon PRIVATE
+        ${VOSK_LIB}
+    )
+endif()
 
 set_target_properties(vinput-daemon PROPERTIES
     BUILD_RPATH "${SHERPA_ONNX_RUNTIME_DIR}"
