@@ -20,6 +20,17 @@ void RegisterLlmCommands(CLI::App &app, CliAction *action) {
     };
   });
 
+  auto *listAdaptors =
+      llm->add_subcommand("list-adaptors", _("List LLM adaptors"));
+  auto availableAdaptors = std::make_shared<bool>(false);
+  listAdaptors->add_flag("-a,--available", *availableAdaptors,
+                         _("List available remote LLM adaptors"));
+  listAdaptors->callback([action, availableAdaptors]() {
+    *action = [availableAdaptors](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigListAdaptors(*availableAdaptors, fmt, ctx);
+    };
+  });
+
   auto id = std::make_shared<std::string>();
   auto baseUrl = std::make_shared<std::string>();
   auto apiKey = std::make_shared<std::string>();
@@ -30,6 +41,18 @@ void RegisterLlmCommands(CLI::App &app, CliAction *action) {
   add->callback([action, id, baseUrl, apiKey]() {
     *action = [id, baseUrl, apiKey](Formatter &fmt, const CliContext &ctx) {
       return RunLlmConfigAdd(*id, *baseUrl, *apiKey, fmt, ctx);
+    };
+  });
+
+  auto adaptorSelector = std::make_shared<std::string>();
+  auto *installAdaptor =
+      llm->add_subcommand("install-adaptor", _("Install an LLM adaptor"));
+  installAdaptor->add_option("id_or_index", *adaptorSelector,
+                             _("Adaptor id or available-list index"))
+      ->required();
+  installAdaptor->callback([action, adaptorSelector]() {
+    *action = [adaptorSelector](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigInstallAdaptor(*adaptorSelector, fmt, ctx);
     };
   });
 

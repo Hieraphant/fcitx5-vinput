@@ -15,9 +15,12 @@ void RegisterAsrCommands(CLI::App &app, CliAction *action) {
 
   auto *list = asr->add_subcommand("list", _("List configured ASR providers"));
   list->alias("ls");
-  list->callback([action]() {
-    *action = [](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigList(fmt, ctx);
+  auto availableProviders = std::make_shared<bool>(false);
+  list->add_flag("-a,--available", *availableProviders,
+                 _("List available remote ASR providers"));
+  list->callback([action, availableProviders]() {
+    *action = [availableProviders](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigListProviders(*availableProviders, fmt, ctx);
     };
   });
 
@@ -60,6 +63,18 @@ void RegisterAsrCommands(CLI::App &app, CliAction *action) {
   installModel->callback([action, installModelSelector]() {
     *action = [installModelSelector](Formatter &fmt, const CliContext &ctx) {
       return RunAsrConfigInstallModel(*installModelSelector, fmt, ctx);
+    };
+  });
+
+  auto installProviderSelector = std::make_shared<std::string>();
+  auto *installProvider =
+      asr->add_subcommand("install-provider", _("Install an ASR provider"));
+  installProvider->add_option("id_or_index", *installProviderSelector,
+                              _("Provider id or available-list index"))
+      ->required();
+  installProvider->callback([action, installProviderSelector]() {
+    *action = [installProviderSelector](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigInstallProvider(*installProviderSelector, fmt, ctx);
     };
   });
 

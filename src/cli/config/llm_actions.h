@@ -6,8 +6,12 @@
 #include "cli/utils/formatter.h"
 
 int RunLlmConfigList(Formatter &fmt, const CliContext &ctx);
+int RunLlmConfigListAdaptors(bool available, Formatter &fmt,
+                             const CliContext &ctx);
 int RunLlmConfigAdd(const std::string &id, const std::string &baseUrl,
                     const std::string &apiKey, Formatter &fmt,
                     const CliContext &ctx);
+int RunLlmConfigInstallAdaptor(const std::string &selector, Formatter &fmt,
+                               const CliContext &ctx);
 int RunLlmConfigRemove(const std::string &id, Formatter &fmt,
                        const CliContext &ctx);

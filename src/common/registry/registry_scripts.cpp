@@ -19,6 +19,31 @@ namespace {
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
+std::vector<std::string> SplitResourceId(std::string_view id) {
+  std::vector<std::string> segments;
+  std::size_t start = 0;
+  while (start <= id.size()) {
+    const std::size_t dot = id.find('.', start);
+    const std::size_t end =
+        dot == std::string_view::npos ? id.size() : dot;
+    if (end == start) {
+      return {};
+    }
+    std::string segment(id.substr(start, end - start));
+    if (segment.empty() || segment == "." || segment == ".." ||
+        segment.find('/') != std::string::npos ||
+        segment.find('\\') != std::string::npos) {
+      return {};
+    }
+    segments.push_back(std::move(segment));
+    if (dot == std::string_view::npos) {
+      break;
+    }
+    start = dot + 1;
+  }
+  return segments;
+}
+
 std::vector<RegistryEntry> ParseRegistryJson(const std::string &content,
                                              std::string *error) {
   std::vector<RegistryEntry> entries;
@@ -168,17 +193,50 @@ std::vector<RegistryEntry> FetchRegistry(const CoreConfig &config, Kind kind,
   return FetchRegistryImpl(&config, kind, urls, error, resolved_registry_url);
 }
 
+std::filesystem::path RelativePathForId(std::string_view id) {
+  const auto segments = SplitResourceId(id);
+  if (segments.size() < 3) {
+    return {};
+  }
+
+  fs::path relative_path;
+  for (std::size_t i = 1; i < segments.size(); ++i) {
+    relative_path /= segments[i];
+  }
+  return relative_path;
+}
+
 std::filesystem::path DefaultLocalScriptPath(Kind kind, std::string_view id) {
   const fs::path base = kind == Kind::kAsrProvider
                             ? vinput::path::ManagedAsrProviderDir()
                             : vinput::path::ManagedLlmAdaptorDir();
-  return base / std::string(id);
+  const fs::path relative_path = RelativePathForId(id);
+  if (relative_path.empty()) {
+    return {};
+  }
+  return base / relative_path;
 }
 
 bool DownloadScript(const RegistryEntry &entry, Kind kind,
                     std::filesystem::path *local_path, std::string *error,
                     std::string *resolved_script_url) {
   const fs::path path = DefaultLocalScriptPath(kind, entry.id);
+  if (path.empty()) {
+    if (error) {
+      *error = "invalid script id: " + entry.id;
+    }
+    return false;
+  }
+
+  std::error_code ec;
+  fs::create_directories(path.parent_path(), ec);
+  if (ec) {
+    if (error) {
+      *error = "failed to create script directory: " + ec.message();
+    }
+    return false;
+  }
+
   vinput::download::Options options;
   options.timeout_seconds = 120;
   vinput::download::Result result;
@@ -218,6 +276,12 @@ bool MaterializeAsrProvider(CoreConfig *config, const RegistryEntry &entry,
                            return AsrProviderId(provider) == entry.id;
                          });
   const fs::path managed_path = DefaultLocalScriptPath(Kind::kAsrProvider, entry.id);
+  if (managed_path.empty()) {
+    if (error) {
+      *error = "invalid ASR provider id: " + entry.id;
+    }
+    return false;
+  }
 
   if (it == config->asr.providers.end()) {
     CommandAsrProvider provider;
@@ -264,6 +328,12 @@ bool MaterializeLlmAdaptor(CoreConfig *config, const RegistryEntry &entry,
                            return adaptor.id == entry.id;
                          });
   const fs::path managed_path = DefaultLocalScriptPath(Kind::kLlmAdaptor, entry.id);
+  if (managed_path.empty()) {
+    if (error) {
+      *error = "invalid adaptor id: " + entry.id;
+    }
+    return false;
+  }
 
   if (it == config->llm.adaptors.end()) {
     LlmAdaptor adaptor;

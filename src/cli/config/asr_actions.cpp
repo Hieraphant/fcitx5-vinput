@@ -13,6 +13,7 @@
 #include "common/asr/model_manager.h"
 #include "common/registry/registry_i18n.h"
 #include "common/registry/registry_models.h"
+#include "common/registry/registry_scripts.h"
 #include "common/utils/download_progress.h"
 #include "common/utils/string_utils.h"
 
@@ -124,6 +125,32 @@ std::string ResolveRemoteModelSelector(const std::string &selector,
   return {};
 }
 
+std::string ResolveScriptEntrySelector(
+    const std::string &selector,
+    const std::vector<vinput::script::RegistryEntry> &entries,
+    const char *kind_label, std::string *error) {
+  std::size_t index = 0;
+  if (TryParseOneBasedIndex(selector, &index)) {
+    if (index >= entries.size()) {
+      if (error) {
+        *error = std::string("available ") + kind_label + " index out of range";
+      }
+      return {};
+    }
+    return entries[index].id;
+  }
+
+  for (const auto &entry : entries) {
+    if (entry.id == selector) {
+      return selector;
+    }
+  }
+  if (error) {
+    *error = std::string("available ") + kind_label + " not found: " + selector;
+  }
+  return {};
+}
+
 }  // namespace
 
 int RunAsrConfigList(Formatter &fmt, const CliContext &ctx) {
@@ -216,6 +243,138 @@ int RunAsrConfigUse(const std::string &id, Formatter &fmt,
     return 1;
   }
   fmt.PrintSuccess(vinput::str::FmtStr(_("Active ASR provider set to '%s'."), id));
+  return 0;
+}
+
+int RunAsrConfigListProviders(bool available, Formatter &fmt,
+                              const CliContext &ctx) {
+  if (!available) {
+    return RunAsrConfigList(fmt, ctx);
+  }
+
+  CoreConfig config = LoadCoreConfig();
+  const auto registryUrls = ResolveAsrProviderRegistryUrls(config);
+  if (registryUrls.empty()) {
+    fmt.PrintError(
+        _("No ASR provider registry base URLs configured. Edit config.json and set registry.base_urls."));
+    return 1;
+  }
+
+  std::string error;
+  const auto entries = vinput::script::FetchRegistry(
+      config, vinput::script::Kind::kAsrProvider, registryUrls, &error);
+  if (!error.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  const auto locale = vinput::registry::DetectPreferredLocale();
+  const auto i18nMap = vinput::registry::FetchMergedI18nMap(config, locale);
+
+  auto isInstalled = [&config](const std::string &id) {
+    return ResolveAsrProvider(config, id) != nullptr;
+  };
+
+  if (ctx.json_output) {
+    nlohmann::json arr = nlohmann::json::array();
+    std::size_t index = 1;
+    for (const auto &entry : entries) {
+      nlohmann::json envs = nlohmann::json::array();
+      for (const auto &env : entry.envs) {
+        envs.push_back({{"name", env.name}, {"required", env.required}});
+      }
+      arr.push_back({
+          {"index", index++},
+          {"id", entry.id},
+          {"title", vinput::registry::LookupI18n(
+                        i18nMap, entry.id + ".title", entry.id)},
+          {"description", vinput::registry::LookupI18n(
+                              i18nMap, entry.id + ".description", "")},
+          {"command", entry.command},
+          {"readme_url", entry.readme_url},
+          {"envs", envs},
+          {"status", isInstalled(entry.id) ? "installed" : "available"},
+      });
+    }
+    fmt.PrintJson(arr);
+    return 0;
+  }
+
+  std::vector<std::string> headers = {_("INDEX"), _("ID"), _("TITLE"),
+                                      _("COMMAND"), _("STATUS")};
+  std::vector<std::vector<std::string>> rows;
+  std::size_t index = 1;
+  for (const auto &entry : entries) {
+    rows.push_back({std::to_string(index++),
+                    entry.id,
+                    vinput::registry::LookupI18n(i18nMap, entry.id + ".title",
+                                                 entry.id),
+                    entry.command,
+                    isInstalled(entry.id) ? _("installed") : _("available")});
+  }
+  fmt.PrintTable(headers, rows);
+  return 0;
+}
+
+int RunAsrConfigInstallProvider(const std::string &selector, Formatter &fmt,
+                                const CliContext &ctx) {
+  (void)ctx;
+  CoreConfig config = LoadCoreConfig();
+  NormalizeCoreConfig(&config);
+
+  const auto registryUrls = ResolveAsrProviderRegistryUrls(config);
+  if (registryUrls.empty()) {
+    fmt.PrintError(
+        _("No ASR provider registry base URLs configured. Edit config.json and set registry.base_urls."));
+    return 1;
+  }
+
+  std::string error;
+  const auto entries = vinput::script::FetchRegistry(
+      config, vinput::script::Kind::kAsrProvider, registryUrls, &error);
+  if (!error.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  const std::string id =
+      ResolveScriptEntrySelector(selector, entries, "ASR provider", &error);
+  if (id.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  const auto it =
+      std::find_if(entries.begin(), entries.end(),
+                   [&id](const vinput::script::RegistryEntry &entry) {
+                     return entry.id == id;
+                   });
+  if (it == entries.end()) {
+    fmt.PrintError(vinput::str::FmtStr(
+        _("ASR provider '%s' not found in registry."), id));
+    return 1;
+  }
+
+  std::filesystem::path scriptPath;
+  if (!vinput::script::DownloadScript(*it, vinput::script::Kind::kAsrProvider,
+                                      &scriptPath, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  if (!vinput::script::MaterializeAsrProvider(&config, *it, scriptPath,
+                                              &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  NormalizeCoreConfig(&config);
+  if (!SaveConfigOrFail(config, fmt)) {
+    return 1;
+  }
+
+  fmt.PrintSuccess(vinput::str::FmtStr(
+      _("ASR provider '%s' synchronized to local config."), id));
+  fmt.PrintInfo(
+      vinput::str::FmtStr(_("Local script path: %s"), scriptPath.string()));
   return 0;
 }
 
