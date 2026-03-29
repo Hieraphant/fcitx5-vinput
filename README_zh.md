@@ -59,6 +59,77 @@ sudo dpkg -i fcitx5-vinput_*.deb
 sudo apt-get install -f
 ```
 
+### Nix（通过 flake）
+
+- 当前支持 `x86_64-linux` 和 `aarch64-linux`
+
+#### Home Manager 使用示例
+
+- 将 `fcitx5-vinput` 添加为你的 flake 输入：
+
+```nix
+{
+  description = "Your flake description";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    fcitx5-vinput = {
+      url = "github:xifan2333/fcitx5-vinput";
+    };
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixos-hardware,
+      home-manager,
+      ...
+    }@inputs:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+      };
+      homeManagerConfiguration = home-manager.lib.homeManagerConfiguration;
+    in
+    {
+      homeConfigurations = {
+        "kakapt@krypton" = homeManagerConfiguration {
+          inherit pkgs;
+          modules = [ ./your_home_module.nix ];
+          extraSpecialArgs = inputs;
+        };
+      };
+    };
+}
+```
+
+- 然后将 `fcitx5-vinput` 放入你的 `fcitx5` 插件包装中：
+
+```nix
+{ pkgs, ... }@inputs:
+let
+  fcitx5-vinput = inputs.fcitx5-vinput.packages."${pkgs.stdenv.hostPlatform.system}".default;
+in
+{
+  home.packages = [
+    fcitx5-vinput
+  ];
+
+  i18n.inputMethod = {
+    enable = true;
+    type = "fcitx5";
+    fcitx5.addons = with pkgs; [
+      fcitx5-vinput
+    ];
+  };
+}
+```
+
 ### 从源码编译
 
 **依赖：** `cmake` `fcitx5` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`

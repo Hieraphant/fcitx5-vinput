@@ -59,6 +59,77 @@ sudo dpkg -i fcitx5-vinput_*.deb
 sudo apt-get install -f
 ```
 
+### Nix (via flake)
+
+- Currently supports `x86_64-linux` and `aarch64-linux`
+
+#### Home manager usage example
+
+- Add `fcitx5-vinput` as your flake input:
+
+```nix
+{
+  description = "Your flake description";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    fcitx5-vinput = {
+      url = "github:xifan2333/fcitx5-vinput";
+    };
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixos-hardware,
+      home-manager,
+      ...
+    }@inputs:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+      };
+      homeManagerConfiguration = home-manager.lib.homeManagerConfiguration;
+    in
+    {
+      homeConfigurations = {
+        "kakapt@krypton" = homeManagerConfiguration {
+          inherit pkgs;
+          modules = [ ./your_home_module.nix ];
+          extraSpecialArgs = inputs;
+        };
+      };
+    };
+}
+```
+
+- Then put `fcitx5-vinput` into your `fcitx5` addon wrapper:
+
+```nix
+{ pkgs, ... }@inputs:
+let
+  fcitx5-vinput = inputs.fcitx5-vinput.packages."${pkgs.stdenv.hostPlatform.system}".default;
+in
+{
+  home.packages = [
+    fcitx5-vinput
+  ];
+
+  i18n.inputMethod = {
+    enable = true;
+    type = "fcitx5";
+    fcitx5.addons = with pkgs; [
+      fcitx5-vinput
+    ];
+  };
+}
+```
+
 ### Build from Source
 
 **Dependencies:** `cmake` `fcitx5` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
