@@ -39,32 +39,29 @@
 
             nativeBuildInputs = with pkgs; [
               cmake
-              fcitx5
               pkg-config
               gettext
+              fcitx5
+              qt6.wrapQtAppsHook
+              autoPatchelfHook
+            ];
+
+            buildInputs = with pkgs; [
+              fcitx5
               systemdLibs
               curl
               libarchive
               openssl
-              onnxruntime
               pipewire
+              onnxruntime
               qt6.qtbase
-              qt6.wrapQtAppsHook
               cli11
-              autoPatchelfHook
               sherpa-deps.sherpa-onnx
               sherpa-deps.nlohmann_json
             ];
 
-            buildInputs = with pkgs; [
-              qt6.qtbase
-              pipewire
-              onnxruntime
-              sherpa-deps.sherpa-onnx
-            ];
-
             cmakeFlags = [
-              "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
+              "-DVINPUT_FETCH_CLI11=OFF"
               "-DCMAKE_BUILD_TYPE=Release"
             ];
 
