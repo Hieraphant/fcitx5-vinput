@@ -61,6 +61,13 @@ std::string SceneMenuKeyTooltip() {
            "default is Right Alt + Control.");
 }
 
+std::string AsrMenuKeyLabel() { return _("ASR Menu Keys"); }
+
+std::string AsrMenuKeyTooltip() {
+  return _("Configure one or more keys to open the ASR provider / model "
+           "selection menu. The default is F8.");
+}
+
 std::string PagePrevKeysLabel() { return _("Previous Page Keys"); }
 
 std::string PagePrevKeysTooltip() {
@@ -89,6 +96,9 @@ VinputConfig::VinputConfig(const VinputSettings &settings)
       sceneMenuKeys(this, "SceneMenuKey", SceneMenuKeyLabel(),
                    settings.sceneMenuKeys, SceneMenuKeyListConstrain(), {},
                    fcitx::ToolTipAnnotation(SceneMenuKeyTooltip())),
+      asrMenuKeys(this, "AsrMenuKey", AsrMenuKeyLabel(),
+                  settings.asrMenuKeys, SceneMenuKeyListConstrain(), {},
+                  fcitx::ToolTipAnnotation(AsrMenuKeyTooltip())),
       pagePrevKeys(this, "PagePrevKeys", PagePrevKeysLabel(),
                    settings.pagePrevKeys, TriggerKeyListConstrain(), {},
                    fcitx::ToolTipAnnotation(PagePrevKeysTooltip())),
@@ -103,6 +113,7 @@ VinputSettings VinputConfig::settings() const {
   settings.triggerKeys = triggerKeys.value();
   settings.commandKeys = commandKeys.value();
   settings.sceneMenuKeys = sceneMenuKeys.value();
+  settings.asrMenuKeys = asrMenuKeys.value();
   settings.pagePrevKeys = pagePrevKeys.value();
   settings.pageNextKeys = pageNextKeys.value();
   return settings;

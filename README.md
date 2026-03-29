@@ -199,6 +199,7 @@ Open Fcitx5 Configuration → Addons → Find **Vinput** → Enable.
 |-----|---------|----------|
 | Trigger Key | `Alt_R` | Tap to toggle recording; hold to push-to-talk |
 | Command Key | `Control_R` | Hold after selecting text to modify with voice |
+| ASR Menu Key | `F8` | Open ASR provider / model switcher |
 | Scene Menu Key | `Shift_R` | Open scene switcher |
 | Page Up / Down | `Page Up` / `Page Down` | Navigate candidate list |
 | Move | `↑` / `↓` | Move cursor in candidate list |

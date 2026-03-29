@@ -1,5 +1,7 @@
 #include "core/vinput.h"
 #include "common/config/core_config.h"
+#include "common/config/core_config_types.h"
+#include "common/asr/model_manager.h"
 #include "common/i18n.h"
 #include "common/scene/postprocess_scene.h"
 
@@ -21,6 +23,8 @@ struct SceneOption {
 };
 
 std::string SceneMenuTitle() { return _("Choose Postprocess Menu"); }
+
+std::string AsrMenuTitle() { return _("Choose ASR Provider / Model"); }
 
 std::string ResultMenuTitle(std::size_t count) {
   char buf[128];
@@ -167,6 +171,23 @@ public:
 
   void select(fcitx::InputContext *inputContext) const override {
     engine_->selectScene(index_, inputContext);
+  }
+
+private:
+  VinputEngine *engine_;
+  std::size_t index_;
+};
+
+class AsrCandidateWord : public fcitx::CandidateWord {
+public:
+  AsrCandidateWord(VinputEngine *engine, std::size_t index,
+                   const std::string &label, bool active)
+      : fcitx::CandidateWord(fcitx::Text(DisplayTextWithComment(
+            label, active ? _(" (Current)") : std::string()))),
+        engine_(engine), index_(index) {}
+
+  void select(fcitx::InputContext *inputContext) const override {
+    engine_->selectAsrItem(index_, inputContext);
   }
 
 private:
@@ -364,6 +385,207 @@ void VinputEngine::selectScene(std::size_t index, fcitx::InputContext *ic) {
   active_scene_id_ = selected_scene_id;
   scene_config_.activeSceneId = selected_scene_id;
   hideSceneMenu();
+  (void)ic;
+}
+
+void VinputEngine::reloadAsrMenuItems() {
+  asr_menu_items_.clear();
+  auto core_config = LoadCoreConfig();
+  const std::string &active_provider = core_config.asr.activeProvider;
+  const std::string active_model = ResolvePreferredLocalModel(core_config);
+
+  for (const auto &provider : core_config.asr.providers) {
+    const std::string &pid = AsrProviderId(provider);
+    if (std::holds_alternative<LocalAsrProvider>(provider)) {
+      // Enumerate installed models under this local provider
+      const auto base_dir = ResolveModelBaseDir(core_config);
+      ModelManager manager(base_dir.string());
+      auto models = manager.ListDetailed(active_model);
+      for (const auto &summary : models) {
+        const bool item_active =
+            (pid == active_provider) && (summary.id == active_model);
+        std::string label = summary.id + " [local]";
+        asr_menu_items_.push_back(AsrMenuItem{
+            .provider_id = pid,
+            .model_id = summary.id,
+            .display_label = label,
+            .active = item_active,
+        });
+      }
+    } else {
+      // Command provider — one row
+      const bool item_active = (pid == active_provider);
+      std::string label = pid + " [command]";
+      asr_menu_items_.push_back(AsrMenuItem{
+          .provider_id = pid,
+          .model_id = {},
+          .display_label = label,
+          .active = item_active,
+      });
+    }
+  }
+}
+
+void VinputEngine::showAsrMenu(fcitx::InputContext *ic) {
+  if (!ic) {
+    return;
+  }
+
+  reloadAsrMenuItems();
+  asr_menu_ic_ = ic;
+  asr_menu_visible_ = true;
+
+  auto candidate_list = std::make_unique<fcitx::CommonCandidateList>();
+  candidate_list->setPageSize(kMenuPageSize);
+  candidate_list->setLayoutHint(fcitx::CandidateLayoutHint::Vertical);
+  candidate_list->setCursorPositionAfterPaging(
+      fcitx::CursorPositionAfterPaging::ResetToFirst);
+
+  int active_index = 0;
+  for (std::size_t i = 0; i < asr_menu_items_.size(); ++i) {
+    const auto &item = asr_menu_items_[i];
+    if (item.active) {
+      active_index = static_cast<int>(i);
+    }
+    candidate_list->append<AsrCandidateWord>(this, i, item.display_label,
+                                             item.active);
+  }
+  MoveCursorToIndex(candidate_list.get(), active_index);
+
+  SetMenuTitle(ic, AsrMenuTitle(), candidate_list.get());
+  ic->inputPanel().setCandidateList(std::move(candidate_list));
+  ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
+}
+
+void VinputEngine::hideAsrMenu() {
+  if (!asr_menu_visible_ || !asr_menu_ic_) {
+    asr_menu_visible_ = false;
+    asr_menu_ic_ = nullptr;
+    return;
+  }
+
+  asr_menu_visible_ = false;
+  fcitx::Text empty;
+  asr_menu_ic_->inputPanel().setAuxUp(empty);
+  asr_menu_ic_->inputPanel().setCandidateList({});
+  asr_menu_ic_->updateUserInterface(
+      fcitx::UserInterfaceComponent::InputPanel);
+  asr_menu_ic_ = nullptr;
+}
+
+bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
+  if (!asr_menu_visible_ || !asr_menu_ic_) {
+    return false;
+  }
+
+  auto candidate_list = asr_menu_ic_->inputPanel().candidateList();
+  auto *cursor_list =
+      candidate_list ? candidate_list->toCursorMovable() : nullptr;
+
+  if (keyEvent.isRelease()) {
+    if (keyEvent.key().checkKeyList(asr_menu_key_) ||
+        keyEvent.key().checkKeyList(page_prev_keys_) ||
+        keyEvent.key().checkKeyList(page_next_keys_) ||
+        keyEvent.key().digitSelection() >= 0 ||
+        keyEvent.key().check(FcitxKey_Up) ||
+        keyEvent.key().check(FcitxKey_Down) ||
+        keyEvent.key().check(FcitxKey_Return) ||
+        keyEvent.key().check(FcitxKey_KP_Enter) ||
+        keyEvent.key().check(FcitxKey_Escape)) {
+      keyEvent.filterAndAccept();
+      return true;
+    }
+    return false;
+  }
+
+  if (keyEvent.key().checkKeyList(asr_menu_key_)) {
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (keyEvent.key().check(FcitxKey_Escape)) {
+    hideAsrMenu();
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (keyEvent.key().checkKeyList(page_prev_keys_)) {
+    ChangeCandidatePage(asr_menu_ic_, AsrMenuTitle(), false);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (keyEvent.key().checkKeyList(page_next_keys_)) {
+    ChangeCandidatePage(asr_menu_ic_, AsrMenuTitle(), true);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  const int digit = keyEvent.key().digitSelection();
+  const int digit_index = DigitSelectionIndex(candidate_list.get(), digit);
+  if (digit >= 0 &&
+      digit_index < static_cast<int>(asr_menu_items_.size())) {
+    selectAsrItem(static_cast<std::size_t>(digit_index), asr_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (cursor_list && keyEvent.key().check(FcitxKey_Up)) {
+    cursor_list->prevCandidate();
+    asr_menu_ic_->updateUserInterface(
+        fcitx::UserInterfaceComponent::InputPanel);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (cursor_list && keyEvent.key().check(FcitxKey_Down)) {
+    cursor_list->nextCandidate();
+    asr_menu_ic_->updateUserInterface(
+        fcitx::UserInterfaceComponent::InputPanel);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (keyEvent.key().check(FcitxKey_Return) ||
+      keyEvent.key().check(FcitxKey_KP_Enter)) {
+    int index = CurrentSelectionIndex(candidate_list.get());
+    if (index >= 0 && index < static_cast<int>(asr_menu_items_.size())) {
+      selectAsrItem(static_cast<std::size_t>(index), asr_menu_ic_);
+    } else {
+      hideAsrMenu();
+    }
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  hideAsrMenu();
+  return false;
+}
+
+void VinputEngine::selectAsrItem(std::size_t index, fcitx::InputContext *ic) {
+  if (index >= asr_menu_items_.size()) {
+    hideAsrMenu();
+    return;
+  }
+
+  const AsrMenuItem &item = asr_menu_items_[index];
+  auto core_config = LoadCoreConfig();
+  core_config.asr.activeProvider = item.provider_id;
+  if (!item.model_id.empty()) {
+    std::string error;
+    if (!SetPreferredLocalModel(&core_config, item.model_id, &error)) {
+      notifyError(error);
+      hideAsrMenu();
+      return;
+    }
+  }
+  if (!SaveCoreConfig(core_config)) {
+    notifyError(_("Failed to save ASR config."));
+    hideAsrMenu();
+    return;
+  }
+  hideAsrMenu();
+  restartDaemon();
   (void)ic;
 }
 

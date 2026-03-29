@@ -198,6 +198,7 @@ service 文件，并执行 `systemctl --user daemon-reload`，否则旧 unit
 |------|------|------|
 | 触发键 | `Alt_R` | 短按切换录音；长按即说即停 |
 | 命令键 | `Control_R` | 选中文本后按住，语音指令修改选中内容 |
+| ASR 菜单键 | `F8` | 打开 ASR provider / 模型切换菜单 |
 | 场景菜单键 | `Shift_R` | 打开场景切换菜单 |
 | 翻页 | `Page Up` / `Page Down` | 候选列表翻页 |
 | 移动 | `↑` / `↓` | 候选列表移动光标 |

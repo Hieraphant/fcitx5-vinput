@@ -37,6 +37,22 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
     return;
   }
 
+  if (asr_menu_visible_ && handleAsrMenuKeyEvent(keyEvent)) {
+    return;
+  }
+
+  if (!session_ && keyEvent.key().checkKeyList(asr_menu_key_) &&
+      !keyEvent.isRelease()) {
+    showAsrMenu(keyEvent.inputContext());
+    keyEvent.filterAndAccept();
+    return;
+  }
+
+  if (keyEvent.key().checkKeyList(asr_menu_key_) && keyEvent.isRelease()) {
+    keyEvent.filterAndAccept();
+    return;
+  }
+
   if (!session_ && keyEvent.key().checkKeyList(scene_menu_key_) &&
       !keyEvent.isRelease()) {
     showSceneMenu(keyEvent.inputContext());

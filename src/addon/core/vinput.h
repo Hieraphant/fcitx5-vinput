@@ -14,17 +14,26 @@
 #include <vector>
 
 #include "common/scene/postprocess_scene.h"
+#include "common/asr/model_manager.h"
 #include "common/asr/recognition_result.h"
 #include "common/config/vinput_config.h"
 #include "common/dbus/error_info.h"
 
 class VinputNotifierDBusObject;
 
+struct AsrMenuItem {
+  std::string provider_id;
+  std::string model_id;
+  std::string display_label;
+  bool active;
+};
+
 class VinputEngine : public fcitx::AddonInstance {
 public:
   VinputEngine(fcitx::Instance *instance);
   ~VinputEngine() override;
   void selectScene(std::size_t index, fcitx::InputContext *ic);
+  void selectAsrItem(std::size_t index, fcitx::InputContext *ic);
   void selectResultCandidate(std::size_t index, fcitx::InputContext *ic);
 
   void reloadConfig() override;
@@ -40,6 +49,10 @@ private:
   void showSceneMenu(fcitx::InputContext *ic);
   void hideSceneMenu();
   bool handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent);
+  void showAsrMenu(fcitx::InputContext *ic);
+  void hideAsrMenu();
+  bool handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent);
+  void reloadAsrMenuItems();
   void showResultMenu(fcitx::InputContext *ic,
                       const vinput::result::Payload &payload);
   void hideResultMenu();
@@ -93,10 +106,12 @@ private:
   std::optional<Session> session_;
   fcitx::InputContext *status_ic_ = nullptr;
   fcitx::InputContext *scene_menu_ic_ = nullptr;
+  fcitx::InputContext *asr_menu_ic_ = nullptr;
   fcitx::InputContext *result_menu_ic_ = nullptr;
   fcitx::KeyList trigger_keys_{fcitx::Key(FcitxKey_Control_R)};
   fcitx::KeyList command_keys_{fcitx::Key(FcitxKey_F10)};
   fcitx::KeyList scene_menu_key_{fcitx::Key(FcitxKey_F9)};
+  fcitx::KeyList asr_menu_key_{fcitx::Key(FcitxKey_F8)};
   fcitx::KeyList page_prev_keys_{
       fcitx::Key(FcitxKey_Page_Up),
       fcitx::Key(FcitxKey_KP_Page_Up),
@@ -106,9 +121,11 @@ private:
       fcitx::Key(FcitxKey_KP_Page_Down),
   };
   bool scene_menu_visible_ = false;
+  bool asr_menu_visible_ = false;
   bool result_menu_visible_ = false;
   std::string active_scene_id_;
   vinput::scene::Config scene_config_;
+  std::vector<AsrMenuItem> asr_menu_items_;
   std::vector<vinput::result::Candidate> result_candidates_;
   bool result_is_command_ = false;
   std::chrono::steady_clock::time_point last_trigger_time_;

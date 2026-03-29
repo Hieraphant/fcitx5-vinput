@@ -114,6 +114,9 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
         if (scene_menu_ic_ == ic) {
           hideSceneMenu();
         }
+        if (asr_menu_ic_ == ic) {
+          hideAsrMenu();
+        }
         if (result_menu_ic_ == ic) {
           hideResultMenu();
         }
@@ -160,7 +163,9 @@ void VinputEngine::applySettings() {
   trigger_keys_ = settings_.triggerKeys;
   command_keys_ = settings_.commandKeys;
   scene_menu_key_ = settings_.sceneMenuKeys;
+  asr_menu_key_ = settings_.asrMenuKeys;
   reloadSceneConfig();
+  reloadAsrMenuItems();
 }
 
 void VinputEngine::reloadSceneConfig() {

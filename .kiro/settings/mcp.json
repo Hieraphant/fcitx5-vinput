@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "/home/xifan/.local/share/mise/installs/node/24.13.0/bin/jshook",
+      "env": {}
+    }
+  }
+}

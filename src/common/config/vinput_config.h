@@ -13,6 +13,8 @@ struct VinputSettings {
   fcitx::KeyList commandKeys{fcitx::Key(FcitxKey_Control_R)};
   fcitx::KeyList sceneMenuKeys{
       fcitx::Key(FcitxKey_Shift_R)};
+  fcitx::KeyList asrMenuKeys{
+      fcitx::Key(FcitxKey_F8)};
   fcitx::KeyList pagePrevKeys{
       fcitx::Key(FcitxKey_Page_Up),
       fcitx::Key(FcitxKey_KP_Page_Up),
@@ -46,6 +48,11 @@ public:
                 fcitx::DefaultMarshaller<fcitx::KeyList>,
                 fcitx::ToolTipAnnotation>
       sceneMenuKeys;
+
+  fcitx::Option<fcitx::KeyList, fcitx::ListConstrain<fcitx::KeyConstrain>,
+                fcitx::DefaultMarshaller<fcitx::KeyList>,
+                fcitx::ToolTipAnnotation>
+      asrMenuKeys;
 
   fcitx::Option<fcitx::KeyList, fcitx::ListConstrain<fcitx::KeyConstrain>,
                 fcitx::DefaultMarshaller<fcitx::KeyList>,
