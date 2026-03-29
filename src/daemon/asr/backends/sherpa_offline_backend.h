@@ -2,7 +2,7 @@
 
 #include "common/asr/model_manager.h"
 #include "common/config/core_config.h"
-#include "daemon/asr/asr_engine.h"
+#include "daemon/asr/asr_config.h"
 #include "daemon/asr/runtime/recognition_contract.h"
 
 #include <memory>

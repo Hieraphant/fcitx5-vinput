@@ -3,7 +3,8 @@
 #include "common/asr/model_manager.h"
 #include "common/i18n.h"
 #include "common/utils/string_utils.h"
-#include "daemon/asr/asr_engine.h"
+#include "daemon/asr/asr_config.h"
+#include "daemon/asr/sherpa_json_helpers.h"
 #include "daemon/audio/audio_utils.h"
 
 #include <sherpa-onnx/c-api/c-api.h>
@@ -18,81 +19,6 @@
 namespace vinput::daemon::asr {
 
 namespace {
-
-int SafeStoi(const std::string &s, int default_val) {
-  try {
-    return std::stoi(s);
-  } catch (...) {
-    return default_val;
-  }
-}
-
-  float SafeStof(const std::string &s, float default_val) {
-  try {
-    return std::stof(s);
-  } catch (...) {
-    return default_val;
-  }
-}
-
-std::string JsonString(const nlohmann::json &obj, std::string_view key,
-                       const std::string &default_val = {}) {
-  if (!obj.is_object() || !obj.contains(key) || !obj[key].is_string()) {
-    return default_val;
-  }
-  return obj[key].get<std::string>();
-}
-
-int JsonInt(const nlohmann::json &obj, std::string_view key, int default_val) {
-  if (!obj.is_object() || !obj.contains(key)) {
-    return default_val;
-  }
-  const auto &value = obj[key];
-  if (value.is_number_integer()) {
-    return value.get<int>();
-  }
-  if (value.is_boolean()) {
-    return value.get<bool>() ? 1 : 0;
-  }
-  if (value.is_string()) {
-    return SafeStoi(value.get<std::string>(), default_val);
-  }
-  return default_val;
-}
-
-float JsonFloat(const nlohmann::json &obj, std::string_view key,
-                float default_val) {
-  if (!obj.is_object() || !obj.contains(key)) {
-    return default_val;
-  }
-  const auto &value = obj[key];
-  if (value.is_number()) {
-    return value.get<float>();
-  }
-  if (value.is_string()) {
-    return SafeStof(value.get<std::string>(), default_val);
-  }
-  return default_val;
-}
-
-bool JsonBool(const nlohmann::json &obj, std::string_view key,
-              bool default_val = false) {
-  if (!obj.is_object() || !obj.contains(key)) {
-    return default_val;
-  }
-  const auto &value = obj[key];
-  if (value.is_boolean()) {
-    return value.get<bool>();
-  }
-  if (value.is_number_integer()) {
-    return value.get<int>() != 0;
-  }
-  if (value.is_string()) {
-    const auto raw = value.get<std::string>();
-    return raw == "true" || raw == "1";
-  }
-  return default_val;
-}
 
 int ChooseNumThreads(const nlohmann::json &model_cfg, int runtime_default) {
   if (runtime_default > 0) {

@@ -3,7 +3,7 @@
 #include "common/asr/model_manager.h"
 #include "common/i18n.h"
 #include "common/utils/string_utils.h"
-#include "daemon/asr/asr_engine.h"
+#include "daemon/asr/asr_config.h"
 
 #include <nlohmann/json.hpp>
 #include <vosk_api.h>
