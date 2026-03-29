@@ -2,10 +2,12 @@
 
 #include "common/config/core_config.h"
 #include "common/dbus/dbus_interface.h"
+#include "daemon/audio/audio_utils.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <span>
 #include <stdexcept>
 #include <utility>
 
@@ -32,7 +34,7 @@ bool UsesBufferedDelivery(
          vinput::daemon::asr::AudioDeliveryMode::Buffered;
 }
 
-bool HasNonSilentAudio(std::span<const int16_t> pcm, float input_gain) {
+bool HasNonSilentAudio(std::span<const int16_t> pcm) {
   if (pcm.empty()) {
     return false;
   }
@@ -40,9 +42,7 @@ bool HasNonSilentAudio(std::span<const int16_t> pcm, float input_gain) {
   double sum_squares = 0.0;
   float peak = 0.0f;
   for (int16_t sample : pcm) {
-    float value = static_cast<float>(sample) / 32768.0f;
-    value *= input_gain;
-    value = std::clamp(value, -1.0f, 1.0f);
+    const float value = static_cast<float>(sample) / 32768.0f;
     const float abs_value = std::fabs(value);
     peak = std::max(peak, abs_value);
     sum_squares += static_cast<double>(value) * static_cast<double>(value);
@@ -162,19 +162,26 @@ void DaemonRuntimeController::HandleIncomingAudio(std::span<const int16_t> pcm) 
     return;
   }
 
+  // Apply gain at the device boundary so all backends see processed audio.
+  std::vector<int16_t> gained_pcm(pcm.begin(), pcm.end());
+  if (current_input_gain_ != 1.0f) {
+    vinput::audio::ApplyGainI16(gained_pcm, current_input_gain_);
+  }
+  const std::span<const int16_t> pcm_view(gained_pcm);
+
   if (!first_non_silent_at_.has_value() &&
-      HasNonSilentAudio(pcm, current_input_gain_)) {
+      HasNonSilentAudio(pcm_view)) {
     first_non_silent_at_ = std::chrono::steady_clock::now();
     fprintf(stderr, "vinput-daemon: first non-silent audio after %ld ms\n",
             MillisecondsSince(recording_started_at_, *first_non_silent_at_));
   }
 
   if (UsesBufferedDelivery(active_backend_)) {
-    current_recording_pcm_.insert(current_recording_pcm_.end(), pcm.begin(),
-                                  pcm.end());
-    current_sample_count_ += pcm.size();
+    current_recording_pcm_.insert(current_recording_pcm_.end(), pcm_view.begin(),
+                                  pcm_view.end());
+    current_sample_count_ += pcm_view.size();
   } else {
-    pending_chunk_pcm_.insert(pending_chunk_pcm_.end(), pcm.begin(), pcm.end());
+    pending_chunk_pcm_.insert(pending_chunk_pcm_.end(), pcm_view.begin(), pcm_view.end());
     std::string error;
     while (pending_chunk_pcm_.size() >= kStreamingChunkSamples) {
       if (!active_session_->PushAudio(
@@ -457,6 +464,16 @@ void DaemonRuntimeController::WorkerMain() {
       if (order.session) {
         if (order.audio_delivery_mode ==
             vinput::daemon::asr::AudioDeliveryMode::Buffered) {
+          // Apply peak normalization at the device boundary before inference.
+          if (runtime_settings.asr.normalizeAudio && !order.pcm.empty()) {
+            std::vector<float> float_samples(order.pcm.size());
+            for (std::size_t i = 0; i < order.pcm.size(); ++i)
+              float_samples[i] = static_cast<float>(order.pcm[i]) / 32768.0f;
+            vinput::audio::PeakNormalize(float_samples);
+            for (std::size_t i = 0; i < order.pcm.size(); ++i)
+              order.pcm[i] = static_cast<int16_t>(
+                  std::clamp(float_samples[i] * 32768.0f, -32768.0f, 32767.0f));
+          }
           std::string push_error;
           if (!order.session->PushAudio(order.pcm, &push_error)) {
             throw std::runtime_error(push_error.empty()

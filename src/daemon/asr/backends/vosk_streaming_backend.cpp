@@ -8,7 +8,6 @@
 #include <nlohmann/json.hpp>
 #include <vosk_api.h>
 
-#include <algorithm>
 #include <cstdio>
 #include <mutex>
 #include <utility>
@@ -108,10 +107,9 @@ std::string NormalizeRecognizedText(std::string text,
 
 class VoskStreamingSession : public RecognitionSession {
 public:
-  VoskStreamingSession(VoskRecognizer *recognizer, float input_gain,
+  VoskStreamingSession(VoskRecognizer *recognizer,
                        bool concatenate_without_space)
       : recognizer_(recognizer),
-        input_gain_(input_gain),
         concatenate_without_space_(concatenate_without_space) {}
 
   ~VoskStreamingSession() override { Reset(); }
@@ -139,13 +137,6 @@ public:
     }
 
     std::vector<short> samples(pcm.begin(), pcm.end());
-    if (input_gain_ != 1.0f) {
-      for (auto &sample : samples) {
-        const float scaled = static_cast<float>(sample) * input_gain_;
-        const float clamped = std::clamp(scaled, -32768.0f, 32767.0f);
-        sample = static_cast<short>(clamped);
-      }
-    }
 
     const int accepted = vosk_recognizer_accept_waveform_s(
         recognizer_, samples.data(), static_cast<int>(samples.size()));
@@ -307,7 +298,6 @@ private:
   }
 
   VoskRecognizer *recognizer_ = nullptr;
-  float input_gain_ = 1.0f;
   bool finished_ = false;
   bool concatenate_without_space_ = false;
   std::string committed_text_;
@@ -377,7 +367,6 @@ public:
     }
     const std::string language = model_info_.RuntimeLanguageHint();
     return std::make_unique<VoskStreamingSession>(recognizer,
-                                                  asr_config_.input_gain,
                                                   ShouldConcatenateWithoutSpace(
                                                       language));
   }
@@ -460,8 +449,6 @@ CreateVoskStreamingBackend(const CoreConfig &config,
   const ModelInfo model_info = model_mgr.GetModelInfo();
   asr_config.language = model_info.RuntimeLanguageHint();
   asr_config.hotwords_file = provider.hotwordsFile;
-  asr_config.normalize_audio = config.asr.normalizeAudio;
-  asr_config.input_gain = static_cast<float>(config.asr.inputGain);
   asr_config.vad_enabled = false;
   asr_config.vad_model_path.clear();
 

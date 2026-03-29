@@ -5,7 +5,6 @@
 #include "common/utils/string_utils.h"
 #include "daemon/asr/asr_config.h"
 #include "daemon/asr/sherpa_json_helpers.h"
-#include "daemon/audio/audio_utils.h"
 
 #include <sherpa-onnx/c-api/c-api.h>
 
@@ -76,9 +75,8 @@ bool DumpDebugWav(const char *path, std::span<const int16_t> pcm,
 class SherpaStreamingSession : public RecognitionSession {
 public:
   SherpaStreamingSession(const SherpaOnnxOnlineRecognizer *recognizer,
-                         const SherpaOnnxOnlineStream *stream,
-                         float input_gain)
-      : recognizer_(recognizer), stream_(stream), input_gain_(input_gain) {}
+                         const SherpaOnnxOnlineStream *stream)
+      : recognizer_(recognizer), stream_(stream) {}
 
   ~SherpaStreamingSession() override { Reset(); }
 
@@ -107,9 +105,6 @@ public:
     std::vector<float> samples(pcm.size());
     for (std::size_t i = 0; i < pcm.size(); ++i) {
       samples[i] = static_cast<float>(pcm[i]) / 32768.0f;
-    }
-    if (input_gain_ != 1.0f) {
-      vinput::audio::ApplyGain(samples, input_gain_);
     }
     UpdateAudioStats(samples);
     AppendDebugPcm(samples);
@@ -160,8 +155,8 @@ public:
           DumpDebugWav("/tmp/vinput-streaming-last-empty.wav", debug_pcm_, 16000);
       fprintf(stderr,
               "vinput: streaming finish produced empty text samples=%zu "
-              "peak=%.4f rms=%.4f gain=%.2f dumped_wav=%s path=%s\n",
-              total_samples_, peak_abs_, rms, input_gain_,
+              "peak=%.4f rms=%.4f dumped_wav=%s path=%s\n",
+              total_samples_, peak_abs_, rms,
               dumped ? "true" : "false", "/tmp/vinput-streaming-last-empty.wav");
     }
     events_.push_back({RecognitionEventKind::Completed, {}, {}});
@@ -254,7 +249,6 @@ private:
 
   const SherpaOnnxOnlineRecognizer *recognizer_ = nullptr;
   const SherpaOnnxOnlineStream *stream_ = nullptr;
-  float input_gain_ = 1.0f;
   bool finished_ = false;
   std::size_t total_samples_ = 0;
   double peak_abs_ = 0.0;
@@ -310,8 +304,7 @@ public:
     if (error) {
       error->clear();
     }
-    return std::make_unique<SherpaStreamingSession>(recognizer_, stream,
-                                                    asr_config_.input_gain);
+    return std::make_unique<SherpaStreamingSession>(recognizer_, stream);
   }
 
 private:
@@ -541,8 +534,6 @@ CreateSherpaStreamingBackend(const CoreConfig &config,
   const ModelInfo model_info = model_mgr.GetModelInfo();
   asr_config.language = model_info.RuntimeLanguageHint();
   asr_config.hotwords_file = provider.hotwordsFile;
-  asr_config.normalize_audio = config.asr.normalizeAudio;
-  asr_config.input_gain = static_cast<float>(config.asr.inputGain);
   asr_config.vad_enabled = false;
   asr_config.vad_model_path.clear();
 

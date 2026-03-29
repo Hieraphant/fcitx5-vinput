@@ -8,7 +8,6 @@
 #include <nlohmann/json.hpp>
 #include <vosk_api.h>
 
-#include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <mutex>
@@ -86,11 +85,10 @@ std::string NormalizeRecognizedText(std::string text,
 
 class VoskOfflineSession : public RecognitionSession {
 public:
-  VoskOfflineSession(VoskModel *model, int sample_rate, float input_gain,
+  VoskOfflineSession(VoskModel *model, int sample_rate,
                      bool concatenate_without_space)
       : model_(model),
         sample_rate_(sample_rate),
-        input_gain_(input_gain),
         concatenate_without_space_(concatenate_without_space) {}
 
   bool PushAudio(std::span<const int16_t> pcm, std::string *error) override {
@@ -141,13 +139,6 @@ public:
     vosk_recognizer_set_max_alternatives(recognizer, 0);
 
     std::vector<short> samples(pcm_.begin(), pcm_.end());
-    if (input_gain_ != 1.0f) {
-      for (auto &sample : samples) {
-        const float scaled = static_cast<float>(sample) * input_gain_;
-        const float clamped = std::clamp(scaled, -32768.0f, 32767.0f);
-        sample = static_cast<short>(clamped);
-      }
-    }
 
     const int accepted = vosk_recognizer_accept_waveform_s(
         recognizer, samples.data(), static_cast<int>(samples.size()));
@@ -196,7 +187,6 @@ public:
 private:
   VoskModel *model_ = nullptr;
   int sample_rate_ = 16000;
-  float input_gain_ = 1.0f;
   bool concatenate_without_space_ = false;
   bool finished_ = false;
   std::vector<int16_t> pcm_;
@@ -244,7 +234,7 @@ public:
       error->clear();
     }
     return std::make_unique<VoskOfflineSession>(
-        model_, sample_rate_, asr_config_.input_gain,
+        model_, sample_rate_,
         ShouldConcatenateWithoutSpace(language));
   }
 
@@ -326,8 +316,6 @@ CreateVoskOfflineBackend(const CoreConfig &config,
   const ModelInfo model_info = model_mgr.GetModelInfo();
   asr_config.language = model_info.RuntimeLanguageHint();
   asr_config.hotwords_file = provider.hotwordsFile;
-  asr_config.normalize_audio = config.asr.normalizeAudio;
-  asr_config.input_gain = static_cast<float>(config.asr.inputGain);
   asr_config.vad_enabled = false;
   asr_config.vad_model_path.clear();
 

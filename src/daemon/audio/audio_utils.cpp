@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace vinput::audio {
 
@@ -30,6 +31,18 @@ void ApplyGain(std::vector<float> &samples, float gain) {
 
   for (float &s : samples) {
     s = std::clamp(s * gain, -1.0f, 1.0f);
+  }
+}
+
+void ApplyGainI16(std::vector<int16_t> &samples, float gain) {
+  if (samples.empty() || gain == 1.0f) {
+    return;
+  }
+
+  for (int16_t &s : samples) {
+    const float scaled = static_cast<float>(s) * gain;
+    s = static_cast<int16_t>(
+        std::clamp(scaled, -32768.0f, 32767.0f));
   }
 }
 

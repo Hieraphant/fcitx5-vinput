@@ -4,7 +4,6 @@
 #include "common/utils/string_utils.h"
 #include "daemon/asr/sherpa_json_helpers.h"
 #include "daemon/asr/vad_trimmer.h"
-#include "daemon/audio/audio_utils.h"
 
 #include <sherpa-onnx/c-api/c-api.h>
 
@@ -364,11 +363,8 @@ std::string InferOffline(const SherpaOnnxOfflineRecognizer *recognizer,
 class SherpaOfflineSession : public RecognitionSession {
 public:
   SherpaOfflineSession(const SherpaOnnxOfflineRecognizer *recognizer,
-                       bool normalize_audio, float input_gain,
                        bool vad_available, VadTrimmer *vad)
       : recognizer_(recognizer),
-        normalize_audio_(normalize_audio),
-        input_gain_(input_gain),
         vad_available_(vad_available),
         vad_(vad) {}
 
@@ -408,10 +404,6 @@ public:
     for (size_t i = 0; i < pcm_.size(); ++i)
       samples[i] = static_cast<float>(pcm_[i]) / 32768.0f;
 
-    if (input_gain_ != 1.0f)
-      vinput::audio::ApplyGain(samples, input_gain_);
-    if (normalize_audio_)
-      vinput::audio::PeakNormalize(samples);
     if (vad_available_ && vad_) {
       samples = vad_->Trim(samples, 16000);
       if (samples.size() < kMinSamplesForInference) {
@@ -447,8 +439,6 @@ public:
 
 private:
   const SherpaOnnxOfflineRecognizer *recognizer_;
-  bool normalize_audio_;
-  float input_gain_;
   bool vad_available_;
   VadTrimmer *vad_;
   bool finished_ = false;
@@ -493,8 +483,7 @@ public:
     if (error)
       error->clear();
     return std::make_unique<SherpaOfflineSession>(
-        recognizer_, asr_config_.normalize_audio, asr_config_.input_gain,
-        vad_.Available(), &vad_);
+        recognizer_, vad_.Available(), &vad_);
   }
 
 private:
@@ -567,8 +556,6 @@ CreateSherpaOfflineBackend(const CoreConfig &config,
   const ModelInfo model_info = model_mgr.GetModelInfo();
   asr_config.language = model_info.RuntimeLanguageHint();
   asr_config.hotwords_file = provider.hotwordsFile;
-  asr_config.normalize_audio = config.asr.normalizeAudio;
-  asr_config.input_gain = static_cast<float>(config.asr.inputGain);
   asr_config.vad_enabled = config.asr.vad.enabled;
   asr_config.vad_model_path = VINPUT_VAD_MODEL_PATH;
 
