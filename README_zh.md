@@ -163,9 +163,8 @@ sudo just install
 **1. 安装模型**
 
 ```bash
-vinput registry sync            # 刷新 registry 缓存
-vinput model list --available   # 浏览可用模型
-vinput model install <模型名>    # 下载并安装
+vinput model list -a            # 浏览可用模型
+vinput model add <模型名>        # 下载并安装
 vinput model use <模型名>        # 设置为当前模型
 ```
 
@@ -229,8 +228,8 @@ vinput-gui
 
 ```bash
 vinput model list               # 列出已安装模型
-vinput model list --available   # 列出可用模型
-vinput model install <名称>      # 下载安装模型
+vinput model list -a            # 列出可用远程模型
+vinput model add <名称>          # 下载安装模型
 vinput model use <名称>          # 切换当前模型
 vinput model remove <名称>       # 删除模型
 vinput model info <名称>         # 查看模型详情
@@ -244,8 +243,9 @@ vinput model info <名称>         # 查看模型详情
 ```bash
 vinput scene list               # 列出所有场景
 vinput scene add --id <id>      # 添加场景
-vinput scene use <ID>           # 切换当前场景
-vinput scene remove <ID>        # 删除场景
+vinput scene edit <id>          # 编辑场景
+vinput scene use <id>           # 切换当前场景
+vinput scene remove <id>        # 删除场景
 ```
 
 如果场景要调用 LLM，`--provider`、`--model`、`--prompt` 需要同时提供。
@@ -256,12 +256,15 @@ vinput scene remove <ID>        # 删除场景
 <summary>LLM 配置</summary>
 
 ```bash
-vinput llm list                 # 列出已配置 provider
-vinput llm add <名称> --base-url <url>
-vinput llm remove <名称>         # 删除 provider
-vinput adapter list             # 列出内建/用户 LLM adapter
-vinput adapter start <id>       # 启动 LLM adapter
-vinput adapter stop <id>        # 停止 LLM adapter
+vinput llm list                         # 列出已配置 LLM provider
+vinput llm add <id> --base-url <url>    # 添加 LLM provider
+vinput llm edit <id> --base-url <url>   # 编辑 LLM provider
+vinput llm remove <id>                  # 删除 LLM provider
+vinput adapter list                     # 列出已安装 LLM adapter
+vinput adapter list -a                  # 列出可用远程 adapter
+vinput adapter add <id>                 # 从注册源安装 adapter
+vinput adapter start <id>               # 启动 adapter
+vinput adapter stop <id>                # 停止 adapter
 ```
 
 LLM provider 由场景引用，不再有单独的“当前 provider”开关。LLM adapter
@@ -273,13 +276,12 @@ LLM provider 由场景引用，不再有单独的“当前 provider”开关。L
 <summary>ASR Provider</summary>
 
 ```bash
-vinput asr list                 # 列出已配置 ASR provider
-vinput asr list --available     # 列出可用云端 ASR provider
-vinput asr install <id>         # 按需安装一个云端 ASR provider
-vinput asr add <名称>            # 添加本地或自定义 command provider
-vinput asr use <名称>            # 切换当前 ASR provider
-vinput asr edit <名称>           # 编辑外部 provider 脚本
-vinput asr remove <名称>         # 删除 provider
+vinput provider list            # 列出已配置 ASR provider
+vinput provider list -a        # 列出可用远程 ASR provider
+vinput provider add <id>       # 从注册源安装 provider
+vinput provider use <id>       # 切换当前 ASR provider
+vinput provider edit <id>      # 编辑外部 provider 脚本
+vinput provider remove <id>    # 删除 provider
 ```
 
 </details>
@@ -310,9 +312,10 @@ vinput device use <名称>         # 设置当前设备
 <summary>配置辅助</summary>
 
 ```bash
-vinput config set core.global.capture_device <名称>  # 写入支持的配置项
-vinput config edit core                      # 编辑核心配置文件
-vinput config edit fcitx                     # 编辑 Fcitx 插件配置
+vinput config get /global/capture_device        # 读取配置项（JSON Pointer）
+vinput config set /global/capture_device <值>   # 写入配置项
+vinput config edit core                         # 编辑核心配置（config.json）
+vinput config edit fcitx                        # 编辑 Fcitx 插件配置（vinput.conf）
 ```
 
 高级注册源回退可直接在 `config.json` 里配置分类型的 source 列表，例如
@@ -341,8 +344,8 @@ vinput recording toggle --scene <ID># 使用指定场景切换录音
 vinput daemon start             # 启动
 vinput daemon stop              # 停止
 vinput daemon restart           # 重启
-vinput daemon logs              # 查看日志
-vinput status                   # 查看整体状态
+vinput daemon log               # 查看日志
+vinput daemon log -f            # 跟踪日志
 vinput init                     # 创建默认配置和模型目录
 ```
 
@@ -390,10 +393,7 @@ vinput scene use polish
 
 ## Provider 脚本与 Adapter 约定
 
-仓库里的可选集成脚本现在统一放在 `data/` 下的两个平铺目录：
-
-- `data/asr-providers/`：外部 ASR provider 脚本
-- `data/llm-adapters/`：LLM OpenAI 兼容 adapter 脚本
+可选集成脚本由 `vinput-registry` 发布，通过 CLI 按需安装到 `~/.config/vinput/`。
 
 `scripts/` 目录只保留构建、检查、打包之类的项目维护脚本。
 
@@ -435,7 +435,7 @@ vinput scene use polish
 ```
 
 官方云端 ASR provider 脚本现在由 `vinput-registry` 发布，并通过
-`vinput asr install <id>` 按需安装到 `~/.config/vinput/asr-providers/`。
+`vinput provider add <id>` 按需安装到 `~/.local/share/vinput/providers/`。
 `command` 应该填写可执行命令或解释器，脚本路径放在 `args` 里。
 
 当前官方云端 ASR provider 包括：
@@ -489,15 +489,12 @@ OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao
 ```
 
 官方 LLM adapter 现在由 `vinput-registry` 发布，并通过
-`vinput adapter install <id>` 按需安装到 `~/.config/vinput/llm-adapters/`。
+`vinput adapter add <id>` 按需安装到 `~/.local/share/vinput/adapters/`。
 
 对于托管的 LLM adapter，运行时配置建议统一走环境变量，不要依赖 CLI
 位置参数。`vinput adapter start/stop` 直接启动脚本，不会为它注入额外位置参数。
 
-参考实现：
-
-- `data/llm-adapters/mtranserver_proxy.py`
-- `data/asr-providers/elevenlabs_speech_to_text.py`
+参考实现见 `vinput-registry` 仓库。
 
 ## 配置文件位置
 

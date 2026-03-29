@@ -164,9 +164,8 @@ under `/usr/local`, reinstall from a clean build directory so `vinput.conf` and
 **1. Install a model**
 
 ```bash
-vinput registry sync            # Refresh registry cache
-vinput model list --available   # Browse available models
-vinput model install <model-name> # Download and install
+vinput model list -a            # Browse available models
+vinput model add <model-name>   # Download and install
 vinput model use <model-name>   # Set as active model
 ```
 
@@ -230,8 +229,8 @@ Use `vinput --help` or `vinput <subcommand> --help` for the full current syntax.
 
 ```bash
 vinput model list               # List installed models
-vinput model list --available   # List available models
-vinput model install <name>     # Download and install
+vinput model list -a            # List available remote models
+vinput model add <name>         # Download and install
 vinput model use <name>         # Switch active model
 vinput model remove <name>      # Remove model
 vinput model info <name>        # View model details
@@ -245,8 +244,9 @@ vinput model info <name>        # View model details
 ```bash
 vinput scene list               # List all scenes
 vinput scene add --id <id>      # Add a scene
-vinput scene use <ID>           # Switch active scene
-vinput scene remove <ID>        # Remove scene
+vinput scene edit <id>          # Edit a scene
+vinput scene use <id>           # Switch active scene
+vinput scene remove <id>        # Remove scene
 ```
 
 Scenes that use LLM must set `--provider`, `--model`, and `--prompt` together.
@@ -257,12 +257,15 @@ Scenes that use LLM must set `--provider`, `--model`, and `--prompt` together.
 <summary>LLM Configuration</summary>
 
 ```bash
-vinput llm list                 # List configured providers
-vinput llm add <name> --base-url <url>
-vinput llm remove <name>        # Remove provider
-vinput adapter list             # List built-in/user LLM adapters
-vinput adapter start <id>       # Start an LLM adapter
-vinput adapter stop <id>        # Stop an LLM adapter
+vinput llm list                         # List configured LLM providers
+vinput llm add <id> --base-url <url>    # Add an LLM provider
+vinput llm edit <id> --base-url <url>   # Edit an LLM provider
+vinput llm remove <id>                  # Remove an LLM provider
+vinput adapter list                     # List installed LLM adapters
+vinput adapter list -a                  # List available remote adapters
+vinput adapter add <id>                 # Install an adapter from registry
+vinput adapter start <id>               # Start an adapter
+vinput adapter stop <id>                # Stop an adapter
 ```
 
 LLM providers are referenced by scenes; there is no separate active-provider
@@ -275,13 +278,12 @@ provider may point to.
 <summary>ASR Providers</summary>
 
 ```bash
-vinput asr list                 # List configured ASR providers
-vinput asr list --available     # List available cloud ASR providers
-vinput asr install <id>         # Install one cloud ASR provider
-vinput asr add <name>           # Add a local or custom command provider
-vinput asr use <name>           # Switch active ASR provider
-vinput asr edit <name>          # Edit external provider script
-vinput asr remove <name>        # Remove provider
+vinput provider list            # List configured ASR providers
+vinput provider list -a        # List available remote ASR providers
+vinput provider add <id>       # Install a provider from registry
+vinput provider use <id>       # Switch active ASR provider
+vinput provider edit <id>      # Edit external provider script
+vinput provider remove <id>    # Remove provider
 ```
 
 </details>
@@ -303,7 +305,7 @@ vinput hotword clear            # Clear hotword configuration
 
 ```bash
 vinput device list              # List capture devices
-vinput device use <name>        # Set active device
+vinput device use <id>          # Set active capture device
 ```
 
 </details>
@@ -312,9 +314,10 @@ vinput device use <name>        # Set active device
 <summary>Config Helpers</summary>
 
 ```bash
-vinput config set core.global.capture_device <name> # Write a supported config value
-vinput config edit core                     # Edit core config file
-vinput config edit fcitx                    # Edit Fcitx addon config
+vinput config get /global/capture_device        # Get a config value (JSON Pointer)
+vinput config set /global/capture_device <val>  # Set a config value
+vinput config edit core                         # Edit core config (config.json)
+vinput config edit fcitx                        # Edit Fcitx addon config (vinput.conf)
 ```
 
 Registry fallback is configured directly in `config.json` with typed source
@@ -344,8 +347,8 @@ vinput recording toggle --scene <ID># Toggle with specific scene
 vinput daemon start             # Start daemon
 vinput daemon stop              # Stop daemon
 vinput daemon restart           # Restart daemon
-vinput daemon logs              # View logs
-vinput status                   # Show overall vinput status
+vinput daemon log               # View logs
+vinput daemon log -f            # Follow logs
 vinput init                     # Create default config and model directories
 ```
 
@@ -394,11 +397,8 @@ vinput scene use polish
 
 ## Provider Scripts And Adapter Contracts
 
-Optional integration scripts now live under two flat directories inside
-`data/`:
-
-- `data/asr-providers/`: external ASR provider scripts
-- `data/llm-adapters/`: LLM OpenAI-compatible adapter scripts
+Optional integration scripts are published in `vinput-registry` and installed
+on demand into `~/.config/vinput/` by the CLI.
 
 The `scripts/` directory is reserved for project maintenance tasks such as
 build, packaging, and checks.
@@ -442,8 +442,8 @@ A minimal custom provider config looks like this:
 ```
 
 Official cloud ASR provider scripts are published in `vinput-registry` and are
-installed on demand into `~/.config/vinput/asr-providers/` via
-`vinput asr install <id>`. `command` should be the executable or interpreter, and
+installed on demand into `~/.local/share/vinput/providers/` via
+`vinput provider add <id>`. `command` should be the executable or interpreter, and
 the script path should live in `args`.
 
 Official cloud ASR providers currently include:
@@ -499,16 +499,13 @@ the structured payload currently consumed by `vinput`.
 ```
 
 Official LLM adapters are published in `vinput-registry` and are installed on
-demand into `~/.config/vinput/llm-adapters/` via `vinput adapter install <id>`.
+demand into `~/.local/share/vinput/adapters/` via `vinput adapter add <id>`.
 
 For managed LLM adapters, prefer environment variables over CLI
 arguments for runtime configuration. `vinput adapter start/stop` starts the
 script directly and does not inject positional arguments.
 
-Reference implementations:
-
-- `data/llm-adapters/mtranserver_proxy.py`
-- `data/asr-providers/elevenlabs_speech_to_text.py`
+Reference implementations are available in the `vinput-registry` repository.
 
 ## Configuration Files
 
