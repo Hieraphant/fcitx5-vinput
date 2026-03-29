@@ -39,28 +39,13 @@
         <source>Open Config</source>
         <translation>打开配置</translation>
     </message>
-</context>
-<context>
-    <name>QObject</name>
     <message>
-        <source>vinput not found in PATH</source>
-        <translation>在 PATH 中未找到 vinput</translation>
+        <source>Error</source>
+        <translation type="unfinished">错误</translation>
     </message>
     <message>
-        <source>vinput executable not found at %1</source>
-        <translation>未在 %1 找到 vinput 可执行文件</translation>
-    </message>
-    <message>
-        <source>vinput command timed out</source>
-        <translation>vinput 命令超时</translation>
-    </message>
-    <message>
-        <source>vinput command failed</source>
-        <translation>vinput 命令失败</translation>
-    </message>
-    <message>
-        <source>Failed to launch %1</source>
-        <translation>启动 %1 失败</translation>
+        <source>Failed to save config.</source>
+        <translation>保存配置失败。</translation>
     </message>
 </context>
 <context>
@@ -119,11 +104,7 @@
     </message>
     <message>
         <source>Are you sure you want to remove ASR provider &apos;%1&apos;?</source>
-        <translation>确定要移除 ASR 提供商"%1"吗？</translation>
-    </message>
-    <message>
-        <source>Error: %1</source>
-        <translation>错误：%1</translation>
+        <translation>确定要移除 ASR 提供商&quot;%1&quot;吗？</translation>
     </message>
     <message>
         <source>Stopped</source>
@@ -146,6 +127,14 @@
 Please follow the instructions.</source>
         <translation>语音输入需要额外的 Flatpak 权限。
 请参考说明文档。</translation>
+    </message>
+    <message>
+        <source>Failed to save config.</source>
+        <translation>保存配置失败。</translation>
+    </message>
+    <message>
+        <source>The local ASR provider cannot be removed.</source>
+        <translation>内置的本地语音识别不可移除。</translation>
     </message>
 </context>
 <context>
@@ -263,11 +252,11 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Are you sure you want to remove LLM provider &apos;%1&apos;?</source>
-        <translation>确定要移除 LLM 提供商"%1"吗？</translation>
+        <translation>确定要移除 LLM 提供商&quot;%1&quot;吗？</translation>
     </message>
     <message>
         <source>Adapter &apos;%1&apos; not found in configuration.</source>
-        <translation>配置中未找到适配器"%1"。</translation>
+        <translation>配置中未找到适配器&quot;%1&quot;。</translation>
     </message>
     <message>
         <source>LLM Adapter Started</source>
@@ -275,7 +264,7 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Adapter &apos;%1&apos; started.</source>
-        <translation>适配器"%1"已启动。</translation>
+        <translation>适配器&quot;%1&quot;已启动。</translation>
     </message>
     <message>
         <source>Add Scene</source>
@@ -315,7 +304,15 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Are you sure you want to remove scene &apos;%1&apos;?</source>
-        <translation>确定要移除场景"%1"吗？</translation>
+        <translation>确定要移除场景&quot;%1&quot;吗？</translation>
+    </message>
+    <message>
+        <source>LLM provider &apos;%1&apos; already exists.</source>
+        <translation>LLM 提供者 &apos;%1&apos; 已存在。</translation>
+    </message>
+    <message>
+        <source>Failed to save config.</source>
+        <translation>保存配置失败。</translation>
     </message>
 </context>
 <context>
@@ -425,22 +422,6 @@ Please follow the instructions.</source>
         <translation>非流式</translation>
     </message>
     <message>
-        <source>Local model list error: %1</source>
-        <translation>本地模型列表错误：%1</translation>
-    </message>
-    <message>
-        <source>Remote model list error: %1</source>
-        <translation>远程模型列表错误：%1</translation>
-    </message>
-    <message>
-        <source>Remote provider list error: %1</source>
-        <translation>远程提供商列表错误：%1</translation>
-    </message>
-    <message>
-        <source>Remote adapter list error: %1</source>
-        <translation>远程适配器列表错误：%1</translation>
-    </message>
-    <message>
         <source>Error</source>
         <translation>错误</translation>
     </message>
@@ -450,7 +431,7 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Selected model &apos;%1&apos; has been assigned to the preferred local ASR provider.</source>
-        <translation>已将所选模型"%1"分配给首选的本地 ASR 提供商。</translation>
+        <translation>已将所选模型&quot;%1&quot;分配给首选的本地 ASR 提供商。</translation>
     </message>
     <message>
         <source>Confirm</source>
@@ -458,15 +439,55 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Are you sure you want to remove model &apos;%1&apos;?</source>
-        <translation>确定要移除模型"%1"吗？</translation>
+        <translation>确定要移除模型&quot;%1&quot;吗？</translation>
     </message>
     <message>
-        <source>Removing %1...</source>
-        <translation>正在移除 %1...</translation>
+        <source>Fetching remote registry...</source>
+        <translation>正在获取远程注册表...</translation>
     </message>
     <message>
-        <source>Process finished</source>
-        <translation>处理完成</translation>
+        <source>Models fetch error: %1</source>
+        <translation>获取模型出错：%1</translation>
+    </message>
+    <message>
+        <source>Providers fetch error: %1</source>
+        <translation>获取提供者出错：%1</translation>
+    </message>
+    <message>
+        <source>Adapters fetch error: %1</source>
+        <translation>获取适配器出错：%1</translation>
+    </message>
+    <message>
+        <source>Registry fetch completed.</source>
+        <translation>注册表获取完成。</translation>
+    </message>
+    <message>
+        <source>Failed to save config.</source>
+        <translation>保存配置失败。</translation>
+    </message>
+    <message>
+        <source>Removed %1.</source>
+        <translation>已移除 %1。</translation>
+    </message>
+    <message>
+        <source>Downloading... %1% at %2</source>
+        <translation>正在下载... %1% 速度 %2</translation>
+    </message>
+    <message>
+        <source>Download Error</source>
+        <translation>下载错误</translation>
+    </message>
+    <message>
+        <source>Starting download for %1...</source>
+        <translation>开始下载 %1...</translation>
+    </message>
+    <message>
+        <source>Installing provider %1...</source>
+        <translation>正在安装提供者 %1...</translation>
+    </message>
+    <message>
+        <source>Installing adapter %1...</source>
+        <translation>正在安装适配器 %1...</translation>
     </message>
 </context>
 </TS>

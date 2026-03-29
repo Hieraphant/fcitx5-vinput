@@ -14,8 +14,13 @@
 
 #include "common/utils/sandbox.h"
 #include "dialogs/asr_provider_dialog.h"
-#include "utils/cli_runner.h"
 #include "utils/gui_helpers.h"
+
+#include "common/audio/pipewire_device.h"
+#include "gui/utils/config_manager.h"
+#include "gui/utils/i18n_cache.h"
+#include "cli/runtime/dbus_client.h"
+#include "cli/runtime/systemd_client.h"
 
 namespace vinput::gui {
 
@@ -65,6 +70,9 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
   btnAsrRemove_->setEnabled(false);
   btnAsrSetActive_->setEnabled(false);
 
+  connect(&I18nCache::Get(), &I18nCache::mapUpdated, this,
+          &ControlPage::refreshAsrList);
+
   // Daemon section
   auto *daemonFrame = new QFrame();
   daemonFrame->setFrameShape(QFrame::StyledPanel);
@@ -110,35 +118,25 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
 }
 
 void ControlPage::reload() {
-  // Reload device combo — async
   comboDevice_->clear();
   comboDevice_->addItem("default", "default");
 
-  RunVinputJsonAsync(
-      {"device", "list"}, this,
-      [this](bool ok, const QJsonDocument &doc, const QString &) {
-        if (!ok || !doc.isArray())
-          return;
-        for (const auto &v : doc.array()) {
-          if (!v.isObject())
-            continue;
-          QJsonObject obj = v.toObject();
-          QString name = obj.value("name").toString();
-          if (name.isEmpty())
-            continue;
-          QString desc = obj.value("description").toString();
-          QString label =
-              desc.isEmpty() ? name : QString("%1 - %2").arg(name, desc);
-          bool active = obj.value("active").toBool(false);
-          comboDevice_->addItem(label, name);
-          if (active) {
-            comboDevice_->setCurrentIndex(comboDevice_->count() - 1);
-          }
-        }
-        if (comboDevice_->currentIndex() <= 0) {
-          comboDevice_->setCurrentIndex(0);
-        }
-      });
+  const auto devices = vinput::pw::EnumerateAudioSources();
+  CoreConfig config = ConfigManager::Get().Load();
+  QString activeDevice = QString::fromStdString(config.global.captureDevice);
+
+  for (const auto& dev : devices) {
+    QString name = QString::fromStdString(dev.name);
+    QString desc = QString::fromStdString(dev.description);
+    QString label = desc.isEmpty() ? name : QString("%1 - %2").arg(name, desc);
+    comboDevice_->addItem(label, name);
+    if (name == activeDevice) {
+      comboDevice_->setCurrentIndex(comboDevice_->count() - 1);
+    }
+  }
+  if (comboDevice_->currentIndex() <= 0) {
+    comboDevice_->setCurrentIndex(0);
+  }
 
   refreshAsrList();
 }
@@ -152,38 +150,38 @@ QString ControlPage::currentDevice() const {
 
 void ControlPage::refreshAsrList() {
   listAsrProviders_->clear();
+  CoreConfig config = ConfigManager::Get().Load();
+  
+  auto i18n_map = I18nCache::Get().GetMap();
 
-  RunVinputJsonAsync(
-      {"provider", "list"}, this,
-      [this](bool ok, const QJsonDocument &doc, const QString &) {
-        if (!ok || !doc.isArray())
-          return;
+  for (const auto& provider : config.asr.providers) {
+    QString id = QString::fromStdString(AsrProviderId(provider));
+    QString type = QString::fromStdString(std::string(AsrProviderType(provider)));
+    bool active = (id.toStdString() == config.asr.activeProvider);
+    
+    std::string id_str = id.toStdString();
+    QString title = QString::fromStdString(
+        vinput::registry::LookupI18n(i18n_map, id_str + ".title", id_str));
 
-        for (const auto &v : doc.array()) {
-          if (!v.isObject())
-            continue;
-          QJsonObject obj = v.toObject();
-          QString id = obj.value("id").toString();
-          QString type = obj.value("type").toString();
-          bool active = obj.value("active").toBool(false);
+    QString display = title + " [" + type + "]";
+    if (const auto* local = std::get_if<LocalAsrProvider>(&provider)) {
+      QString model = QString::fromStdString(local->model);
+      if (!model.isEmpty()) {
+         model = QString::fromStdString(
+             vinput::registry::LookupI18n(i18n_map, local->model + ".title", local->model));
+      }
+      display += " · " + (model.isEmpty() ? GuiTranslate("(not set)") : model);
+    } else if (const auto* command = std::get_if<CommandAsrProvider>(&provider)) {
+      display += " · " + QString::fromStdString(command->command);
+    }
+    if (active) {
+      display += GuiTranslate(" *");
+    }
 
-          QString display = id + " [" + type + "]";
-          if (type == "local") {
-            QString model = obj.value("model").toString();
-            display += " · " +
-                       (model.isEmpty() ? GuiTranslate("(not set)") : model);
-          } else if (!obj.value("command").toString().isEmpty()) {
-            display += " · " + obj.value("command").toString();
-          }
-          if (active) {
-            display += GuiTranslate(" *");
-          }
-
-          auto *item = new QListWidgetItem(display, listAsrProviders_);
-          item->setData(Qt::UserRole, id);
-          item->setData(Qt::UserRole + 1, type);
-        }
-      });
+    auto *item = new QListWidgetItem(display, listAsrProviders_);
+    item->setData(Qt::UserRole, id);
+    item->setData(Qt::UserRole + 1, type);
+  }
 }
 
 void ControlPage::updateAsrButtons() {
@@ -202,180 +200,158 @@ void ControlPage::updateAsrButtons() {
 
 void ControlPage::onAsrEdit() {
   auto *item = listAsrProviders_->currentItem();
-  if (!item)
-    return;
-
+  if (!item) return;
   QString provider_id = item->data(Qt::UserRole).toString();
 
-  // Load current data from CLI
-  QJsonDocument doc;
-  if (!RunVinputJson({"provider", "list"}, &doc) || !doc.isArray()) {
-    return;
-  }
-
+  CoreConfig config = ConfigManager::Get().Load();
   AsrProviderData current;
   bool found = false;
-  for (const auto &v : doc.array()) {
-    QJsonObject obj = v.toObject();
-    if (obj.value("id").toString() == provider_id) {
-      current.id = provider_id.toStdString();
-      current.type = obj.value("type").toString().toStdString();
-      current.timeout_ms = obj.value("timeout_ms").toInt(15000);
-      current.model = obj.value("model").toString().toStdString();
-      current.command = obj.value("command").toString().toStdString();
-      for (const auto &a : obj.value("args").toArray()) {
-        current.args.push_back(a.toString().toStdString());
-      }
-      QJsonObject envObj = obj.value("env").toObject();
-      for (auto it = envObj.begin(); it != envObj.end(); ++it) {
-        current.env[it.key().toStdString()] = it.value().toString().toStdString();
+  
+  for (const auto& provider : config.asr.providers) {
+    if (AsrProviderId(provider) == provider_id.toStdString()) {
+      current.id = AsrProviderId(provider);
+      current.type = std::string(AsrProviderType(provider));
+      current.timeout_ms = AsrProviderTimeoutMs(provider);
+      if (const auto* local = std::get_if<LocalAsrProvider>(&provider)) {
+        current.model = local->model;
+      } else if (const auto* cmd = std::get_if<CommandAsrProvider>(&provider)) {
+        current.command = cmd->command;
+        current.args = cmd->args;
+        current.env = cmd->env;
       }
       found = true;
       break;
     }
   }
-  if (!found)
-    return;
+  
+  if (!found) return;
 
   AsrProviderData updated;
-  if (!ShowAsrProviderDialog(this, tr("Edit ASR Provider"), &current,
-                             &updated)) {
+  if (!ShowAsrProviderDialog(this, tr("Edit ASR Provider"), &current, &updated)) {
     return;
   }
 
-  // Remove old, add new via CLI
-  QString error;
-  RunVinputCommand({"provider", "remove", provider_id}, &error);
-
-  // Re-add with new config
-  QJsonObject provObj;
-  provObj["id"] = QString::fromStdString(updated.id);
-  provObj["type"] = QString::fromStdString(updated.type);
-  provObj["timeout_ms"] = updated.timeout_ms;
+  // Remove old
+  auto it = std::remove_if(config.asr.providers.begin(), config.asr.providers.end(),
+                           [&](const AsrProvider& p) { return AsrProviderId(p) == current.id; });
+                           
+  config.asr.providers.erase(it, config.asr.providers.end());
+  
+  // Add new
   if (updated.type == "local") {
-    provObj["model"] = QString::fromStdString(updated.model);
+     LocalAsrProvider p;
+     p.model = updated.model;
+     p.timeoutMs = updated.timeout_ms;
+     config.asr.providers.push_back(p);
   } else {
-    provObj["command"] = QString::fromStdString(updated.command);
-    QJsonArray argsArr;
-    for (const auto &a : updated.args)
-      argsArr.append(QString::fromStdString(a));
-    provObj["args"] = argsArr;
-    QJsonObject envObj;
-    for (const auto &[k, v] : updated.env)
-      envObj[QString::fromStdString(k)] = QString::fromStdString(v);
-    provObj["env"] = envObj;
+     CommandAsrProvider p;
+     p.id = updated.id;
+     p.command = updated.command;
+     p.args = updated.args;
+     p.env = updated.env;
+     p.timeoutMs = updated.timeout_ms;
+     config.asr.providers.push_back(p);
   }
-  if (!RunVinputCommand(
-          QStringList{"config", "set", "/asr/providers/-",
-           QString::fromUtf8(
-               QJsonDocument(provObj).toJson(QJsonDocument::Compact))},
-          &error)) {
-    QMessageBox::critical(this, tr("Error"), error);
-    return;
+  
+  if (!ConfigManager::Get().Save(config)) {
+     QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
+     return;
   }
-
-  RestartDaemon();
+  
+  vinput::cli::SystemctlRestart();
   refreshAsrList();
   emit configChanged();
 }
 
 void ControlPage::onAsrRemove() {
   auto *item = listAsrProviders_->currentItem();
-  if (!item)
-    return;
+  if (!item) return;
 
   QString provider_id = item->data(Qt::UserRole).toString();
   auto response = QMessageBox::question(
       this, tr("Confirm"),
-      tr("Are you sure you want to remove ASR provider '%1'?")
-          .arg(provider_id));
-  if (response != QMessageBox::Yes)
-    return;
+      tr("Are you sure you want to remove ASR provider '%1'?").arg(provider_id));
+  if (response != QMessageBox::Yes) return;
 
-  QString error;
-  if (!RunVinputCommand({"provider", "remove", provider_id}, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
+  CoreConfig config = ConfigManager::Get().Load();
+  auto it = std::remove_if(config.asr.providers.begin(), config.asr.providers.end(),
+                           [&](const AsrProvider& p) { return AsrProviderId(p) == provider_id.toStdString(); });
+  if (it != config.asr.providers.end()) {
+      if (std::holds_alternative<LocalAsrProvider>(*it)) {
+          QMessageBox::warning(this, tr("Error"), tr("The local ASR provider cannot be removed."));
+          return;
+      }
+      config.asr.providers.erase(it, config.asr.providers.end());
+      if (config.asr.activeProvider == provider_id.toStdString()) {
+          config.asr.activeProvider.clear();
+      }
+      
+      if (!ConfigManager::Get().Save(config)) {
+          QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
+          return;
+      }
+      vinput::cli::SystemctlRestart();
+      refreshAsrList();
+      emit configChanged();
   }
-
-  RestartDaemon();
-  refreshAsrList();
-  emit configChanged();
 }
 
 void ControlPage::onAsrSetActive() {
   auto *item = listAsrProviders_->currentItem();
-  if (!item)
-    return;
+  if (!item) return;
 
   QString provider_id = item->data(Qt::UserRole).toString();
-  QString error;
-  if (!RunVinputCommand({"provider", "use", provider_id}, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
+  
+  CoreConfig config = ConfigManager::Get().Load();
+  config.asr.activeProvider = provider_id.toStdString();
+  if (!ConfigManager::Get().Save(config)) {
+      QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
+      return;
   }
-
-  RestartDaemon();
+  
+  vinput::cli::SystemctlRestart();
   refreshAsrList();
   emit configChanged();
 }
 
 void ControlPage::refreshDaemonStatus() {
-  RunVinputJsonAsync(
-      {"daemon", "status"}, this,
-      [this](bool ok, const QJsonDocument &doc, const QString &err) {
-        if (!ok || !doc.isObject()) {
-          lblDaemonStatus_->setText(tr("Error: %1").arg(err));
-          lblDaemonStatus_->setStyleSheet("color: red;");
-          btnDaemonStart_->setEnabled(true);
-          btnDaemonStop_->setEnabled(false);
-          btnDaemonRestart_->setEnabled(false);
-          return;
-        }
-
-        QJsonObject obj = doc.object();
-        bool running = obj.value("running").toBool();
-
-        if (!running) {
-          lblDaemonStatus_->setText(tr("Stopped"));
-          lblDaemonStatus_->setStyleSheet("color: gray;");
-          btnDaemonStart_->setEnabled(true);
-          btnDaemonStop_->setEnabled(false);
-          btnDaemonRestart_->setEnabled(false);
-          return;
-        }
-
-        QString status = obj.value("status").toString();
-        if (status.isEmpty()) {
-          QString runtime_err = obj.value("error").toString();
-          lblDaemonStatus_->setText(
-              tr("Running (Status Error: %1)").arg(runtime_err));
-          lblDaemonStatus_->setStyleSheet("color: orange;");
-        } else {
-          lblDaemonStatus_->setText(tr("Running: %1").arg(status));
-          lblDaemonStatus_->setStyleSheet("color: green;");
-        }
-
-        btnDaemonStart_->setEnabled(false);
-        btnDaemonStop_->setEnabled(true);
-        btnDaemonRestart_->setEnabled(true);
-      });
+  vinput::cli::DbusClient dbus;
+  std::string err;
+  if (!dbus.IsDaemonRunning(&err)) {
+      lblDaemonStatus_->setText(tr("Stopped"));
+      lblDaemonStatus_->setStyleSheet("color: gray;");
+      btnDaemonStart_->setEnabled(true);
+      btnDaemonStop_->setEnabled(false);
+      btnDaemonRestart_->setEnabled(false);
+      return;
+  }
+  std::string status;
+  if (!dbus.GetDaemonStatus(&status, &err)) {
+      lblDaemonStatus_->setText(tr("Running (Status Error: %1)").arg(QString::fromStdString(err)));
+      lblDaemonStatus_->setStyleSheet("color: orange;");
+  } else {
+      lblDaemonStatus_->setText(tr("Running: %1").arg(QString::fromStdString(status)));
+      lblDaemonStatus_->setStyleSheet("color: green;");
+  }
+  btnDaemonStart_->setEnabled(false);
+  btnDaemonStop_->setEnabled(true);
+  btnDaemonRestart_->setEnabled(true);
 }
 
 void ControlPage::onDaemonStart() {
   btnDaemonStart_->setEnabled(false);
-  StartVinputDetached({"daemon", "start"});
+  vinput::cli::SystemctlStart();
 }
 
 void ControlPage::onDaemonStop() {
   btnDaemonStop_->setEnabled(false);
-  StartVinputDetached({"daemon", "stop"});
+  vinput::cli::SystemctlStop();
 }
 
 void ControlPage::onDaemonRestart() {
   btnDaemonRestart_->setEnabled(false);
   btnDaemonStop_->setEnabled(false);
-  StartVinputDetached({"daemon", "restart"});
+  vinput::cli::SystemctlRestart();
 }
 
 void ControlPage::checkSandboxPermissions() {

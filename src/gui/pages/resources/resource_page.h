@@ -1,14 +1,17 @@
 #pragma once
 
 #include <QPushButton>
-#include <QProcess>
 #include <QTableWidget>
 #include <QTextEdit>
 #include <QWidget>
 
-class QJsonDocument;
+#include "common/asr/model_manager.h"
+#include "common/registry/registry_models.h"
+#include "common/registry/registry_scripts.h"
 
 namespace vinput::gui {
+
+class DownloadWorker;
 
 class ResourcePage : public QWidget {
   Q_OBJECT
@@ -28,17 +31,17 @@ private slots:
   void onDownloadModelClicked();
   void onAddProviderClicked();
   void onAddAdapterClicked();
-  void onProcessReadyReadStandardOutput();
-  void onProcessReadyReadStandardError();
-  void onProcessFinished(int exitCode, int exitStatus);
+  void onDownloadProgress(int percent, QString speed);
+  void onDownloadError(QString msg);
+  void onDownloadFinished();
 
 private:
-  void populateLocalModels(const QJsonDocument &doc);
-  void populateRemoteModels(const QJsonDocument &doc);
-  void populateRemoteProviders(const QJsonDocument &doc);
-  void populateRemoteAdapters(const QJsonDocument &doc);
-  void killCliProcess();
-  void ensureCliProcess();
+  void populateLocalModels(const std::vector<ModelSummary> &models);
+  void populateRemoteModels(const std::vector<RemoteModelEntry> &models);
+  void populateRemoteProviders(const std::vector<vinput::script::RegistryEntry> &providers);
+  void populateRemoteAdapters(const std::vector<vinput::script::RegistryEntry> &adapters);
+
+  void abortDownload();
 
   QTableWidget *tableInstalledModels_;
   QTableWidget *tableAvailableModels_;
@@ -51,7 +54,7 @@ private:
   QPushButton *btnAddProvider_;
   QPushButton *btnAddAdapter_;
   QPushButton *btnRefreshResources_;
-  QProcess *cliProcess_ = nullptr;
+  DownloadWorker *downloadWorker_ = nullptr;
 };
 
 }  // namespace vinput::gui

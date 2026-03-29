@@ -13,7 +13,7 @@
 #include <QUrl>
 
 #include "common/llm/defaults.h"
-#include "utils/cli_runner.h"
+#include "gui/utils/config_manager.h"
 
 namespace vinput::gui {
 
@@ -243,21 +243,14 @@ void FetchModelsFromProviderAsync(const ProviderInfo &provider,
       });
 }
 
-// Load LLM providers from CLI.
+// Load LLM providers from CLI -> NO, from config now.
 QList<ProviderInfo> LoadLlmProviders() {
-  QJsonDocument doc;
-  if (!RunVinputJson({"llm", "list"}, &doc) || !doc.isArray()) {
-    return {};
-  }
-
+  CoreConfig config = ConfigManager::Get().Load();
   QList<ProviderInfo> providers;
-  for (const auto &v : doc.array()) {
-    if (!v.isObject())
-      continue;
-    QJsonObject obj = v.toObject();
+  for (const auto &prov : config.llm.providers) {
     ProviderInfo info;
-    info.id = obj.value("id").toString();
-    info.base_url = obj.value("base_url").toString();
+    info.id = QString::fromStdString(prov.id);
+    info.base_url = QString::fromStdString(prov.base_url);
     if (!info.id.isEmpty()) {
       providers.push_back(info);
     }

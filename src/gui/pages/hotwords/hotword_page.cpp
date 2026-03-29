@@ -10,7 +10,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-#include "utils/cli_runner.h"
+#include "gui/utils/config_manager.h"
 
 namespace vinput::gui {
 
@@ -50,22 +50,22 @@ HotwordPage::HotwordPage(QWidget *parent) : QWidget(parent) {
 }
 
 void HotwordPage::reload() {
-  // Get hotword file path from CLI
-  QJsonDocument doc;
-  if (RunVinputJson({"hotword", "get"}, &doc) && doc.isObject()) {
-    QString path = doc.object().value("path").toString();
-    if (path.isEmpty()) {
-      path = doc.object().value("value").toString();
+  CoreConfig config = vinput::gui::ConfigManager::Get().Load();
+  QString path;
+  for (const auto& prov : config.asr.providers) {
+    if (const auto* local = std::get_if<LocalAsrProvider>(&prov)) {
+      path = QString::fromStdString(local->hotwordsFile);
+      break;
     }
-    editFile_->setText(path);
-    if (!path.isEmpty()) {
-      QFile f(path);
-      if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        textContent_->setPlainText(QTextStream(&f).readAll());
-      }
-    } else {
-      textContent_->clear();
+  }
+  editFile_->setText(path);
+  if (!path.isEmpty()) {
+    QFile f(path);
+    if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+      textContent_->setPlainText(QTextStream(&f).readAll());
     }
+  } else {
+    textContent_->clear();
   }
 }
 

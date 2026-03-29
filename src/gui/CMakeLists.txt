@@ -21,8 +21,10 @@ set(CMAKE_AUTOUIC ON)
 set(VINPUT_GUI_SOURCES
     app/main.cpp
     app/mainwindow.cpp
-    utils/cli_runner.cpp
     utils/gui_helpers.cpp
+    utils/config_manager.cpp
+    utils/download_worker.cpp
+    utils/i18n_cache.cpp
     dialogs/asr_provider_dialog.cpp
     dialogs/adapter_dialog.cpp
     pages/control/control_page.cpp
@@ -30,10 +32,16 @@ set(VINPUT_GUI_SOURCES
     pages/llm/llm_page.cpp
     pages/hotwords/hotword_page.cpp
     ${CMAKE_SOURCE_DIR}/src/common/audio/pipewire_device.cpp
+    ${CMAKE_SOURCE_DIR}/src/cli/runtime/dbus_client.cpp
+    ${CMAKE_SOURCE_DIR}/src/cli/runtime/systemd_client.cpp
 )
 
 set(VINPUT_GUI_HEADERS
     app/mainwindow.h
+    utils/gui_helpers.h
+    utils/config_manager.h
+    utils/download_worker.h
+    utils/i18n_cache.h
     pages/control/control_page.h
     pages/resources/resource_page.h
     pages/llm/llm_page.h
@@ -87,7 +95,9 @@ endif()
 
 target_include_directories(vinput-gui PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
     ${PIPEWIRE_INCLUDE_DIRS}
+    ${SDBUS_INCLUDE_DIRS}
 )
 
 target_link_libraries(vinput-gui
@@ -98,6 +108,7 @@ target_link_libraries(vinput-gui
     Qt${QT_MAJOR}::Network
     vinput-common
     ${PIPEWIRE_LIBRARIES}
+    ${SDBUS_LIBRARIES}
 )
 
 install(TARGETS vinput-gui

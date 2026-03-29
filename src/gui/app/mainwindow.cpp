@@ -14,10 +14,15 @@
 #include "pages/llm/llm_page.h"
 #include "pages/resources/resource_page.h"
 #include "common/utils/path_utils.h"
-#include "utils/cli_runner.h"
+#include "gui/utils/config_manager.h"
+#include "gui/utils/i18n_cache.h"
+#include "cli/runtime/systemd_client.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   setWindowTitle(tr("Vinput Configuration"));
+
+  // Start background fetch of i18n map.
+  vinput::gui::I18nCache::Get().Initialize(vinput::gui::ConfigManager::Get().Load());
 
   auto *centralWidget = new QWidget(this);
   setCentralWidget(centralWidget);
@@ -70,31 +75,42 @@ void MainWindow::reloadAll() {
 }
 
 void MainWindow::onSaveClicked() {
-  // Save device via CLI
+  CoreConfig config = vinput::gui::ConfigManager::Get().Load();
+
+  // Save device
   QString device = controlPage_->currentDevice();
   if (!device.isEmpty() && device != "default") {
-    QString error;
-    vinput::gui::RunVinputCommand({"device", "use", device}, &error);
+    config.global.captureDevice = device.toStdString();
+  } else {
+    config.global.captureDevice.clear();
   }
 
-  // Save hotwords via CLI
+  // Save hotwords
   QString hotwordsFile = hotwordPage_->hotwordsFilePath();
+  for (auto& prov : config.asr.providers) {
+    if (auto* local = std::get_if<LocalAsrProvider>(&prov)) {
+      if (!hotwordsFile.isEmpty()) {
+        local->hotwordsFile = hotwordsFile.toStdString();
+      } else {
+        local->hotwordsFile.clear();
+      }
+    }
+  }
   if (!hotwordsFile.isEmpty()) {
-    QString error;
-    vinput::gui::RunVinputCommand({"hotword", "set", hotwordsFile}, &error);
-
     // Write hotwords content to file
     QFile f(hotwordsFile);
     if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
       QTextStream(&f) << hotwordPage_->hotwordsContent();
     }
-  } else {
-    QString error;
-    vinput::gui::RunVinputCommand({"hotword", "clear"}, &error);
+  }
+
+  if (!vinput::gui::ConfigManager::Get().Save(config)) {
+    QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
+    return;
   }
 
   // Restart daemon to apply
-  vinput::gui::RestartDaemon();
+  vinput::cli::SystemctlRestart();
   QMessageBox::information(this, tr("Success"),
                            tr("Settings saved successfully!"));
   close();

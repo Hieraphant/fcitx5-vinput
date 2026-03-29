@@ -14,7 +14,8 @@
 #include <QTextEdit>
 #include <QVBoxLayout>
 
-#include "utils/cli_runner.h"
+#include "common/asr/model_manager.h"
+#include "gui/utils/config_manager.h"
 #include "utils/gui_helpers.h"
 
 namespace vinput::gui {
@@ -57,19 +58,14 @@ void UpdateFieldState(QComboBox *comboType, QComboBox *comboModel,
 }
 
 QStringList LoadLocalModelIds() {
-  QJsonDocument doc;
-  if (!RunVinputJson({"model", "list"}, &doc) || !doc.isArray()) {
-    return {};
-  }
+  CoreConfig config = ConfigManager::Get().Load();
+  ModelManager manager(ResolveModelBaseDir(config).string());
+  auto models = manager.ListDetailed("");
   QStringList ids;
-  for (const auto &v : doc.array()) {
-    if (!v.isObject())
-      continue;
-    QString name = v.toObject().value("name").toString();
-    if (name.isEmpty())
-      name = v.toObject().value("id").toString();
-    if (!name.isEmpty())
-      ids.push_back(name);
+  for (const auto &m : models) {
+    if (!m.id.empty()) {
+      ids.push_back(QString::fromStdString(m.id));
+    }
   }
   return ids;
 }

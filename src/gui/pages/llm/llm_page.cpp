@@ -5,9 +5,6 @@
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -19,28 +16,52 @@
 #include <QVBoxLayout>
 
 #include "dialogs/adapter_dialog.h"
-#include "utils/cli_runner.h"
 #include "utils/gui_helpers.h"
+#include "gui/utils/config_manager.h"
+#include "gui/utils/i18n_cache.h"
+#include "cli/runtime/dbus_client.h"
+#include "common/scene/postprocess_scene.h"
+#include "common/llm/adapter_manager.h"
+#include "common/registry/registry_i18n.h"
 
 namespace vinput::gui {
 
 namespace {
+
+vinput::scene::Config ToSceneConfig(const CoreConfig::Scenes& sc) {
+  vinput::scene::Config c;
+  c.activeSceneId = sc.activeScene;
+  c.scenes = sc.definitions;
+  return c;
+}
+
+void FromSceneConfig(CoreConfig::Scenes& sc, const vinput::scene::Config& c) {
+  sc.activeScene = c.activeSceneId;
+  sc.definitions = c.scenes;
+}
 
 constexpr int kDefaultTimeoutMs = 30000;
 constexpr int kDefaultCandidateCount = 3;
 constexpr int kMinCandidateCount = 1;
 constexpr int kMaxCandidateCount = 10;
 
-QString SceneLabelForGui(const QJsonObject &scene) {
-  QString label = scene.value("label").toString();
-  QString id = scene.value("id").toString();
-  if (label == "raw" || (label.isEmpty() && id == "raw"))
+QString SceneLabelForGui(const vinput::scene::Definition &scene) {
+  if (scene.id == vinput::scene::kRawSceneId || scene.label == vinput::scene::kRawSceneLabelKey)
     return GuiTranslate("Raw");
-  if (label == "command" || (label.isEmpty() && id == "command"))
+  if (scene.id == vinput::scene::kCommandSceneId || scene.label == vinput::scene::kCommandSceneLabelKey)
     return GuiTranslate("Command");
-  if (!label.isEmpty())
-    return label;
-  return id;
+  if (!scene.label.empty())
+    return QString::fromStdString(scene.label);
+  return QString::fromStdString(scene.id);
+}
+
+// Convert between AdapterData (GUI dialog) and LlmAdapter (config).
+AdapterData AdapterDataFromConfig(const LlmAdapter &a) {
+  return {a.id, a.command, a.args, a.env};
+}
+
+LlmAdapter LlmAdapterFromDialog(const AdapterData &d) {
+  return {d.id, d.command, d.args, d.env};
 }
 
 }  // namespace
@@ -139,18 +160,11 @@ void LlmPage::reload() {
 
 void LlmPage::refreshLlmList() {
   listProviders_->clear();
+  CoreConfig config = ConfigManager::Get().Load();
 
-  QJsonDocument doc;
-  if (!RunVinputJson({"llm", "list"}, &doc) || !doc.isArray()) {
-    return;
-  }
-
-  for (const auto &v : doc.array()) {
-    if (!v.isObject())
-      continue;
-    QJsonObject obj = v.toObject();
-    QString name = obj.value("id").toString();
-    QString base_url = obj.value("base_url").toString();
+  for (const auto &provider : config.llm.providers) {
+    QString name = QString::fromStdString(provider.id);
+    QString base_url = QString::fromStdString(provider.base_url);
     QString display = QString("%1 @ %2").arg(name, base_url);
 
     auto *item = new QListWidgetItem(display, listProviders_);
@@ -160,23 +174,16 @@ void LlmPage::refreshLlmList() {
 
 void LlmPage::refreshAdapterList() {
   listAdapters_->clear();
+  CoreConfig config = ConfigManager::Get().Load();
 
-  QJsonDocument doc;
-  if (!RunVinputJson({"adapter", "list"}, &doc) || !doc.isArray()) {
-    return;
-  }
-
-  for (const auto &v : doc.array()) {
-    if (!v.isObject())
-      continue;
-    QJsonObject obj = v.toObject();
-    QString id = obj.value("id").toString();
-    bool running = obj.value("running").toBool(false);
+  for (const auto &adapter : config.llm.adapters) {
+    QString id = QString::fromStdString(adapter.id);
+    bool running = vinput::adapter::IsRunning(adapter.id);
 
     QString display = id + " · " +
                       (running ? GuiTranslate("running")
                                : GuiTranslate("stopped"));
-    QString command = obj.value("command").toString();
+    QString command = QString::fromStdString(adapter.command);
     if (!command.isEmpty()) {
       display += " · " + command;
     }
@@ -190,18 +197,16 @@ void LlmPage::refreshAdapterList() {
     if (!command.isEmpty()) {
       tooltip += "\n" + tr("Command: %1").arg(command);
     }
-    QJsonArray argsArr = obj.value("args").toArray();
-    if (!argsArr.isEmpty()) {
+    if (!adapter.args.empty()) {
       QStringList argsList;
-      for (const auto &a : argsArr)
-        argsList << a.toString();
+      for (const auto &a : adapter.args)
+        argsList << QString::fromStdString(a);
       tooltip += "\n" + tr("Args: %1").arg(argsList.join(" "));
     }
-    QJsonObject envObj = obj.value("env").toObject();
-    if (!envObj.isEmpty()) {
+    if (!adapter.env.empty()) {
       QStringList envList;
-      for (auto it = envObj.begin(); it != envObj.end(); ++it)
-        envList << it.key() + "=" + it.value().toString();
+      for (const auto &[k, v] : adapter.env)
+        envList << QString::fromStdString(k) + "=" + QString::fromStdString(v);
       tooltip += "\n" + tr("Env: %1").arg(envList.join(" "));
     }
     item->setToolTip(tooltip.trimmed());
@@ -242,15 +247,20 @@ void LlmPage::onLlmAdd() {
     return;
   }
 
-  QStringList args = {"llm", "add", name_text, "-u", base_url_text};
-  QString api_key = editApiKey->text();
-  if (!api_key.isEmpty()) {
-    args << "-k" << api_key;
+  CoreConfig config = ConfigManager::Get().Load();
+  if (ResolveLlmProvider(config, name_text.toStdString()) != nullptr) {
+    QMessageBox::warning(this, tr("Error"), tr("LLM provider '%1' already exists.").arg(name_text));
+    return;
   }
 
-  QString error;
-  if (!RunVinputCommand(args, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
+  LlmProvider provider;
+  provider.id = name_text.toStdString();
+  provider.base_url = base_url_text.toStdString();
+  provider.api_key = editApiKey->text().toStdString();
+  config.llm.providers.push_back(std::move(provider));
+
+  if (!ConfigManager::Get().Save(config)) {
+    QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
     return;
   }
   refreshLlmList();
@@ -264,20 +274,11 @@ void LlmPage::onLlmEdit() {
 
   QString provider_name = item->data(Qt::UserRole).toString();
 
-  // Load current data from CLI
-  QJsonDocument doc;
-  if (!RunVinputJson({"llm", "list"}, &doc) || !doc.isArray()) {
-    return;
-  }
+  CoreConfig config = ConfigManager::Get().Load();
+  const LlmProvider* prov = ResolveLlmProvider(config, provider_name.toStdString());
+  if (!prov) return;
 
-  QString current_base_url;
-  for (const auto &v : doc.array()) {
-    QJsonObject obj = v.toObject();
-    if (obj.value("id").toString() == provider_name) {
-      current_base_url = obj.value("base_url").toString();
-      break;
-    }
-  }
+  QString current_base_url = QString::fromStdString(prov->base_url);
 
   QDialog dialog(this);
   dialog.setWindowTitle(tr("Edit LLM Provider"));
@@ -313,17 +314,19 @@ void LlmPage::onLlmEdit() {
     return;
   }
 
-  QStringList args = {"llm", "edit", provider_name, "-u", base_url_text};
-  QString api_key = editApiKey->text();
-  if (!api_key.isEmpty()) {
-    args << "-k" << api_key;
+  auto &providers = config.llm.providers;
+  auto it = std::find_if(providers.begin(), providers.end(), [&](const LlmProvider &p) { return p.id == provider_name.toStdString(); });
+  if (it != providers.end()) {
+      it->base_url = base_url_text.toStdString();
+      if (!editApiKey->text().isEmpty()) {
+          it->api_key = editApiKey->text().toStdString();
+      }
+      if (!ConfigManager::Get().Save(config)) {
+          QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
+          return;
+      }
   }
 
-  QString error;
-  if (!RunVinputCommand(args, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
-  }
   refreshLlmList();
   emit configChanged();
 }
@@ -341,11 +344,17 @@ void LlmPage::onLlmRemove() {
   if (response != QMessageBox::Yes)
     return;
 
-  QString error;
-  if (!RunVinputCommand({"llm", "remove", provider_name}, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
+  CoreConfig config = ConfigManager::Get().Load();
+  auto &providers = config.llm.providers;
+  auto it = std::find_if(providers.begin(), providers.end(), [&](const LlmProvider &p) { return p.id == provider_name.toStdString(); });
+  if (it != providers.end()) {
+      providers.erase(it);
+      if (!ConfigManager::Get().Save(config)) {
+          QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
+          return;
+      }
   }
+
   refreshLlmList();
   emit configChanged();
 }
@@ -357,29 +366,19 @@ void LlmPage::onAdapterEdit() {
 
   QString adapter_id = item->data(Qt::UserRole).toString();
 
-  // Load current data from CLI
-  QJsonDocument doc;
-  if (!RunVinputJson({"adapter", "list"}, &doc) || !doc.isArray()) {
-    return;
-  }
-
+  CoreConfig config = ConfigManager::Get().Load();
   AdapterData current;
   bool found = false;
-  for (const auto &v : doc.array()) {
-    QJsonObject obj = v.toObject();
-    if (obj.value("id").toString() == adapter_id) {
-      current.id = adapter_id.toStdString();
-      current.command = obj.value("command").toString().toStdString();
-      for (const auto &a : obj.value("args").toArray())
-        current.args.push_back(a.toString().toStdString());
-      QJsonObject envObj = obj.value("env").toObject();
-      for (auto it = envObj.begin(); it != envObj.end(); ++it)
-        current.env[it.key().toStdString()] =
-            it.value().toString().toStdString();
+  int idx = -1;
+  for (size_t i = 0; i < config.llm.adapters.size(); ++i) {
+    if (config.llm.adapters[i].id == adapter_id.toStdString()) {
+      current = AdapterDataFromConfig(config.llm.adapters[i]);
       found = true;
+      idx = static_cast<int>(i);
       break;
     }
   }
+  
   if (!found) {
     QMessageBox::warning(
         this, tr("Error"),
@@ -392,55 +391,10 @@ void LlmPage::onAdapterEdit() {
     return;
   }
 
-  // Use config set to update the adapter fields
-  // Find the index of this adapter in the config
-  QJsonDocument configDoc;
-  if (!RunVinputJson({"adapter", "list"}, &configDoc) ||
-      !configDoc.isArray()) {
-    return;
-  }
-
-  int idx = -1;
-  for (int i = 0; i < configDoc.array().size(); ++i) {
-    if (configDoc.array()[i].toObject().value("id").toString() ==
-            adapter_id ||
-        configDoc.array()[i].toObject().value("machine_id").toString() ==
-            adapter_id) {
-      idx = i;
-      break;
-    }
-  }
-  if (idx < 0)
-    return;
-
-  // Get the machine_id for config path
-  QString machine_id =
-      configDoc.array()[idx].toObject().value("machine_id").toString();
-  if (machine_id.isEmpty())
-    machine_id = adapter_id;
-
-  // Build JSON for the adapter config
-  QJsonObject adapterObj;
-  adapterObj["id"] = QString::fromStdString(updated.id);
-  adapterObj["command"] = QString::fromStdString(updated.command);
-  QJsonArray argsArr;
-  for (const auto &a : updated.args)
-    argsArr.append(QString::fromStdString(a));
-  adapterObj["args"] = argsArr;
-  QJsonObject envObj;
-  for (const auto &[k, v] : updated.env)
-    envObj[QString::fromStdString(k)] = QString::fromStdString(v);
-  adapterObj["env"] = envObj;
-
-  QString path = QString("/llm/adapters/%1").arg(idx);
-  QString error;
-  if (!RunVinputCommand(
-          {"config", "set", path,
-           QString::fromUtf8(
-               QJsonDocument(adapterObj).toJson(QJsonDocument::Compact))},
-          &error)) {
-    QMessageBox::critical(this, tr("Error"), error);
-    return;
+  config.llm.adapters[idx] = LlmAdapterFromDialog(updated);
+  if (!ConfigManager::Get().Save(config)) {
+      QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
+      return;
   }
 
   refreshAdapterList();
@@ -453,9 +407,11 @@ void LlmPage::onAdapterStart() {
     return;
 
   const QString adapter_id = item->data(Qt::UserRole).toString();
-  QString error;
-  if (!RunVinputCommand({"adapter", "start", adapter_id}, &error, -1)) {
-    QMessageBox::warning(this, tr("Error"), error);
+
+  vinput::cli::DbusClient dbus;
+  std::string err;
+  if (!dbus.StartAdapter(adapter_id.toStdString(), &err)) {
+    QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
     return;
   }
 
@@ -470,9 +426,11 @@ void LlmPage::onAdapterStop() {
     return;
 
   const QString adapter_id = item->data(Qt::UserRole).toString();
-  QString error;
-  if (!RunVinputCommand({"adapter", "stop", adapter_id}, &error, -1)) {
-    QMessageBox::warning(this, tr("Error"), error);
+
+  vinput::cli::DbusClient dbus;
+  std::string err;
+  if (!dbus.StopAdapter(adapter_id.toStdString(), &err)) {
+    QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
     return;
   }
   refreshAdapterList();
@@ -480,26 +438,15 @@ void LlmPage::onAdapterStop() {
 
 void LlmPage::refreshSceneList() {
   listScenes_->clear();
+  CoreConfig config = ConfigManager::Get().Load();
 
-  QJsonDocument doc;
-  if (!RunVinputJson({"scene", "list"}, &doc) || !doc.isArray()) {
-    return;
-  }
-
-  for (const auto &v : doc.array()) {
-    if (!v.isObject())
-      continue;
-    QJsonObject obj = v.toObject();
-    QString id = obj.value("id").toString();
-    QString label = SceneLabelForGui(obj);
-    bool active = obj.value("active").toBool(false);
-
-    QString display = label;
+  for (const auto &scene : config.scenes.definitions) {
+    QString label = SceneLabelForGui(scene);
+    bool active = (scene.id == config.scenes.activeScene);
     if (active)
-      display += " *";
-
-    auto *item = new QListWidgetItem(display, listScenes_);
-    item->setData(Qt::UserRole, id);
+      label += " *";
+    auto *item = new QListWidgetItem(label, listScenes_);
+    item->setData(Qt::UserRole, QString::fromStdString(scene.id));
   }
 }
 
@@ -545,27 +492,26 @@ void LlmPage::onSceneAdd() {
   if (dialog.exec() != QDialog::Accepted)
     return;
 
-  QStringList args;
-  args << "scene" << "add" << "--id" << editId->text().trimmed();
-  QString label = editLabel->text().trimmed();
-  if (!label.isEmpty())
-    args << "-l" << label;
-  QString prompt = editPrompt->toPlainText();
-  if (!prompt.isEmpty())
-    args << "-t" << prompt;
-  QString provider = comboProvider->currentText();
-  if (!provider.isEmpty())
-    args << "-p" << provider;
-  QString model = comboModel->currentText().trimmed();
-  if (!model.isEmpty())
-    args << "-m" << model;
-  args << "-c" << QString::number(spinCandidates->value());
-  args << "--timeout" << QString::number(spinTimeout->value());
+  vinput::scene::Definition def;
+  def.id = editId->text().trimmed().toStdString();
+  def.label = editLabel->text().trimmed().toStdString();
+  def.prompt = editPrompt->toPlainText().toStdString();
+  def.provider_id = comboProvider->currentText().toStdString();
+  def.model = comboModel->currentText().trimmed().toStdString();
+  def.candidate_count = spinCandidates->value();
+  def.timeout_ms = spinTimeout->value();
 
-  QString error;
-  if (!RunVinputCommand(args, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
+  CoreConfig config = ConfigManager::Get().Load();
+  std::string err;
+  vinput::scene::Config sc = ToSceneConfig(config.scenes);
+  if (!vinput::scene::AddScene(&sc, def, &err)) {
+      QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
+      return;
+  }
+  FromSceneConfig(config.scenes, sc);
+  if (!ConfigManager::Get().Save(config)) {
+      QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
+      return;
   }
   refreshSceneList();
   emit configChanged();
@@ -578,22 +524,10 @@ void LlmPage::onSceneEdit() {
 
   QString scene_id = item->data(Qt::UserRole).toString();
 
-  QJsonDocument doc;
-  if (!RunVinputJson({"scene", "list"}, &doc) || !doc.isArray())
-    return;
-
-  QJsonObject found;
-  bool exists = false;
-  for (const auto &v : doc.array()) {
-    QJsonObject obj = v.toObject();
-    if (obj.value("id").toString() == scene_id) {
-      found = obj;
-      exists = true;
-      break;
-    }
-  }
-  if (!exists)
-    return;
+  CoreConfig config = ConfigManager::Get().Load();
+  vinput::scene::Config sc = ToSceneConfig(config.scenes);
+  const vinput::scene::Definition *found = vinput::scene::Find(sc, scene_id.toStdString());
+  if (!found) return;
 
   QDialog dialog(this);
   dialog.setWindowTitle(tr("Edit Scene"));
@@ -601,25 +535,24 @@ void LlmPage::onSceneEdit() {
   auto *form = new QFormLayout();
   auto *editId = new QLineEdit(scene_id);
   editId->setReadOnly(true);
-  auto *editLabel = new QLineEdit(SceneLabelForGui(found));
+  auto *editLabel = new QLineEdit(QString::fromStdString(found->label));
   auto *editPrompt = new QTextEdit();
-  editPrompt->setPlainText(found.value("prompt").toString());
+  editPrompt->setPlainText(QString::fromStdString(found->prompt));
   editPrompt->setMaximumHeight(100);
   auto *comboProvider = new QComboBox();
   auto *comboModel = new QComboBox();
   auto *spinTimeout = new QSpinBox();
   spinTimeout->setRange(1000, 300000);
   spinTimeout->setSingleStep(1000);
-  spinTimeout->setValue(found.value("timeout_ms").toInt(kDefaultTimeoutMs));
+  spinTimeout->setValue(found->timeout_ms);
   spinTimeout->setSuffix(" ms");
   auto *spinCandidates = new QSpinBox();
   spinCandidates->setRange(kMinCandidateCount, kMaxCandidateCount);
-  spinCandidates->setValue(
-      found.value("candidate_count").toInt(kDefaultCandidateCount));
+  spinCandidates->setValue(found->candidate_count);
 
   SetupProviderModelCombos(comboProvider, comboModel,
-                           found.value("provider_id").toString(),
-                           found.value("model").toString());
+                           QString::fromStdString(found->provider_id),
+                           QString::fromStdString(found->model));
 
   form->addRow(tr("ID:"), editId);
   form->addRow(tr("Label:"), editLabel);
@@ -641,19 +574,24 @@ void LlmPage::onSceneEdit() {
   if (dialog.exec() != QDialog::Accepted)
     return;
 
-  QStringList args;
-  args << "scene" << "edit" << scene_id;
-  args << "-l" << editLabel->text().trimmed();
-  args << "-t" << editPrompt->toPlainText();
-  args << "-p" << comboProvider->currentText();
-  args << "-m" << comboModel->currentText().trimmed();
-  args << "-c" << QString::number(spinCandidates->value());
-  args << "--timeout" << QString::number(spinTimeout->value());
+  vinput::scene::Definition def = *found;
+  def.label = editLabel->text().trimmed().toStdString();
+  def.prompt = editPrompt->toPlainText().toStdString();
+  def.provider_id = comboProvider->currentText().toStdString();
+  def.model = comboModel->currentText().trimmed().toStdString();
+  def.candidate_count = spinCandidates->value();
+  def.timeout_ms = spinTimeout->value();
 
-  QString error;
-  if (!RunVinputCommand(args, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
+  std::string err;
+  sc = ToSceneConfig(config.scenes);
+  if (!vinput::scene::UpdateScene(&sc, scene_id.toStdString(), def, &err)) {
+      QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
+      return;
+  }
+  FromSceneConfig(config.scenes, sc);
+  if (!ConfigManager::Get().Save(config)) {
+      QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
+      return;
   }
   refreshSceneList();
   emit configChanged();
@@ -671,10 +609,17 @@ void LlmPage::onSceneRemove() {
   if (response != QMessageBox::Yes)
     return;
 
-  QString error;
-  if (!RunVinputCommand({"scene", "remove", scene_id}, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
+  CoreConfig config = ConfigManager::Get().Load();
+  std::string err;
+  vinput::scene::Config sc = ToSceneConfig(config.scenes);
+  if (!vinput::scene::RemoveScene(&sc, scene_id.toStdString(), true, &err)) {
+      QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
+      return;
+  }
+  FromSceneConfig(config.scenes, sc);
+  if (!ConfigManager::Get().Save(config)) {
+      QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
+      return;
   }
   refreshSceneList();
   emit configChanged();
@@ -686,11 +631,22 @@ void LlmPage::onSceneSetActive() {
     return;
 
   QString scene_id = item->data(Qt::UserRole).toString();
-  QString error;
-  if (!RunVinputCommand({"scene", "use", scene_id}, &error)) {
-    QMessageBox::warning(this, tr("Error"), error);
-    return;
+  
+  CoreConfig config = vinput::gui::ConfigManager::Get().Load();
+  std::string err;
+  
+  vinput::scene::Config sc = ToSceneConfig(config.scenes);
+  if (!vinput::scene::SetActiveScene(&sc, scene_id.toStdString(), &err)) {
+      QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
+      return;
   }
+  FromSceneConfig(config.scenes, sc);
+  
+  if (!vinput::gui::ConfigManager::Get().Save(config)) {
+      QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
+      return;
+  }
+
   refreshSceneList();
   emit configChanged();
 }
