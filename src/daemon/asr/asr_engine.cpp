@@ -330,7 +330,7 @@ bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config,
            }},
           {"funasr_nano",
            [&] {
-             config.model_config.funasr_nano.encoder_adapter =
+             config.model_config.funasr_nano.encoder_adaptor =
                  f_encoder_adapter.c_str();
              config.model_config.funasr_nano.llm = f_llm.c_str();
              config.model_config.funasr_nano.embedding = f_embedding.c_str();
