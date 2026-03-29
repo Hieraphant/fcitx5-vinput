@@ -633,7 +633,6 @@ void VinputEngine::updatePreedit(fcitx::InputContext *ic,
   fcitx::Text preedit;
   preedit.append(text);
   ic->inputPanel().setPreedit(preedit);
-  ic->inputPanel().setClientPreedit(preedit);
   ic->updatePreedit();
   ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
@@ -643,7 +642,6 @@ void VinputEngine::clearPreedit(fcitx::InputContext *ic) {
     return;
   fcitx::Text empty;
   ic->inputPanel().setPreedit(empty);
-  ic->inputPanel().setClientPreedit(empty);
   ic->updatePreedit();
   ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
