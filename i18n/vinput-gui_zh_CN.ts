@@ -36,10 +36,6 @@
         <translation>LLM</translation>
     </message>
     <message>
-        <source>Scenes</source>
-        <translation>场景</translation>
-    </message>
-    <message>
         <source>Open Config</source>
         <translation>打开配置</translation>
     </message>
@@ -51,16 +47,16 @@
         <translation>在 PATH 中未找到 vinput</translation>
     </message>
     <message>
+        <source>vinput executable not found at %1</source>
+        <translation>未在 %1 找到 vinput 可执行文件</translation>
+    </message>
+    <message>
         <source>vinput command timed out</source>
         <translation>vinput 命令超时</translation>
     </message>
     <message>
         <source>vinput command failed</source>
         <translation>vinput 命令失败</translation>
-    </message>
-    <message>
-        <source>Flatpak Vinput CLI not found at %1</source>
-        <translation>未在 %1 找到 Flatpak Vinput CLI</translation>
     </message>
     <message>
         <source>Failed to launch %1</source>
@@ -78,10 +74,6 @@
         <translation>&lt;b&gt;ASR 提供商&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>Add</source>
-        <translation>添加</translation>
-    </message>
-    <message>
         <source>Edit</source>
         <translation>编辑</translation>
     </message>
@@ -90,8 +82,8 @@
         <translation>移除</translation>
     </message>
     <message>
-        <source>Set Active</source>
-        <translation>设为活跃</translation>
+        <source>Activate</source>
+        <translation>激活</translation>
     </message>
     <message>
         <source>Daemon Status:</source>
@@ -102,28 +94,24 @@
         <translation>未知</translation>
     </message>
     <message>
-        <source>Start Daemon</source>
-        <translation>启动守护进程</translation>
+        <source>Start</source>
+        <translation>启动</translation>
     </message>
     <message>
-        <source>Stop Daemon</source>
-        <translation>停止守护进程</translation>
+        <source>Stop</source>
+        <translation>停止</translation>
     </message>
     <message>
-        <source>Restart Daemon</source>
-        <translation>重启守护进程</translation>
-    </message>
-    <message>
-        <source>Add ASR Provider</source>
-        <translation>添加 ASR 提供商</translation>
-    </message>
-    <message>
-        <source>Error</source>
-        <translation>错误</translation>
+        <source>Restart</source>
+        <translation>重启</translation>
     </message>
     <message>
         <source>Edit ASR Provider</source>
         <translation>编辑 ASR 提供商</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>错误</translation>
     </message>
     <message>
         <source>Confirm</source>
@@ -131,7 +119,7 @@
     </message>
     <message>
         <source>Are you sure you want to remove ASR provider &apos;%1&apos;?</source>
-        <translation>确定要移除 ASR 提供商“%1”吗？</translation>
+        <translation>确定要移除 ASR 提供商"%1"吗？</translation>
     </message>
     <message>
         <source>Error: %1</source>
@@ -156,8 +144,8 @@
     <message>
         <source>Vinput requires additional Flatpak permissions.
 Please follow the instructions.</source>
-        <translation>语音输入需要额外的 Flatpak 权限
-请参考说明文档</translation>
+        <translation>语音输入需要额外的 Flatpak 权限。
+请参考说明文档。</translation>
     </message>
 </context>
 <context>
@@ -222,6 +210,14 @@ Please follow the instructions.</source>
         <translation>&lt;b&gt;已安装适配器&lt;/b&gt;</translation>
     </message>
     <message>
+        <source>&lt;b&gt;Scenes&lt;/b&gt;</source>
+        <translation>&lt;b&gt;场景&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>Activate</source>
+        <translation>激活</translation>
+    </message>
+    <message>
         <source>Command: %1</source>
         <translation>命令：%1</translation>
     </message>
@@ -267,7 +263,7 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Are you sure you want to remove LLM provider &apos;%1&apos;?</source>
-        <translation>确定要移除 LLM 提供商“%1”吗？</translation>
+        <translation>确定要移除 LLM 提供商"%1"吗？</translation>
     </message>
     <message>
         <source>Adapter &apos;%1&apos; not found in configuration.</source>
@@ -280,6 +276,46 @@ Please follow the instructions.</source>
     <message>
         <source>Adapter &apos;%1&apos; started.</source>
         <translation>适配器"%1"已启动。</translation>
+    </message>
+    <message>
+        <source>Add Scene</source>
+        <translation>添加场景</translation>
+    </message>
+    <message>
+        <source>Edit Scene</source>
+        <translation>编辑场景</translation>
+    </message>
+    <message>
+        <source>ID:</source>
+        <translation>ID：</translation>
+    </message>
+    <message>
+        <source>Label:</source>
+        <translation>标签：</translation>
+    </message>
+    <message>
+        <source>Prompt:</source>
+        <translation>提示词：</translation>
+    </message>
+    <message>
+        <source>Provider:</source>
+        <translation>提供者：</translation>
+    </message>
+    <message>
+        <source>Model:</source>
+        <translation>模型：</translation>
+    </message>
+    <message>
+        <source>Candidate Count:</source>
+        <translation>候选词数量：</translation>
+    </message>
+    <message>
+        <source>Timeout (ms):</source>
+        <translation>超时（毫秒）：</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to remove scene &apos;%1&apos;?</source>
+        <translation>确定要移除场景"%1"吗？</translation>
     </message>
 </context>
 <context>
@@ -313,12 +349,12 @@ Please follow the instructions.</source>
         <translation>状态</translation>
     </message>
     <message>
-        <source>Use Selected</source>
-        <translation>使用选中项</translation>
+        <source>Use</source>
+        <translation>使用</translation>
     </message>
     <message>
-        <source>Remove Selected</source>
-        <translation>移除选中项</translation>
+        <source>Remove</source>
+        <translation>移除</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -337,8 +373,8 @@ Please follow the instructions.</source>
         <translation>描述</translation>
     </message>
     <message>
-        <source>Download Selected</source>
-        <translation>下载选中项</translation>
+        <source>Download</source>
+        <translation>下载</translation>
     </message>
     <message>
         <source>&lt;b&gt;Available ASR Providers&lt;/b&gt;</source>
@@ -349,8 +385,8 @@ Please follow the instructions.</source>
         <translation>模式</translation>
     </message>
     <message>
-        <source>Add Selected</source>
-        <translation>添加选中项</translation>
+        <source>Install</source>
+        <translation>安装</translation>
     </message>
     <message>
         <source>&lt;b&gt;Available LLM Adapters&lt;/b&gt;</source>
@@ -414,7 +450,7 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Selected model &apos;%1&apos; has been assigned to the preferred local ASR provider.</source>
-        <translation>已将所选模型“%1”分配给首选的本地 ASR 提供商。</translation>
+        <translation>已将所选模型"%1"分配给首选的本地 ASR 提供商。</translation>
     </message>
     <message>
         <source>Confirm</source>
@@ -422,7 +458,7 @@ Please follow the instructions.</source>
     </message>
     <message>
         <source>Are you sure you want to remove model &apos;%1&apos;?</source>
-        <translation>确定要移除模型“%1”吗？</translation>
+        <translation>确定要移除模型"%1"吗？</translation>
     </message>
     <message>
         <source>Removing %1...</source>
@@ -431,73 +467,6 @@ Please follow the instructions.</source>
     <message>
         <source>Process finished</source>
         <translation>处理完成</translation>
-    </message>
-</context>
-<context>
-    <name>vinput::gui::ScenePage</name>
-    <message>
-        <source>Add</source>
-        <translation>添加</translation>
-    </message>
-    <message>
-        <source>Edit</source>
-        <translation>编辑</translation>
-    </message>
-    <message>
-        <source>Remove</source>
-        <translation>移除</translation>
-    </message>
-    <message>
-        <source>Set Active</source>
-        <translation>设为活跃</translation>
-    </message>
-    <message>
-        <source>Add Scene</source>
-        <translation>添加场景</translation>
-    </message>
-    <message>
-        <source>ID:</source>
-        <translation>ID：</translation>
-    </message>
-    <message>
-        <source>Label:</source>
-        <translation>标签：</translation>
-    </message>
-    <message>
-        <source>Prompt:</source>
-        <translation>提示词：</translation>
-    </message>
-    <message>
-        <source>Provider:</source>
-        <translation>提供者：</translation>
-    </message>
-    <message>
-        <source>Model:</source>
-        <translation>模型：</translation>
-    </message>
-    <message>
-        <source>Candidate Count:</source>
-        <translation>候选词数量：</translation>
-    </message>
-    <message>
-        <source>Timeout (ms):</source>
-        <translation>超时（毫秒）：</translation>
-    </message>
-    <message>
-        <source>Error</source>
-        <translation>错误</translation>
-    </message>
-    <message>
-        <source>Edit Scene</source>
-        <translation>编辑场景</translation>
-    </message>
-    <message>
-        <source>Confirm</source>
-        <translation>确认</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to remove scene &apos;%1&apos;?</source>
-        <translation>确定要移除场景“%1”吗？</translation>
     </message>
 </context>
 </TS>
