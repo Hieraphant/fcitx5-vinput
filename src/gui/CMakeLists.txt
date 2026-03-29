@@ -119,6 +119,13 @@ install(FILES ${VINPUT_GUI_DESKTOP_FILE}
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
 
+foreach(SIZE 16 22 24 32 48 64 128 256 512)
+    install(FILES
+        ${CMAKE_SOURCE_DIR}/data/icons/hicolor/${SIZE}x${SIZE}/apps/vinput-gui.png
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/${SIZE}x${SIZE}/apps
+    )
+endforeach()
+
 if(VINPUT_GUI_QM)
     install(FILES ${VINPUT_GUI_QM}
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/i18n
