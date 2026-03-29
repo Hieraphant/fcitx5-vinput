@@ -3,10 +3,10 @@ find_package(Fcitx5ModuleClipboard REQUIRED)
 find_package(Fcitx5ModuleNotifications REQUIRED)
 
 add_library(fcitx5-vinput MODULE
-    vinput.cpp
-    vinput_keyevent.cpp
-    vinput_menu.cpp
-    vinput_dbus.cpp
+    core/vinput.cpp
+    dbus/vinput_dbus.cpp
+    input/vinput_keyevent.cpp
+    menu/vinput_menu.cpp
 )
 
 find_package(Fcitx5Core REQUIRED)
@@ -25,6 +25,7 @@ target_link_libraries(fcitx5-vinput PRIVATE
 )
 target_include_directories(fcitx5-vinput PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 set_target_properties(fcitx5-vinput PROPERTIES PREFIX "")
 

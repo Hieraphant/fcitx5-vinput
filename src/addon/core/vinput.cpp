@@ -1,5 +1,5 @@
-#include "vinput.h"
-#include "notifier_dbus_object.h"
+#include "core/vinput.h"
+#include "dbus/notifier_dbus_object.h"
 #include "common/config/core_config.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"

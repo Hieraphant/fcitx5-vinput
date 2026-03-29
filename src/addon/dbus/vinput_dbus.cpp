@@ -1,4 +1,4 @@
-#include "vinput.h"
+#include "core/vinput.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/dbus/error_info.h"
 #include "common/i18n.h"
