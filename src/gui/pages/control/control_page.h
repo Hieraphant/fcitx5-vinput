@@ -26,7 +26,6 @@ signals:
 
 private slots:
   void refreshAsrList();
-  void onAsrAdd();
   void onAsrEdit();
   void onAsrRemove();
   void onAsrSetActive();
@@ -41,7 +40,6 @@ private slots:
 private:
   QComboBox *comboDevice_;
   QListWidget *listAsrProviders_;
-  QPushButton *btnAsrAdd_;
   QPushButton *btnAsrEdit_;
   QPushButton *btnAsrRemove_;
   QPushButton *btnAsrSetActive_;

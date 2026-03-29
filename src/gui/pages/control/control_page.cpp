@@ -43,11 +43,9 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
   asrListLayout->addWidget(listAsrProviders_);
 
   auto *asrBtnLayout = new QVBoxLayout();
-  btnAsrAdd_ = new QPushButton(tr("Add"));
   btnAsrEdit_ = new QPushButton(tr("Edit"));
   btnAsrRemove_ = new QPushButton(tr("Remove"));
   btnAsrSetActive_ = new QPushButton(tr("Set Active"));
-  asrBtnLayout->addWidget(btnAsrAdd_);
   asrBtnLayout->addWidget(btnAsrEdit_);
   asrBtnLayout->addWidget(btnAsrRemove_);
   asrBtnLayout->addWidget(btnAsrSetActive_);
@@ -56,7 +54,6 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
   asrLayout->addLayout(asrListLayout);
   layout->addWidget(asrFrame);
 
-  connect(btnAsrAdd_, &QPushButton::clicked, this, &ControlPage::onAsrAdd);
   connect(btnAsrEdit_, &QPushButton::clicked, this, &ControlPage::onAsrEdit);
   connect(btnAsrRemove_, &QPushButton::clicked, this,
           &ControlPage::onAsrRemove);
@@ -183,54 +180,6 @@ void ControlPage::refreshAsrList() {
       });
 }
 
-void ControlPage::onAsrAdd() {
-  AsrProviderData data;
-  if (!ShowAsrProviderDialog(this, tr("Add ASR Provider"), nullptr, &data)) {
-    return;
-  }
-
-  // Use config set to add the provider via CLI
-  QStringList args;
-  if (data.type == "local") {
-    // For local: create via config, then set model with model use
-    args = {"config", "set", "/asr/providers/-",
-            QString("{\"id\":\"%1\",\"type\":\"local\",\"timeout_ms\":%2,"
-                    "\"model\":\"%3\"}")
-                .arg(QString::fromStdString(data.id))
-                .arg(data.timeout_ms)
-                .arg(QString::fromStdString(data.model))};
-  } else {
-    QJsonObject provObj;
-    provObj["id"] = QString::fromStdString(data.id);
-    provObj["type"] = "command";
-    provObj["timeout_ms"] = data.timeout_ms;
-    provObj["command"] = QString::fromStdString(data.command);
-    QJsonArray argsArr;
-    for (const auto &a : data.args) {
-      argsArr.append(QString::fromStdString(a));
-    }
-    provObj["args"] = argsArr;
-    QJsonObject envObj;
-    for (const auto &[k, v] : data.env) {
-      envObj[QString::fromStdString(k)] = QString::fromStdString(v);
-    }
-    provObj["env"] = envObj;
-    args = {"config", "set", "/asr/providers/-",
-            QString::fromUtf8(
-                QJsonDocument(provObj).toJson(QJsonDocument::Compact))};
-  }
-
-  QString error;
-  if (!RunVinputCommand(args, &error)) {
-    QMessageBox::critical(this, tr("Error"), error);
-    return;
-  }
-
-  RestartDaemon();
-  refreshAsrList();
-  emit configChanged();
-}
-
 void ControlPage::onAsrEdit() {
   auto *item = listAsrProviders_->currentItem();
   if (!item)
@@ -297,7 +246,7 @@ void ControlPage::onAsrEdit() {
     provObj["env"] = envObj;
   }
   if (!RunVinputCommand(
-          {"config", "set", "/asr/providers/-",
+          QStringList{"config", "set", "/asr/providers/-",
            QString::fromUtf8(
                QJsonDocument(provObj).toJson(QJsonDocument::Compact))},
           &error)) {
