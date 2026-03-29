@@ -213,6 +213,9 @@ msgstr ""
 msgid "Choose Postprocess Menu"
 msgstr ""
 
+msgid "Choose ASR Provider / Model"
+msgstr ""
+
 #, c-format
 msgid "Choose Result (%zu)"
 msgstr ""
@@ -231,6 +234,9 @@ msgid " (Current)"
 msgstr ""
 
 msgid "Failed to save active scene."
+msgstr ""
+
+msgid "Failed to save ASR config."
 msgstr ""
 
 msgid "ID"
@@ -829,6 +835,14 @@ msgstr ""
 msgid ""
 "Configure one or more keys to open the postprocess menu. The default is "
 "Right Alt + Control."
+msgstr ""
+
+msgid "ASR Menu Keys"
+msgstr ""
+
+msgid ""
+"Configure one or more keys to open the ASR provider / model selection menu. "
+"The default is F8."
 msgstr ""
 
 msgid "Previous Page Keys"

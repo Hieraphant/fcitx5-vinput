@@ -212,6 +212,9 @@ msgstr "未配置命令模式的 LLM 提供者。"
 msgid "Choose Postprocess Menu"
 msgstr "选择后处理选单"
 
+msgid "Choose ASR Provider / Model"
+msgstr "选择语音识别引擎 / 模型"
+
 #, c-format
 msgid "Choose Result (%zu)"
 msgstr "选择结果（%zu项）"
@@ -231,6 +234,9 @@ msgstr "（当前）"
 
 msgid "Failed to save active scene."
 msgstr "保存当前活跃场景失败。"
+
+msgid "Failed to save ASR config."
+msgstr "保存语音识别配置失败。"
 
 msgid "ID"
 msgstr "ID"
@@ -838,6 +844,14 @@ msgid ""
 "Configure one or more keys to open the postprocess menu. The default is "
 "Right Alt + Control."
 msgstr "可配置多个按键，用于打开后处理选单。默认是右 Alt + Ctrl。"
+
+msgid "ASR Menu Keys"
+msgstr "语音识别菜单键"
+
+msgid ""
+"Configure one or more keys to open the ASR provider / model selection menu. "
+"The default is F8."
+msgstr "可配置多个按键，用于打开语音识别引擎 / 模型选择菜单。默认是 F8。"
 
 msgid "Previous Page Keys"
 msgstr "上一页键"
