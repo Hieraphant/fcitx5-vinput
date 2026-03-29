@@ -42,7 +42,7 @@ void RegisterDaemonCommands(CLI::App &app, CliAction *action) {
 
   auto follow = std::make_shared<bool>(false);
   auto lines = std::make_shared<int>(100);
-  auto *logs = daemon->add_subcommand("logs", _("Show daemon logs"));
+  auto *logs = daemon->add_subcommand("log", _("Show daemon logs"));
   logs->add_flag("-f,--follow", *follow, _("Follow log output"));
   logs->add_option("-n,--lines", *lines, _("Number of log lines"))
       ->default_val(100);

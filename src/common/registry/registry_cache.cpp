@@ -100,7 +100,7 @@ std::filesystem::path AsrProviderRegistryPath() {
   return CachePath("providers.json");
 }
 
-std::filesystem::path LlmAdaptorRegistryPath() {
+std::filesystem::path LlmAdapterRegistryPath() {
   return CachePath("adapters.json");
 }
 

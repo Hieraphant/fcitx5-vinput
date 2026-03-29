@@ -10,6 +10,7 @@ set(VINPUT_CONFIG_SOURCES
     scene/postprocess_scene.cpp
     i18n.cpp
     utils/path_utils.cpp
+    utils/sandbox.cpp
     utils/file_utils.cpp
 )
 
@@ -27,7 +28,7 @@ add_library(vinput-common STATIC
     registry/registry_cache.cpp
     registry/registry_i18n.cpp
     registry/registry_scripts.cpp
-    llm/adaptor_manager.cpp
+    llm/adapter_manager.cpp
     utils/download_progress.cpp
     utils/downloader.cpp
     utils/process_utils.cpp

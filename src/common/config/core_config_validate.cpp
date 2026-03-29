@@ -33,7 +33,7 @@ bool ValidateCoreConfig(const CoreConfig &config, std::string *error) {
     return false;
   }
 
-  if (!CheckUniqueId(config.llm.adaptors, "LLM adaptor", error)) {
+  if (!CheckUniqueId(config.llm.adapters, "LLM adapter", error)) {
     return false;
   }
 

@@ -20,7 +20,7 @@ struct LlmProvider {
   std::string api_key;
 };
 
-struct LlmAdaptor {
+struct LlmAdapter {
   std::string id;
   std::string command;
   std::vector<std::string> args;
@@ -74,7 +74,7 @@ struct CoreConfig {
 
   struct Llm {
     std::vector<LlmProvider> providers;
-    std::vector<LlmAdaptor> adaptors;
+    std::vector<LlmAdapter> adapters;
   } llm;
 
   struct Asr {

@@ -65,6 +65,8 @@ std::vector<RegistryEntry> ParseRegistryJson(const std::string &content,
     for (const auto &item : j.at("items")) {
       RegistryEntry entry;
       entry.id = item.value("id", "");
+      entry.short_id = item.value("short_id", "");
+      entry.stream = item.value("stream", false);
       entry.command = item.value("command", "");
       entry.readme_url = item.value("readme_url", "");
       if (item.contains("script_urls") && item.at("script_urls").is_array()) {
@@ -163,7 +165,7 @@ std::vector<RegistryEntry> FetchRegistryImpl(
           config, urls,
           kind == Kind::kAsrProvider
               ? vinput::registry::cache::AsrProviderRegistryPath()
-              : vinput::registry::cache::LlmAdaptorRegistryPath(),
+              : vinput::registry::cache::LlmAdapterRegistryPath(),
           options, &content, &result, error)) {
     if (resolved_registry_url) {
       resolved_registry_url->clear();
@@ -315,7 +317,7 @@ bool MaterializeAsrProvider(CoreConfig *config, const RegistryEntry &entry,
   return true;
 }
 
-bool MaterializeLlmAdaptor(CoreConfig *config, const RegistryEntry &entry,
+bool MaterializeLlmAdapter(CoreConfig *config, const RegistryEntry &entry,
                            const fs::path &script_path, std::string *error) {
   if (!config) {
     if (error) {
@@ -324,29 +326,29 @@ bool MaterializeLlmAdaptor(CoreConfig *config, const RegistryEntry &entry,
     return false;
   }
 
-  auto it = std::find_if(config->llm.adaptors.begin(), config->llm.adaptors.end(),
-                         [&entry](const LlmAdaptor &adaptor) {
-                           return adaptor.id == entry.id;
+  auto it = std::find_if(config->llm.adapters.begin(), config->llm.adapters.end(),
+                         [&entry](const LlmAdapter &adapter) {
+                           return adapter.id == entry.id;
                          });
-  const fs::path managed_path = DefaultLocalScriptPath(Kind::kLlmAdaptor, entry.id);
+  const fs::path managed_path = DefaultLocalScriptPath(Kind::kLlmAdapter, entry.id);
   if (managed_path.empty()) {
     if (error) {
-      *error = "invalid adaptor id: " + entry.id;
+      *error = "invalid adapter id: " + entry.id;
     }
     return false;
   }
 
-  if (it == config->llm.adaptors.end()) {
-    LlmAdaptor adaptor;
-    adaptor.id = entry.id;
-    adaptor.command = entry.command;
-    adaptor.args = {script_path.string()};
-    FillDefaultEnvMap(entry.envs, &adaptor.env);
-    config->llm.adaptors.push_back(std::move(adaptor));
+  if (it == config->llm.adapters.end()) {
+    LlmAdapter adapter;
+    adapter.id = entry.id;
+    adapter.command = entry.command;
+    adapter.args = {script_path.string()};
+    FillDefaultEnvMap(entry.envs, &adapter.env);
+    config->llm.adapters.push_back(std::move(adapter));
   } else {
     if (!IsManagedScriptPath(managed_path, it->args)) {
       if (error) {
-        *error = "refusing to overwrite user-defined adaptor: " + entry.id;
+        *error = "refusing to overwrite user-defined adapter: " + entry.id;
       }
       return false;
     }

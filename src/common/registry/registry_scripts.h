@@ -10,7 +10,7 @@ namespace vinput::script {
 
 enum class Kind {
   kAsrProvider,
-  kLlmAdaptor,
+  kLlmAdapter,
 };
 
 struct EnvSpec {
@@ -20,6 +20,8 @@ struct EnvSpec {
 
 struct RegistryEntry {
   std::string id;
+  std::string short_id;
+  bool stream = false;
   std::string command;
   std::vector<std::string> script_urls;
   std::string readme_url;
@@ -42,7 +44,7 @@ bool DownloadScript(const RegistryEntry &entry, Kind kind,
 bool MaterializeAsrProvider(CoreConfig *config, const RegistryEntry &entry,
                             const std::filesystem::path &script_path,
                             std::string *error);
-bool MaterializeLlmAdaptor(CoreConfig *config, const RegistryEntry &entry,
+bool MaterializeLlmAdapter(CoreConfig *config, const RegistryEntry &entry,
                            const std::filesystem::path &script_path,
                            std::string *error);
 

@@ -1,0 +1,221 @@
+#include "dialogs/asr_provider_dialog.h"
+
+#include <QComboBox>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QSpinBox>
+#include <QTextEdit>
+#include <QVBoxLayout>
+
+#include "utils/cli_runner.h"
+#include "utils/gui_helpers.h"
+
+namespace vinput::gui {
+
+namespace {
+
+constexpr char kLocalType[] = "local";
+constexpr char kCommandType[] = "command";
+
+QString JoinArgLines(const std::vector<std::string> &args) {
+  std::string joined;
+  for (std::size_t i = 0; i < args.size(); ++i) {
+    if (i != 0)
+      joined += "\n";
+    joined += args[i];
+  }
+  return QString::fromStdString(joined);
+}
+
+QString JoinEnvLines(const std::map<std::string, std::string> &env) {
+  std::string joined;
+  std::size_t index = 0;
+  for (const auto &[key, value] : env) {
+    if (index++ != 0)
+      joined += "\n";
+    joined += key + "=" + value;
+  }
+  return QString::fromStdString(joined);
+}
+
+void UpdateFieldState(QComboBox *comboType, QComboBox *comboModel,
+                      QLineEdit *editCommand, QTextEdit *textArgs,
+                      QTextEdit *textEnv, QSpinBox *spinTimeout) {
+  const bool is_local = comboType->currentData().toString() == kLocalType;
+  comboModel->setEnabled(is_local);
+  editCommand->setEnabled(!is_local);
+  textArgs->setEnabled(!is_local);
+  textEnv->setEnabled(!is_local);
+  spinTimeout->setEnabled(true);
+}
+
+QStringList LoadLocalModelIds() {
+  QJsonDocument doc;
+  if (!RunVinputJson({"model", "list"}, &doc) || !doc.isArray()) {
+    return {};
+  }
+  QStringList ids;
+  for (const auto &v : doc.array()) {
+    if (!v.isObject())
+      continue;
+    QString name = v.toObject().value("name").toString();
+    if (name.isEmpty())
+      name = v.toObject().value("id").toString();
+    if (!name.isEmpty())
+      ids.push_back(name);
+  }
+  return ids;
+}
+
+}  // namespace
+
+bool ShowAsrProviderDialog(QWidget *parent, const QString &title,
+                           const AsrProviderData *existing,
+                           AsrProviderData *out_data) {
+  if (!out_data) {
+    return false;
+  }
+
+  while (true) {
+    QDialog dialog(parent);
+    dialog.setWindowTitle(title);
+
+    auto *form = new QFormLayout();
+    auto *editName = new QLineEdit();
+    auto *comboType = new QComboBox();
+    auto *comboModel = new QComboBox();
+    auto *editCommand = new QLineEdit();
+    auto *textArgs = new QTextEdit();
+    auto *textEnv = new QTextEdit();
+    auto *spinTimeout = new QSpinBox();
+
+    comboType->addItem(GuiTranslate("local"), QString(kLocalType));
+    comboType->addItem(GuiTranslate("command"), QString(kCommandType));
+    textArgs->setMaximumHeight(90);
+    textEnv->setMaximumHeight(90);
+    textArgs->setPlaceholderText(GuiTranslate("One argument per line"));
+    textEnv->setPlaceholderText(
+        GuiTranslate("One KEY=VALUE entry per line"));
+    spinTimeout->setRange(1000, 300000);
+    spinTimeout->setSingleStep(1000);
+    spinTimeout->setSuffix(" ms");
+    comboModel->setEditable(true);
+
+    const QStringList local_models = LoadLocalModelIds();
+    for (const auto &m : local_models) {
+      comboModel->addItem(m);
+    }
+
+    AsrProviderData initial;
+    if (existing) {
+      initial = *existing;
+    } else {
+      initial.type = kLocalType;
+      initial.timeout_ms = 15000;
+    }
+
+    editName->setText(QString::fromStdString(initial.id));
+    editName->setReadOnly(existing != nullptr);
+    comboType->setCurrentIndex(
+        comboType->findData(QString::fromStdString(initial.type)));
+
+    if (initial.type == kLocalType) {
+      if (!initial.model.empty() &&
+          comboModel->findText(QString::fromStdString(initial.model)) == -1) {
+        comboModel->addItem(QString::fromStdString(initial.model));
+      }
+      comboModel->setCurrentText(QString::fromStdString(initial.model));
+      editCommand->clear();
+      textArgs->clear();
+      textEnv->clear();
+    } else {
+      comboModel->setCurrentText(QString());
+      editCommand->setText(QString::fromStdString(initial.command));
+      textArgs->setPlainText(JoinArgLines(initial.args));
+      textEnv->setPlainText(JoinEnvLines(initial.env));
+    }
+    spinTimeout->setValue(
+        initial.timeout_ms > 0 ? initial.timeout_ms : spinTimeout->minimum());
+
+    UpdateFieldState(comboType, comboModel, editCommand, textArgs, textEnv,
+                     spinTimeout);
+    QObject::connect(
+        comboType, QOverload<int>::of(&QComboBox::currentIndexChanged), &dialog,
+        [comboType, comboModel, editCommand, textArgs, textEnv, spinTimeout]() {
+          UpdateFieldState(comboType, comboModel, editCommand, textArgs,
+                           textEnv, spinTimeout);
+        });
+
+    form->addRow(GuiTranslate("Name:"), editName);
+    form->addRow(GuiTranslate("Type:"), comboType);
+    form->addRow(GuiTranslate("Model:"), comboModel);
+    form->addRow(GuiTranslate("Command / Interpreter:"), editCommand);
+    form->addRow(GuiTranslate("Args:"), textArgs);
+    form->addRow(GuiTranslate("Env:"), textEnv);
+    form->addRow(GuiTranslate("Timeout (ms):"), spinTimeout);
+
+    auto *buttons =
+        new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog,
+                     &QDialog::accept);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog,
+                     &QDialog::reject);
+
+    auto *layout = new QVBoxLayout(&dialog);
+    layout->addLayout(form);
+    layout->addWidget(buttons);
+
+    if (dialog.exec() != QDialog::Accepted) {
+      return false;
+    }
+
+    const QString name = editName->text().trimmed();
+    const QString type = comboType->currentData().toString();
+    if (name.isEmpty()) {
+      QMessageBox::warning(parent, GuiTranslate("Error"),
+                           GuiTranslate("Provider name must not be empty."));
+      continue;
+    }
+
+    out_data->id = name.toStdString();
+    out_data->type = type.toStdString();
+    out_data->timeout_ms = spinTimeout->value();
+
+    if (type == kLocalType) {
+      out_data->model = comboModel->currentText().trimmed().toStdString();
+      out_data->command.clear();
+      out_data->args.clear();
+      out_data->env.clear();
+    } else {
+      const QString command = editCommand->text().trimmed();
+      if (command.isEmpty()) {
+        QMessageBox::warning(
+            parent, GuiTranslate("Error"),
+            GuiTranslate("Command providers require a command."));
+        continue;
+      }
+      out_data->command = command.toStdString();
+      out_data->model.clear();
+      out_data->args.clear();
+      for (const QString &arg : NonEmptyLines(textArgs->toPlainText())) {
+        out_data->args.push_back(arg.toStdString());
+      }
+      QString env_error;
+      if (!ParseCommandEnv(textEnv->toPlainText(), &out_data->env,
+                           &env_error)) {
+        QMessageBox::warning(parent, GuiTranslate("Error"), env_error);
+        continue;
+      }
+    }
+    return true;
+  }
+}
+
+}  // namespace vinput::gui

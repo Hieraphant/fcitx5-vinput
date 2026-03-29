@@ -9,7 +9,7 @@
 namespace vinput::cli::config {
 
 void RegisterLlmCommands(CLI::App &app, CliAction *action) {
-  auto *llm = app.add_subcommand("llm", _("Manage LLM provider configuration"));
+  auto *llm = app.add_subcommand("llm", _("Manage LLM providers"));
   llm->require_subcommand(1);
 
   auto *list = llm->add_subcommand("list", _("List configured LLM providers"));
@@ -20,22 +20,11 @@ void RegisterLlmCommands(CLI::App &app, CliAction *action) {
     };
   });
 
-  auto *listAdaptors =
-      llm->add_subcommand("list-adaptors", _("List LLM adaptors"));
-  auto availableAdaptors = std::make_shared<bool>(false);
-  listAdaptors->add_flag("-a,--available", *availableAdaptors,
-                         _("List available remote LLM adaptors"));
-  listAdaptors->callback([action, availableAdaptors]() {
-    *action = [availableAdaptors](Formatter &fmt, const CliContext &ctx) {
-      return RunLlmConfigListAdaptors(*availableAdaptors, fmt, ctx);
-    };
-  });
-
   auto id = std::make_shared<std::string>();
   auto baseUrl = std::make_shared<std::string>();
   auto apiKey = std::make_shared<std::string>();
   auto *add = llm->add_subcommand("add", _("Add an LLM provider"));
-  add->add_option("id", *id, _("Provider id"))->required();
+  add->add_option("id", *id, _("Provider ID"))->required();
   add->add_option("-u,--base-url", *baseUrl, _("Base URL"))->required();
   add->add_option("-k,--api-key", *apiKey, _("API key"));
   add->callback([action, id, baseUrl, apiKey]() {
@@ -44,45 +33,80 @@ void RegisterLlmCommands(CLI::App &app, CliAction *action) {
     };
   });
 
-  auto adaptorSelector = std::make_shared<std::string>();
-  auto *installAdaptor =
-      llm->add_subcommand("install-adaptor", _("Install an LLM adaptor"));
-  installAdaptor->add_option("id_or_index", *adaptorSelector,
-                             _("Adaptor id or available-list index"))
-      ->required();
-  installAdaptor->callback([action, adaptorSelector]() {
-    *action = [adaptorSelector](Formatter &fmt, const CliContext &ctx) {
-      return RunLlmConfigInstallAdaptor(*adaptorSelector, fmt, ctx);
-    };
-  });
-
-  auto adaptorId = std::make_shared<std::string>();
-  auto *startAdaptor =
-      llm->add_subcommand("start-adaptor", _("Start an LLM adaptor"));
-  startAdaptor->add_option("id", *adaptorId, _("Adaptor id"))->required();
-  startAdaptor->callback([action, adaptorId]() {
-    *action = [adaptorId](Formatter &fmt, const CliContext &ctx) {
-      return RunLlmConfigStartAdaptor(*adaptorId, fmt, ctx);
-    };
-  });
-
-  auto stopAdaptorId = std::make_shared<std::string>();
-  auto *stopAdaptor =
-      llm->add_subcommand("stop-adaptor", _("Stop an LLM adaptor"));
-  stopAdaptor->add_option("id", *stopAdaptorId, _("Adaptor id"))->required();
-  stopAdaptor->callback([action, stopAdaptorId]() {
-    *action = [stopAdaptorId](Formatter &fmt, const CliContext &ctx) {
-      return RunLlmConfigStopAdaptor(*stopAdaptorId, fmt, ctx);
-    };
-  });
-
   auto removeId = std::make_shared<std::string>();
   auto *remove = llm->add_subcommand("remove", _("Remove an LLM provider"));
   remove->alias("rm");
-  remove->add_option("id", *removeId, _("Provider id"))->required();
+  remove->add_option("id", *removeId, _("Provider ID"))->required();
   remove->callback([action, removeId]() {
     *action = [removeId](Formatter &fmt, const CliContext &ctx) {
       return RunLlmConfigRemove(*removeId, fmt, ctx);
+    };
+  });
+
+  struct EditState {
+    std::string id;
+    std::string baseUrl;
+    std::string apiKey;
+    bool hasBaseUrl = false;
+    bool hasApiKey = false;
+  };
+  auto editState = std::make_shared<EditState>();
+  auto *edit = llm->add_subcommand("edit", _("Edit an LLM provider"));
+  edit->alias("e");
+  edit->add_option("id", editState->id, _("Provider ID"))->required();
+  auto *editUrlOpt =
+      edit->add_option("-u,--base-url", editState->baseUrl, _("Base URL"));
+  auto *editKeyOpt =
+      edit->add_option("-k,--api-key", editState->apiKey, _("API key"));
+  edit->callback([action, editState, editUrlOpt, editKeyOpt]() {
+    editState->hasBaseUrl = editUrlOpt->count() > 0;
+    editState->hasApiKey = editKeyOpt->count() > 0;
+    *action = [editState](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigEdit(editState->id, editState->baseUrl,
+                              editState->apiKey, editState->hasBaseUrl,
+                              editState->hasApiKey, fmt, ctx);
+    };
+  });
+}
+
+void RegisterAdapterCommands(CLI::App &app, CliAction *action) {
+  auto *adapter = app.add_subcommand("adapter", _("Manage LLM adapters"));
+  adapter->require_subcommand(1);
+
+  auto available = std::make_shared<bool>(false);
+  auto *list = adapter->add_subcommand("list", _("List adapters"));
+  list->alias("ls");
+  list->add_flag("-a,--available", *available, _("List remote adapters"));
+  list->callback([action, available]() {
+    *action = [available](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigListAdapters(*available, fmt, ctx);
+    };
+  });
+
+  auto selector = std::make_shared<std::string>();
+  auto *add = adapter->add_subcommand("add", _("Add an adapter"));
+  add->add_option("id", *selector, _("Adapter short ID"))->required();
+  add->callback([action, selector]() {
+    *action = [selector](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigInstallAdapter(*selector, fmt, ctx);
+    };
+  });
+
+  auto startId = std::make_shared<std::string>();
+  auto *start = adapter->add_subcommand("start", _("Start an adapter"));
+  start->add_option("id", *startId, _("Adapter short ID"))->required();
+  start->callback([action, startId]() {
+    *action = [startId](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigStartAdapter(*startId, fmt, ctx);
+    };
+  });
+
+  auto stopId = std::make_shared<std::string>();
+  auto *stop = adapter->add_subcommand("stop", _("Stop an adapter"));
+  stop->add_option("id", *stopId, _("Adapter short ID"))->required();
+  stop->callback([action, stopId]() {
+    *action = [stopId](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigStopAdapter(*stopId, fmt, ctx);
     };
   });
 }

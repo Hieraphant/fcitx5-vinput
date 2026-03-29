@@ -18,14 +18,14 @@ const LlmProvider *ResolveLlmProvider(const CoreConfig &config,
   return nullptr;
 }
 
-const LlmAdaptor *ResolveLlmAdaptor(const CoreConfig &config,
-                                    const std::string &adaptor_id) {
-  if (adaptor_id.empty()) {
+const LlmAdapter *ResolveLlmAdapter(const CoreConfig &config,
+                                    const std::string &adapter_id) {
+  if (adapter_id.empty()) {
     return nullptr;
   }
-  for (const auto &adaptor : config.llm.adaptors) {
-    if (adaptor.id == adaptor_id) {
-      return &adaptor;
+  for (const auto &adapter : config.llm.adapters) {
+    if (adapter.id == adapter_id) {
+      return &adapter;
     }
   }
   return nullptr;
@@ -117,7 +117,7 @@ std::vector<std::string> ResolveAsrProviderRegistryUrls(const CoreConfig &config
   return ResolveRegistryUrlsForPath(config, "registry/providers.json");
 }
 
-std::vector<std::string> ResolveLlmAdaptorRegistryUrls(const CoreConfig &config) {
+std::vector<std::string> ResolveLlmAdapterRegistryUrls(const CoreConfig &config) {
   return ResolveRegistryUrlsForPath(config, "registry/adapters.json");
 }
 

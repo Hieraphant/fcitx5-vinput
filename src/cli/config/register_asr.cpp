@@ -9,140 +9,143 @@
 
 namespace vinput::cli::config {
 
-void RegisterAsrCommands(CLI::App &app, CliAction *action) {
-  auto *asr = app.add_subcommand("asr", _("Manage ASR configuration"));
-  asr->require_subcommand(1);
+void RegisterHotwordCommands(CLI::App &app, CliAction *action) {
+  auto *hotword = app.add_subcommand("hotword", _("Manage hotword file"));
+  hotword->require_subcommand(1);
 
-  auto *list = asr->add_subcommand("list", _("List configured ASR providers"));
+  auto *get = hotword->add_subcommand("get", _("Show configured hotword file path"));
+  get->callback([action]() {
+    *action = [](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigGetHotword(fmt, ctx);
+    };
+  });
+
+  auto path = std::make_shared<std::string>();
+  auto *set = hotword->add_subcommand("set", _("Set hotword file path"));
+  set->add_option("path", *path, _("Path to hotword file"))->required();
+  set->callback([action, path]() {
+    *action = [path](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigSetHotword(*path, fmt, ctx);
+    };
+  });
+
+  auto *clear = hotword->add_subcommand("clear", _("Clear hotword file path"));
+  clear->callback([action]() {
+    *action = [](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigClearHotword(fmt, ctx);
+    };
+  });
+
+  auto *edit = hotword->add_subcommand("edit", _("Edit hotword file"));
+  edit->alias("e");
+  edit->callback([action]() {
+    *action = [](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigEditHotword(fmt, ctx);
+    };
+  });
+}
+
+void RegisterModelCommands(CLI::App &app, CliAction *action) {
+  auto *model = app.add_subcommand("model", _("Manage local ASR models"));
+  model->require_subcommand(1);
+
+  auto available = std::make_shared<bool>(false);
+  auto *list = model->add_subcommand("list", _("List models"));
   list->alias("ls");
-  auto availableProviders = std::make_shared<bool>(false);
-  list->add_flag("-a,--available", *availableProviders,
-                 _("List available remote ASR providers"));
-  list->callback([action, availableProviders]() {
-    *action = [availableProviders](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigListProviders(*availableProviders, fmt, ctx);
+  list->add_flag("-a,--available", *available, _("List remote models"));
+  list->callback([action, available]() {
+    *action = [available](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigListModels(*available, fmt, ctx);
     };
   });
 
-  auto providerId = std::make_shared<std::string>();
-  auto *remove = asr->add_subcommand("remove", _("Remove an ASR provider"));
+  auto selector = std::make_shared<std::string>();
+  auto *add = model->add_subcommand("add", _("Add a model"));
+  add->add_option("id", *selector, _("Model short ID"))->required();
+  add->callback([action, selector]() {
+    *action = [selector](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigInstallModel(*selector, fmt, ctx);
+    };
+  });
+
+  auto removeSelector = std::make_shared<std::string>();
+  auto *remove = model->add_subcommand("remove", _("Remove a model"));
   remove->alias("rm");
-  remove->add_option("id", *providerId, _("Provider id"))->required();
-  remove->callback([action, providerId]() {
-    *action = [providerId](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigRemove(*providerId, fmt, ctx);
+  remove->add_option("id", *removeSelector, _("Model short ID"))->required();
+  remove->callback([action, removeSelector]() {
+    *action = [removeSelector](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigRemoveModel(*removeSelector, fmt, ctx);
     };
   });
 
-  auto activeId = std::make_shared<std::string>();
-  auto *use = asr->add_subcommand("use", _("Set active ASR provider"));
-  use->add_option("id", *activeId, _("Provider id"))->required();
-  use->callback([action, activeId]() {
-    *action = [activeId](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigUse(*activeId, fmt, ctx);
+  auto useSelector = std::make_shared<std::string>();
+  auto *use = model->add_subcommand("use", _("Set active model"));
+  use->add_option("id", *useSelector, _("Model short ID"))->required();
+  use->callback([action, useSelector]() {
+    *action = [useSelector](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigUseModel(*useSelector, fmt, ctx);
+    };
+  });
+
+  auto infoSelector = std::make_shared<std::string>();
+  auto *info = model->add_subcommand("info", _("Show model details"));
+  info->add_option("id", *infoSelector, _("Model short ID"))->required();
+  info->callback([action, infoSelector]() {
+    *action = [infoSelector](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigModelInfo(*infoSelector, fmt, ctx);
+    };
+  });
+}
+
+void RegisterProviderCommands(CLI::App &app, CliAction *action) {
+  auto *provider = app.add_subcommand("provider", _("Manage ASR providers"));
+  provider->require_subcommand(1);
+
+  auto available = std::make_shared<bool>(false);
+  auto *list = provider->add_subcommand("list", _("List providers"));
+  list->alias("ls");
+  list->add_flag("-a,--available", *available, _("List remote providers"));
+  list->callback([action, available]() {
+    *action = [available](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigListProviders(*available, fmt, ctx);
+    };
+  });
+
+  auto addSelector = std::make_shared<std::string>();
+  auto *add = provider->add_subcommand("add", _("Add a provider"));
+  add->add_option("id", *addSelector, _("Provider short ID"))->required();
+  add->callback([action, addSelector]() {
+    *action = [addSelector](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigInstallProvider(*addSelector, fmt, ctx);
+    };
+  });
+
+  auto useId = std::make_shared<std::string>();
+  auto *use = provider->add_subcommand("use", _("Set active provider"));
+  use->add_option("id", *useId, _("Provider short ID"))->required();
+  use->callback([action, useId]() {
+    *action = [useId](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigUse(*useId, fmt, ctx);
     };
   });
 
   auto editId = std::make_shared<std::string>();
-  auto *edit = asr->add_subcommand("edit", _("Edit an ASR provider script"));
+  auto *edit = provider->add_subcommand("edit", _("Edit provider script"));
   edit->alias("e");
-  edit->add_option("id", *editId, _("Provider id"))->required();
+  edit->add_option("id", *editId, _("Provider short ID"))->required();
   edit->callback([action, editId]() {
     *action = [editId](Formatter &fmt, const CliContext &ctx) {
       return RunAsrConfigEdit(*editId, fmt, ctx);
     };
   });
 
-  auto *listModels = asr->add_subcommand("list-models", _("List ASR models"));
-  listModels->alias("lsm");
-  auto availableModels = std::make_shared<bool>(false);
-  listModels->add_flag("-a,--available", *availableModels,
-                       _("List available remote models"));
-  listModels->callback([action, availableModels]() {
-    *action = [availableModels](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigListModels(*availableModels, fmt, ctx);
-    };
-  });
-
-  auto installModelSelector = std::make_shared<std::string>();
-  auto *installModel =
-      asr->add_subcommand("install", _("Install an ASR model"));
-  installModel->add_option("id_or_index", *installModelSelector,
-                           _("Model id or available-list index"))
-      ->required();
-  installModel->callback([action, installModelSelector]() {
-    *action = [installModelSelector](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigInstallModel(*installModelSelector, fmt, ctx);
-    };
-  });
-
-  auto installProviderSelector = std::make_shared<std::string>();
-  auto *installProvider =
-      asr->add_subcommand("install-provider", _("Install an ASR provider"));
-  installProvider->add_option("id_or_index", *installProviderSelector,
-                              _("Provider id or available-list index"))
-      ->required();
-  installProvider->callback([action, installProviderSelector]() {
-    *action = [installProviderSelector](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigInstallProvider(*installProviderSelector, fmt, ctx);
-    };
-  });
-
-  auto modelSelector = std::make_shared<std::string>();
-  auto *useModel = asr->add_subcommand("use-model", _("Set active local ASR model"));
-  useModel->alias("um");
-  useModel->add_option("id_or_index", *modelSelector,
-                       _("Model id or installed-list index"))
-      ->required();
-  useModel->callback([action, modelSelector]() {
-    *action = [modelSelector](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigUseModel(*modelSelector, fmt, ctx);
-    };
-  });
-
-  auto infoModelSelector = std::make_shared<std::string>();
-  auto *modelInfo = asr->add_subcommand("model-info", _("Show local model details"));
-  modelInfo->alias("im");
-  modelInfo->add_option("id_or_index", *infoModelSelector,
-                        _("Model id or installed-list index"))
-      ->required();
-  modelInfo->callback([action, infoModelSelector]() {
-    *action = [infoModelSelector](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigModelInfo(*infoModelSelector, fmt, ctx);
-    };
-  });
-
-  auto *getHotword = asr->add_subcommand("get-hotword", _("Show configured hotwords file path"));
-  getHotword->alias("gh");
-  getHotword->callback([action]() {
-    *action = [](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigGetHotword(fmt, ctx);
-    };
-  });
-
-  auto hotwordPath = std::make_shared<std::string>();
-  auto *setHotword = asr->add_subcommand("set-hotword", _("Set hotwords file path"));
-  setHotword->alias("sh");
-  setHotword->add_option("path", *hotwordPath, _("Path to hotwords file"))->required();
-  setHotword->callback([action, hotwordPath]() {
-    *action = [hotwordPath](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigSetHotword(*hotwordPath, fmt, ctx);
-    };
-  });
-
-  auto *clearHotword = asr->add_subcommand("clear-hotword", _("Clear hotwords file path"));
-  clearHotword->alias("ch");
-  clearHotword->callback([action]() {
-    *action = [](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigClearHotword(fmt, ctx);
-    };
-  });
-
-  auto *editHotword = asr->add_subcommand("edit-hotword", _("Edit hotwords file in editor"));
-  editHotword->alias("eh");
-  editHotword->callback([action]() {
-    *action = [](Formatter &fmt, const CliContext &ctx) {
-      return RunAsrConfigEditHotword(fmt, ctx);
+  auto removeId = std::make_shared<std::string>();
+  auto *remove = provider->add_subcommand("remove", _("Remove a provider"));
+  remove->alias("rm");
+  remove->add_option("id", *removeId, _("Provider short ID"))->required();
+  remove->callback([action, removeId]() {
+    *action = [removeId](Formatter &fmt, const CliContext &ctx) {
+      return RunAsrConfigRemove(*removeId, fmt, ctx);
     };
   });
 }

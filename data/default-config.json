@@ -28,7 +28,7 @@
   },
   "llm": {
     "providers": [],
-    "adaptors": []
+    "adapters": []
   },
   "scenes": {
     "active_scene": "__raw__",

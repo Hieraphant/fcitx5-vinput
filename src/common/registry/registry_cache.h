@@ -16,7 +16,7 @@ bool FetchText(const std::vector<std::string> &urls,
 
 std::filesystem::path ModelRegistryPath();
 std::filesystem::path AsrProviderRegistryPath();
-std::filesystem::path LlmAdaptorRegistryPath();
+std::filesystem::path LlmAdapterRegistryPath();
 std::filesystem::path I18nPath(const std::string &locale);
 
 } // namespace vinput::registry::cache

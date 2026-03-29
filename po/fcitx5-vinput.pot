@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-26 12:33+0800\n"
+"POT-Creation-Date: 2026-03-29 11:03+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -39,11 +39,11 @@ msgid ""
 "a model first."
 msgstr ""
 
-msgid "Local ASR model metadata is missing model_type."
+msgid "Local ASR model metadata is missing family."
 msgstr ""
 
 #, c-format
-msgid "Local ASR model metadata is missing model_type for provider '%s'."
+msgid "Local ASR model metadata is missing family for provider '%s'."
 msgstr ""
 
 msgid "Local ASR model metadata contains an invalid path."
@@ -233,74 +233,22 @@ msgstr ""
 msgid "Failed to save active scene."
 msgstr ""
 
-msgid "Failed to save config."
-msgstr ""
-
-msgid "COMMAND"
-msgstr ""
-
 msgid "ID"
-msgstr ""
-
-msgid "STATE"
-msgstr ""
-
-msgid "(not set)"
-msgstr ""
-
-msgid ""
-"No LLM adaptor registry sources configured. Edit config.json and set "
-"registry.llmAdaptors."
 msgstr ""
 
 msgid "TITLE"
 msgstr ""
 
-msgid "STATUS"
-msgstr ""
-
-msgid "installed"
-msgstr ""
-
-msgid "available"
-msgstr ""
-
-#, c-format
-msgid "Adaptor '%s' not found in registry."
-msgstr ""
-
-msgid "Failed to save configuration."
-msgstr ""
-
-#, c-format
-msgid "Adaptor '%s' synchronized to local config."
-msgstr ""
-
-#, c-format
-msgid "Local script path: %s"
-msgstr ""
-
-#, c-format
-msgid "Adaptor '%s' started."
-msgstr ""
-
-#, c-format
-msgid "Adaptor '%s' stopped."
+msgid "TYPE"
 msgstr ""
 
 msgid "ACTIVE"
 msgstr ""
 
-msgid "NAME"
-msgstr ""
-
-msgid "TYPE"
-msgstr ""
-
 msgid "MODEL"
 msgstr ""
 
-msgid "TIMEOUT"
+msgid "README"
 msgstr ""
 
 msgid "no"
@@ -309,49 +257,10 @@ msgstr ""
 msgid "yes"
 msgstr ""
 
-msgid ""
-"No ASR provider registry sources configured. Edit config.json and set "
-"registry.asrProviders."
+msgid "(not set)"
 msgstr ""
 
-msgid "Timeout must be greater than zero."
-msgstr ""
-
-#, c-format
-msgid "ASR provider '%s' already exists."
-msgstr ""
-
-msgid "Local ASR providers do not accept command or env fields."
-msgstr ""
-
-msgid "Command ASR providers do not accept a model field."
-msgstr ""
-
-msgid "Command ASR providers require --command."
-msgstr ""
-
-#, c-format
-msgid "Invalid env entry '%s'. Use KEY=VALUE."
-msgstr ""
-
-#, c-format
-msgid "Unsupported ASR provider type '%s'."
-msgstr ""
-
-#, c-format
-msgid "ASR provider '%s' added."
-msgstr ""
-
-#, c-format
-msgid "Run `vinput asr use %s` to activate"
-msgstr ""
-
-#, c-format
-msgid "ASR provider '%s' not found in registry."
-msgstr ""
-
-#, c-format
-msgid "ASR provider '%s' synchronized to local config."
+msgid "Open README"
 msgstr ""
 
 #, c-format
@@ -359,27 +268,42 @@ msgid "ASR provider '%s' not found."
 msgstr ""
 
 #, c-format
-msgid "Cannot remove active ASR provider '%s'. Use --force to override."
-msgstr ""
-
-#, c-format
-msgid "ASR provider '%s' removed. Active provider is now '%s'."
-msgstr ""
-
-#, c-format
 msgid "ASR provider '%s' removed."
 msgstr ""
 
 #, c-format
-msgid ""
-"Active ASR provider set to '%s', but daemon restart failed (exit code: %d)."
+msgid "Active ASR provider set to '%s'."
 msgstr ""
 
-msgid "Restart the daemon manually to apply the new provider."
+msgid ""
+"No ASR provider registry base URLs configured. Edit config.json and set "
+"registry.base_urls."
+msgstr ""
+
+msgid "MODE"
+msgstr ""
+
+msgid "STATUS"
+msgstr ""
+
+msgid "batch"
+msgstr ""
+
+msgid "stream"
+msgstr ""
+
+msgid "available"
+msgstr ""
+
+msgid "installed"
 msgstr ""
 
 #, c-format
-msgid "Active ASR provider set to '%s'. Daemon restarted."
+msgid "ASR provider '%s' not found in registry."
+msgstr ""
+
+#, c-format
+msgid "ASR provider '%s' added."
 msgstr ""
 
 #, c-format
@@ -394,54 +318,62 @@ msgid "Editor exited with error."
 msgstr ""
 
 #, c-format
-msgid "Updated ASR provider script: %s"
+msgid "ASR provider '%s' updated."
 msgstr ""
 
-msgid "Config value set."
+msgid ""
+"No model registry base URLs configured. Edit config.json and set "
+"registry.base_urls."
 msgstr ""
 
-msgid "Daemon started."
+msgid "LANGUAGE"
 msgstr ""
 
-#, c-format
-msgid "systemctl start failed (exit code: %d)"
+msgid "SIZE"
 msgstr ""
 
-msgid "Daemon stopped."
+msgid "HOTWORDS"
 msgstr ""
 
-#, c-format
-msgid "systemctl stop failed (exit code: %d)"
-msgstr ""
-
-msgid "Daemon restarted."
-msgstr ""
-
-#, c-format
-msgid "systemctl restart failed (exit code: %d)"
-msgstr ""
-
-msgid "No audio capture devices found or PipeWire is not running."
-msgstr ""
-
-msgid "DESCRIPTION"
+msgid "Installed"
 msgstr ""
 
 msgid "Active"
 msgstr ""
 
-msgid "System Default"
+msgid "Broken"
 msgstr ""
 
 #, c-format
-msgid "Device '%s' not found in PipeWire. Setting it anyway."
+msgid "Downloading %s..."
 msgstr ""
 
 #, c-format
-msgid "Capture device set to '%s'. Restart daemon to apply changes."
+msgid "Model '%s' added."
+msgstr ""
+
+#, c-format
+msgid "Model '%s' removed."
+msgstr ""
+
+#, c-format
+msgid "Model '%s' is not valid: %s"
+msgstr ""
+
+#, c-format
+msgid "Active local model set to '%s'."
+msgstr ""
+
+msgid "FIELD"
+msgstr ""
+
+msgid "VALUE"
 msgstr ""
 
 msgid "No hotwords file configured."
+msgstr ""
+
+msgid "No local ASR provider configured."
 msgstr ""
 
 msgid "Hotwords file path saved."
@@ -454,6 +386,32 @@ msgid "No hotwords file configured. Use 'hotword set <path>' first."
 msgstr ""
 
 msgid "Hotwords file updated."
+msgstr ""
+
+msgid "Config value set."
+msgstr ""
+
+msgid "Unsupported config target. Use 'core' or 'fcitx'."
+msgstr ""
+
+msgid "No audio capture devices found or PipeWire is not running."
+msgstr ""
+
+msgid "DESCRIPTION"
+msgstr ""
+
+msgid "NAME"
+msgstr ""
+
+msgid "System Default"
+msgstr ""
+
+#, c-format
+msgid "Device '%s' not found in PipeWire. Setting it anyway."
+msgstr ""
+
+#, c-format
+msgid "Capture device set to '%s'. Restart daemon to apply changes."
 msgstr ""
 
 #, c-format
@@ -488,12 +446,33 @@ msgstr ""
 msgid "BASE_URL"
 msgstr ""
 
+msgid ""
+"No LLM adapter registry base URLs configured. Edit config.json and set "
+"registry.base_urls."
+msgstr ""
+
 #, c-format
 msgid "LLM provider '%s' already exists."
 msgstr ""
 
 #, c-format
 msgid "LLM provider '%s' added."
+msgstr ""
+
+#, c-format
+msgid "Adapter '%s' not found in registry."
+msgstr ""
+
+#, c-format
+msgid "Adapter '%s' added."
+msgstr ""
+
+#, c-format
+msgid "Adapter '%s' started."
+msgstr ""
+
+#, c-format
+msgid "Adapter '%s' stopped."
 msgstr ""
 
 #, c-format
@@ -504,83 +483,257 @@ msgstr ""
 msgid "LLM provider '%s' removed."
 msgstr ""
 
-msgid "HOTWORDS"
+#, c-format
+msgid "LLM provider '%s' updated."
 msgstr ""
 
-msgid "LANGUAGE"
+msgid "Manage hotword file"
 msgstr ""
 
-msgid "SIZE"
+msgid "Show configured hotword file path"
 msgstr ""
 
-msgid "Broken"
+msgid "Set hotword file path"
 msgstr ""
 
-msgid "Installed"
+msgid "Path to hotword file"
 msgstr ""
 
-msgid ""
-"No model registry sources configured. Edit config.json and set "
-"registry.models."
+msgid "Clear hotword file path"
+msgstr ""
+
+msgid "Edit hotword file"
+msgstr ""
+
+msgid "Manage local ASR models"
+msgstr ""
+
+msgid "List models"
+msgstr ""
+
+msgid "List remote models"
+msgstr ""
+
+msgid "Add a model"
+msgstr ""
+
+msgid "Model short ID"
+msgstr ""
+
+msgid "Remove a model"
+msgstr ""
+
+msgid "Set active model"
+msgstr ""
+
+msgid "Show model details"
+msgstr ""
+
+msgid "Manage ASR providers"
+msgstr ""
+
+msgid "List providers"
+msgstr ""
+
+msgid "List remote providers"
+msgstr ""
+
+msgid "Add a provider"
+msgstr ""
+
+msgid "Provider short ID"
+msgstr ""
+
+msgid "Set active provider"
+msgstr ""
+
+msgid "Edit provider script"
+msgstr ""
+
+msgid "Remove a provider"
+msgstr ""
+
+msgid "Read or write configuration values"
+msgstr ""
+
+msgid "Get a config value by JSON Pointer"
+msgstr ""
+
+msgid "JSON Pointer (e.g. /global/capture_device)"
+msgstr ""
+
+msgid "Set a config value by JSON Pointer"
+msgstr ""
+
+msgid "New value"
+msgstr ""
+
+msgid "Read value from stdin"
+msgstr ""
+
+msgid "Open config file in editor"
+msgstr ""
+
+msgid "Config target: fcitx or core"
+msgstr ""
+
+msgid "Manage capture devices"
+msgstr ""
+
+msgid "List available audio input devices"
+msgstr ""
+
+msgid "Set active capture device"
+msgstr ""
+
+msgid "Device id or 'default'"
+msgstr ""
+
+msgid "Initialize default config and directories"
+msgstr ""
+
+msgid "Overwrite existing config"
+msgstr ""
+
+msgid "Manage LLM providers"
+msgstr ""
+
+msgid "List configured LLM providers"
+msgstr ""
+
+msgid "Add an LLM provider"
+msgstr ""
+
+msgid "Provider ID"
+msgstr ""
+
+msgid "Base URL"
+msgstr ""
+
+msgid "API key"
+msgstr ""
+
+msgid "Remove an LLM provider"
+msgstr ""
+
+msgid "Edit an LLM provider"
+msgstr ""
+
+msgid "Manage LLM adapters"
+msgstr ""
+
+msgid "List adapters"
+msgstr ""
+
+msgid "List remote adapters"
+msgstr ""
+
+msgid "Add an adapter"
+msgstr ""
+
+msgid "Adapter short ID"
+msgstr ""
+
+msgid "Start an adapter"
+msgstr ""
+
+msgid "Stop an adapter"
+msgstr ""
+
+msgid "Manage recognition scenes"
+msgstr ""
+
+msgid "List all scenes"
+msgstr ""
+
+msgid "Add a new scene"
+msgstr ""
+
+msgid "Scene id"
+msgstr ""
+
+msgid "Display label"
+msgstr ""
+
+msgid "LLM prompt"
+msgstr ""
+
+msgid "LLM provider id"
+msgstr ""
+
+msgid "LLM model id"
+msgstr ""
+
+msgid "Candidate count"
+msgstr ""
+
+msgid "Request timeout in milliseconds"
+msgstr ""
+
+msgid "Set active scene"
+msgstr ""
+
+msgid "Remove a scene"
+msgstr ""
+
+msgid "Edit a scene"
+msgstr ""
+
+msgid "LABEL"
+msgstr ""
+
+msgid "PROVIDER"
+msgstr ""
+
+msgid "CANDIDATES"
 msgstr ""
 
 #, c-format
-msgid "Downloading %s..."
+msgid "Scene '%s' added."
 msgstr ""
 
 #, c-format
-msgid "Model '%s' installed successfully."
+msgid "Default scene set to '%s'."
 msgstr ""
 
 #, c-format
-msgid "Run `vinput model use %s` to activate"
+msgid "Scene '%s' removed."
 msgstr ""
 
 #, c-format
-msgid "Model '%s' is not valid: %s"
+msgid "Scene '%s' not found."
 msgstr ""
 
 #, c-format
-msgid "Active model set to '%s', but daemon restart failed (exit code: %d)."
-msgstr ""
-
-msgid "Restart the daemon manually to apply the new model."
-msgstr ""
-
-#, c-format
-msgid "Active model set to '%s'. Daemon restarted."
-msgstr ""
-
-#, c-format
-msgid "Cannot remove active model '%s'. Use --force to override."
-msgstr ""
-
-#, c-format
-msgid "Model '%s' removed."
-msgstr ""
-
-#, c-format
-msgid "Model '%s' not found at: %s"
-msgstr ""
-
-#, c-format
-msgid "Failed to read: %s"
-msgstr ""
-
-#, c-format
-msgid "Failed to parse vinput-model.json: %s"
-msgstr ""
-
-msgid "Name"
-msgstr ""
-
-msgid "Path"
-msgstr ""
-
-msgid "Size"
+msgid "Scene '%s' updated."
 msgstr ""
 
 msgid "Daemon is not running."
+msgstr ""
+
+#, c-format
+msgid "Daemon status: %s"
+msgstr ""
+
+msgid "Daemon started."
+msgstr ""
+
+#, c-format
+msgid "systemctl start failed (exit code: %d)"
+msgstr ""
+
+msgid "Daemon stopped."
+msgstr ""
+
+#, c-format
+msgid "systemctl stop failed (exit code: %d)"
+msgstr ""
+
+msgid "Daemon restarted."
+msgstr ""
+
+#, c-format
+msgid "systemctl restart failed (exit code: %d)"
 msgstr ""
 
 msgid "Recording started."
@@ -600,272 +753,19 @@ msgstr ""
 msgid "Daemon is in error state."
 msgstr ""
 
-msgid "Cache Dir"
+msgid "Control daemon lifecycle"
 msgstr ""
 
-msgid "KIND"
+msgid "Show daemon status"
 msgstr ""
 
-msgid "PATH"
+msgid "Start daemon"
 msgstr ""
 
-msgid "cached"
+msgid "Stop daemon"
 msgstr ""
 
-msgid "missing"
-msgstr ""
-
-msgid "models"
-msgstr ""
-
-msgid "asr_providers"
-msgstr ""
-
-msgid "llm_adaptors"
-msgstr ""
-
-msgid "Registry cache synchronized."
-msgstr ""
-
-msgid "CANDIDATES"
-msgstr ""
-
-msgid "LABEL"
-msgstr ""
-
-msgid "PROVIDER"
-msgstr ""
-
-#, c-format
-msgid "Scene '%s' added."
-msgstr ""
-
-#, c-format
-msgid "Default scene set to '%s'."
-msgstr ""
-
-#, c-format
-msgid "Scene '%s' removed."
-msgstr ""
-
-#, c-format
-msgid "Daemon status: %s"
-msgstr ""
-
-msgid "vinput - Voice input model and daemon manager"
-msgstr ""
-
-msgid "Print this help message and exit"
-msgstr ""
-
-msgid "Output in JSON format"
-msgstr ""
-
-msgid "Manage ASR models"
-msgstr ""
-
-msgid "List installed or available models"
-msgstr ""
-
-msgid "Include available models from registry cache"
-msgstr ""
-
-msgid "Download and install a model"
-msgstr ""
-
-msgid "Model name"
-msgstr ""
-
-msgid "Set active model"
-msgstr ""
-
-msgid "Remove an installed model"
-msgstr ""
-
-msgid "Skip confirmation"
-msgstr ""
-
-msgid "Show model details"
-msgstr ""
-
-msgid "Manage recognition scenes"
-msgstr ""
-
-msgid "List all scenes"
-msgstr ""
-
-msgid "Add a new scene"
-msgstr ""
-
-msgid "Scene ID"
-msgstr ""
-
-msgid "Display label"
-msgstr ""
-
-msgid "LLM prompt"
-msgstr ""
-
-msgid "LLM provider name"
-msgstr ""
-
-msgid "LLM model name"
-msgstr ""
-
-msgid "Candidate count"
-msgstr ""
-
-msgid "Request timeout in milliseconds"
-msgstr ""
-
-msgid "Set active scene"
-msgstr ""
-
-msgid "Remove a scene"
-msgstr ""
-
-msgid "Force removal of built-in scenes"
-msgstr ""
-
-msgid "Manage LLM providers"
-msgstr ""
-
-msgid "List configured LLM providers"
-msgstr ""
-
-msgid "Add an LLM provider"
-msgstr ""
-
-msgid "Provider name"
-msgstr ""
-
-msgid "Base URL"
-msgstr ""
-
-msgid "API key"
-msgstr ""
-
-msgid "Remove an LLM provider"
-msgstr ""
-
-msgid "Manage registry sources and cache"
-msgstr ""
-
-msgid "Show registry cache status"
-msgstr ""
-
-msgid "Refresh registry cache"
-msgstr ""
-
-msgid "Manage ASR providers"
-msgstr ""
-
-msgid "List configured ASR providers"
-msgstr ""
-
-msgid "List available cloud ASR providers from registry cache"
-msgstr ""
-
-msgid "Add an ASR provider"
-msgstr ""
-
-msgid "Provider type: local or command"
-msgstr ""
-
-msgid "Local model name"
-msgstr ""
-
-msgid "Command or executable path for command providers"
-msgstr ""
-
-msgid "Command argument"
-msgstr ""
-
-msgid "Environment entry as KEY=VALUE"
-msgstr ""
-
-msgid "Provider timeout in milliseconds"
-msgstr ""
-
-msgid "Remove an ASR provider"
-msgstr ""
-
-msgid "Skip active-provider protection"
-msgstr ""
-
-msgid "Set active ASR provider"
-msgstr ""
-
-msgid "Open an external ASR provider script"
-msgstr ""
-
-msgid "Install an official cloud ASR provider"
-msgstr ""
-
-msgid "Registry provider ID"
-msgstr ""
-
-msgid "Manage LLM adaptors"
-msgstr ""
-
-msgid "List available LLM adaptors"
-msgstr ""
-
-msgid "List available adaptors from registry cache"
-msgstr ""
-
-msgid "Install an official adaptor"
-msgstr ""
-
-msgid "Registry adaptor ID"
-msgstr ""
-
-msgid "Start an LLM adaptor"
-msgstr ""
-
-msgid "Adaptor ID"
-msgstr ""
-
-msgid "Stop an LLM adaptor"
-msgstr ""
-
-msgid "Read or write configuration values"
-msgstr ""
-
-msgid "Get a config value by dotpath"
-msgstr ""
-
-msgid "Config dotpath (e.g. fcitx.triggerKey)"
-msgstr ""
-
-msgid "Set a config value by dotpath"
-msgstr ""
-
-msgid "Config dotpath"
-msgstr ""
-
-msgid "New value"
-msgstr ""
-
-msgid "Read value from stdin"
-msgstr ""
-
-msgid "Open config file in editor"
-msgstr ""
-
-msgid "Config target: fcitx or extra"
-msgstr ""
-
-msgid "Control the vinput daemon"
-msgstr ""
-
-msgid "Start the daemon"
-msgstr ""
-
-msgid "Stop the daemon"
-msgstr ""
-
-msgid "Restart the daemon"
+msgid "Restart daemon"
 msgstr ""
 
 msgid "Show daemon logs"
@@ -874,43 +774,7 @@ msgstr ""
 msgid "Follow log output"
 msgstr ""
 
-msgid "Number of lines to show"
-msgstr ""
-
-msgid "Initialize default config and directories"
-msgstr ""
-
-msgid "Overwrite existing config"
-msgstr ""
-
-msgid "Manage hotwords file"
-msgstr ""
-
-msgid "Show configured hotwords file path"
-msgstr ""
-
-msgid "Set hotwords file path"
-msgstr ""
-
-msgid "Path to hotwords file"
-msgstr ""
-
-msgid "Clear hotwords file path"
-msgstr ""
-
-msgid "Edit hotwords file in editor"
-msgstr ""
-
-msgid "Manage capture devices"
-msgstr ""
-
-msgid "List available audio input devices"
-msgstr ""
-
-msgid "Set active capture device"
-msgstr ""
-
-msgid "Device name or 'default'"
+msgid "Number of log lines"
 msgstr ""
 
 msgid "Control voice recording"
@@ -922,19 +786,22 @@ msgstr ""
 msgid "Stop recording and recognize"
 msgstr ""
 
-msgid "Scene ID (default: active scene)"
+msgid "Scene id (default: active scene)"
 msgstr ""
 
 msgid "Toggle recording start/stop"
 msgstr ""
 
-msgid "Show overall vinput status"
+msgid "vinput - Voice input manager"
 msgstr ""
 
-msgid "Raw"
+msgid "Print this help message and exit"
 msgstr ""
 
-msgid "Command"
+msgid "Output in JSON format"
+msgstr ""
+
+msgid "Failed to save config."
 msgstr ""
 
 msgid "Trigger Key"
@@ -981,4 +848,20 @@ msgid ""
 msgstr ""
 
 msgid "Open Vinput Settings"
+msgstr ""
+
+msgid "Raw"
+msgstr ""
+
+msgid "Command"
+msgstr ""
+
+#, c-format
+msgid "Local ASR model configuration is missing for provider '%s'."
+msgstr ""
+
+msgid "ASR disabled by command line."
+msgstr ""
+
+msgid "No active ASR provider configured."
 msgstr ""

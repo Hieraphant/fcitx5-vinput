@@ -69,6 +69,48 @@ void RegisterSceneCommands(CLI::App &app, CliAction *action) {
       return RunSceneConfigRemove(*removeId, false, fmt, ctx);
     };
   });
+
+  struct EditState {
+    std::string id;
+    std::string label;
+    std::string prompt;
+    std::string providerId;
+    std::string model;
+    int candidates = vinput::scene::kDefaultCandidateCount;
+    int timeoutMs = vinput::scene::kDefaultTimeoutMs;
+    bool hasLabel = false;
+    bool hasPrompt = false;
+    bool hasProvider = false;
+    bool hasModel = false;
+    bool hasCandidates = false;
+    bool hasTimeout = false;
+  };
+  auto editState = std::make_shared<EditState>();
+  auto *edit = scene->add_subcommand("edit", _("Edit a scene"));
+  edit->alias("e");
+  edit->add_option("id", editState->id, _("Scene id"))->required();
+  auto *eLbl = edit->add_option("-l,--label", editState->label, _("Display label"));
+  auto *ePmt = edit->add_option("-t,--prompt", editState->prompt, _("LLM prompt"));
+  auto *ePrv = edit->add_option("-p,--provider", editState->providerId, _("LLM provider id"));
+  auto *eMdl = edit->add_option("-m,--model", editState->model, _("LLM model id"));
+  auto *eCnd = edit->add_option("-c,--candidates", editState->candidates, _("Candidate count"));
+  auto *eTmo = edit->add_option("--timeout", editState->timeoutMs, _("Request timeout in milliseconds"));
+  edit->callback([action, editState, eLbl, ePmt, ePrv, eMdl, eCnd, eTmo]() {
+    editState->hasLabel = eLbl->count() > 0;
+    editState->hasPrompt = ePmt->count() > 0;
+    editState->hasProvider = ePrv->count() > 0;
+    editState->hasModel = eMdl->count() > 0;
+    editState->hasCandidates = eCnd->count() > 0;
+    editState->hasTimeout = eTmo->count() > 0;
+    *action = [editState](Formatter &fmt, const CliContext &ctx) {
+      return RunSceneConfigEdit(
+          editState->id, editState->label, editState->prompt,
+          editState->providerId, editState->model, editState->candidates,
+          editState->timeoutMs, editState->hasLabel, editState->hasPrompt,
+          editState->hasProvider, editState->hasModel,
+          editState->hasCandidates, editState->hasTimeout, fmt, ctx);
+    };
+  });
 }
 
 }  // namespace vinput::cli::config

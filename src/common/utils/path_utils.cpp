@@ -23,6 +23,11 @@ std::filesystem::path FlatpakBundledExecutablePath(std::string_view name) {
   return FlatpakAddonRootDir() / "bin" / std::filesystem::path(name);
 }
 
+bool IsInsideFlatpak() {
+  struct stat st;
+  return stat("/.flatpak-info", &st) == 0;
+}
+
 std::filesystem::path UserSystemdUnitPath(std::string_view unit_name) {
   return vinput::path::UserSystemdUnitDir() / std::filesystem::path(unit_name);
 }
@@ -135,10 +140,6 @@ std::filesystem::path RegistryCacheDir() {
   return VinputCacheDir() / "registry";
 }
 
-std::filesystem::path FlatpakInfoPath() {
-  return std::filesystem::path("/.flatpak-info");
-}
-
 std::filesystem::path UserSystemdUnitDir() {
   return XdgConfigHome() / "systemd" / "user";
 }
@@ -151,26 +152,21 @@ std::filesystem::path ManagedAsrProviderDir() {
   return ManagedResourceDir("providers");
 }
 
-std::filesystem::path ManagedLlmAdaptorDir() {
+std::filesystem::path ManagedLlmAdapterDir() {
   return ManagedResourceDir("adapters");
 }
 
-std::filesystem::path AdaptorRuntimeDir() {
+std::filesystem::path AdapterRuntimeDir() {
   const char *xdg_runtime = std::getenv("XDG_RUNTIME_DIR");
   if (xdg_runtime && xdg_runtime[0] != '\0') {
-    return std::filesystem::path(xdg_runtime) / "vinput" / "adaptors";
+    return std::filesystem::path(xdg_runtime) / "vinput" / "adapters";
   }
 
   const char *tmpdir = std::getenv("TMPDIR");
   std::filesystem::path base =
       (tmpdir && tmpdir[0] != '\0') ? std::filesystem::path(tmpdir)
                                     : std::filesystem::path("/tmp");
-  return base / "vinput" / "adaptors";
-}
-
-bool IsInsideFlatpak() {
-  struct stat st;
-  return stat(FlatpakInfoPath().c_str(), &st) == 0;
+  return base / "vinput" / "adapters";
 }
 
 } // namespace vinput::path

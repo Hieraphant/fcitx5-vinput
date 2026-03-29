@@ -19,13 +19,27 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 set(VINPUT_GUI_SOURCES
-    main.cpp
-    mainwindow.cpp
+    app/main.cpp
+    app/mainwindow.cpp
+    utils/cli_runner.cpp
+    utils/gui_helpers.cpp
+    dialogs/asr_provider_dialog.cpp
+    dialogs/adapter_dialog.cpp
+    pages/control/control_page.cpp
+    pages/resources/resource_page.cpp
+    pages/scenes/scene_page.cpp
+    pages/llm/llm_page.cpp
+    pages/hotwords/hotword_page.cpp
     ${CMAKE_SOURCE_DIR}/src/common/audio/pipewire_device.cpp
 )
 
 set(VINPUT_GUI_HEADERS
-    mainwindow.h
+    app/mainwindow.h
+    pages/control/control_page.h
+    pages/resources/resource_page.h
+    pages/scenes/scene_page.h
+    pages/llm/llm_page.h
+    pages/hotwords/hotword_page.h
 )
 
 add_executable(vinput-gui
@@ -74,6 +88,7 @@ if(VINPUT_GUI_QM)
 endif()
 
 target_include_directories(vinput-gui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${PIPEWIRE_INCLUDE_DIRS}
 )
 

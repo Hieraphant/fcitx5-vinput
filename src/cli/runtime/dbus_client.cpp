@@ -178,7 +178,7 @@ bool DbusClient::StopRecording(const std::string& scene_id, std::string* error) 
     return true;
 }
 
-bool DbusClient::StartAdaptor(const std::string& adaptor_id, std::string* error) {
+bool DbusClient::StartAdapter(const std::string& adapter_id, std::string* error) {
     if (!bus_) {
         if (error) *error = "D-Bus not connected";
         return false;
@@ -191,8 +191,8 @@ bool DbusClient::StartAdaptor(const std::string& adaptor_id, std::string* error)
         vinput::dbus::kBusName,
         vinput::dbus::kObjectPath,
         vinput::dbus::kInterface,
-        vinput::dbus::kMethodStartAdaptor,
-        &err, &reply, "s", adaptor_id.c_str());
+        vinput::dbus::kMethodStartAdapter,
+        &err, &reply, "s", adapter_id.c_str());
 
     if (r < 0) {
         if (error) {
@@ -208,7 +208,7 @@ bool DbusClient::StartAdaptor(const std::string& adaptor_id, std::string* error)
     return true;
 }
 
-bool DbusClient::StopAdaptor(const std::string& adaptor_id, std::string* error) {
+bool DbusClient::StopAdapter(const std::string& adapter_id, std::string* error) {
     if (!bus_) {
         if (error) *error = "D-Bus not connected";
         return false;
@@ -221,8 +221,8 @@ bool DbusClient::StopAdaptor(const std::string& adaptor_id, std::string* error) 
         vinput::dbus::kBusName,
         vinput::dbus::kObjectPath,
         vinput::dbus::kInterface,
-        vinput::dbus::kMethodStopAdaptor,
-        &err, &reply, "s", adaptor_id.c_str());
+        vinput::dbus::kMethodStopAdapter,
+        &err, &reply, "s", adapter_id.c_str());
 
     if (r < 0) {
         if (error) {

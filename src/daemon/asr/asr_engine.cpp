@@ -119,7 +119,7 @@ bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config,
   const std::string f_uncached_decoder = info.File("uncached_decoder");
   const std::string f_cached_decoder = info.File("cached_decoder");
   const std::string f_merged_decoder = info.File("merged_decoder");
-  const std::string f_encoder_adaptor = info.File("encoder_adaptor");
+  const std::string f_encoder_adapter = info.File("encoder_adapter");
   const std::string f_llm = info.File("llm");
   const std::string f_embedding = info.File("embedding");
   const std::string f_tokenizer = info.File("tokenizer");
@@ -330,8 +330,8 @@ bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config,
            }},
           {"funasr_nano",
            [&] {
-             config.model_config.funasr_nano.encoder_adaptor =
-                 f_encoder_adaptor.c_str();
+             config.model_config.funasr_nano.encoder_adapter =
+                 f_encoder_adapter.c_str();
              config.model_config.funasr_nano.llm = f_llm.c_str();
              config.model_config.funasr_nano.embedding = f_embedding.c_str();
              config.model_config.funasr_nano.tokenizer = f_tokenizer.c_str();

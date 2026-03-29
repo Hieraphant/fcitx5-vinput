@@ -361,7 +361,7 @@ Rules:
 
 ```json
 {
-  "encoder_adaptor": "encoder_adaptor.onnx",
+  "encoder_adapter": "encoder_adapter.onnx",
   "llm": "llm.onnx",
   "embedding": "embedding.onnx",
   "tokenizer": "tokenizer.model",

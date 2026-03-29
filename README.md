@@ -189,13 +189,13 @@ Scenes that use LLM must set `--provider`, `--model`, and `--prompt` together.
 vinput llm list                 # List configured providers
 vinput llm add <name> --base-url <url>
 vinput llm remove <name>        # Remove provider
-vinput adaptor list             # List built-in/user LLM adaptors
-vinput adaptor start <id>       # Start an LLM adaptor
-vinput adaptor stop <id>        # Stop an LLM adaptor
+vinput adapter list             # List built-in/user LLM adapters
+vinput adapter start <id>       # Start an LLM adapter
+vinput adapter stop <id>        # Stop an LLM adapter
 ```
 
 LLM providers are referenced by scenes; there is no separate active-provider
-toggle. An LLM adaptor is only a local OpenAI-compatible bridge process that a
+toggle. An LLM adapter is only a local OpenAI-compatible bridge process that a
 provider may point to.
 
 </details>
@@ -248,7 +248,7 @@ vinput config edit fcitx                    # Edit Fcitx addon config
 
 Registry fallback is configured directly in `config.json` with typed source
 lists such as `registry.models`, `registry.asr_providers`,
-`registry.llm_adaptors`, and `registry.i18n`. URLs are tried in order until one
+`registry.llm_adapters`, and `registry.i18n`. URLs are tried in order until one
 succeeds.
 
 </details>
@@ -321,13 +321,13 @@ vinput scene add --id polish \
 vinput scene use polish
 ```
 
-## Provider Scripts And Adaptor Contracts
+## Provider Scripts And Adapter Contracts
 
 Optional integration scripts now live under two flat directories inside
 `data/`:
 
 - `data/asr-providers/`: external ASR provider scripts
-- `data/llm-adaptors/`: LLM OpenAI-compatible adaptor scripts
+- `data/llm-adapters/`: LLM OpenAI-compatible adapter scripts
 
 The `scripts/` directory is reserved for project maintenance tasks such as
 build, packaging, and checks.
@@ -385,9 +385,9 @@ Official cloud ASR providers currently include:
 transcription endpoints by changing the URL and model env vars. `doubao`
 targets the ByteDance / Volcengine fast file-recognition API directly.
 
-### LLM Adaptor Contract
+### LLM Adapter Contract
 
-If you want to write your own LLM adaptor, it should expose an OpenAI-compatible
+If you want to write your own LLM adapter, it should expose an OpenAI-compatible
 API and implement at least:
 
 - `GET /v1/models`
@@ -427,16 +427,16 @@ the structured payload currently consumed by `vinput`.
 }
 ```
 
-Official LLM adaptors are published in `vinput-registry` and are installed on
-demand into `~/.config/vinput/llm-adaptors/` via `vinput adaptor install <id>`.
+Official LLM adapters are published in `vinput-registry` and are installed on
+demand into `~/.config/vinput/llm-adapters/` via `vinput adapter install <id>`.
 
-For managed LLM adaptors, prefer environment variables over CLI
-arguments for runtime configuration. `vinput adaptor start/stop` starts the
+For managed LLM adapters, prefer environment variables over CLI
+arguments for runtime configuration. `vinput adapter start/stop` starts the
 script directly and does not inject positional arguments.
 
 Reference implementations:
 
-- `data/llm-adaptors/mtranserver_proxy.py`
+- `data/llm-adapters/mtranserver_proxy.py`
 - `data/asr-providers/elevenlabs_speech_to_text.py`
 
 ## Configuration Files

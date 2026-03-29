@@ -15,7 +15,11 @@ using json = nlohmann::json;
 
 std::string NormalizeLocale(std::string locale) {
   if (locale.empty()) {
-    return "en_US";
+    return {};
+  }
+  const auto colon_pos = locale.find(':');
+  if (colon_pos != std::string::npos) {
+    locale = locale.substr(0, colon_pos);
   }
   const auto dot_pos = locale.find('.');
   if (dot_pos != std::string::npos) {
@@ -31,7 +35,7 @@ std::string NormalizeLocale(std::string locale) {
     }
   }
   if (locale == "C" || locale == "POSIX") {
-    return "en_US";
+    return {};
   }
   const auto sep = locale.find('_');
   if (sep == std::string::npos) {
@@ -74,11 +78,14 @@ I18nMap ParseI18nJson(const std::string &content, std::string *error) {
 } // namespace
 
 std::string DetectPreferredLocale() {
-  const char *vars[] = {"LC_ALL", "LC_MESSAGES", "LANG"};
+  const char *vars[] = {"LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"};
   for (const char *name : vars) {
     const char *value = std::getenv(name);
     if (value && *value) {
-      return NormalizeLocale(value);
+      const std::string locale = NormalizeLocale(value);
+      if (!locale.empty()) {
+        return locale;
+      }
     }
   }
   return "en_US";

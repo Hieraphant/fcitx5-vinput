@@ -31,10 +31,10 @@ void from_json(const json &j, LlmProvider &p) {
 }
 
 // ---------------------------------------------------------------------------
-// LlmAdaptor
+// LlmAdapter
 // ---------------------------------------------------------------------------
 
-void to_json(json &j, const LlmAdaptor &p) {
+void to_json(json &j, const LlmAdapter &p) {
   j = json::object();
   j["id"] = p.id;
   j["command"] = p.command;
@@ -46,7 +46,7 @@ void to_json(json &j, const LlmAdaptor &p) {
   }
 }
 
-void from_json(const json &j, LlmAdaptor &p) {
+void from_json(const json &j, LlmAdapter &p) {
   p.id = j.value("id", p.id);
   p.command = j.value("command", p.command);
   if (j.contains("args") && j.at("args").is_array()) {
@@ -205,15 +205,15 @@ void from_json(const json &j, Definition &d) {
 void to_json(json &j, const CoreConfig::Llm &p) {
   j = json::object();
   j["providers"] = p.providers;
-  j["adaptors"] = p.adaptors;
+  j["adapters"] = p.adapters;
 }
 
 void from_json(const json &j, CoreConfig::Llm &p) {
   if (j.contains("providers")) {
     p.providers = j.at("providers").get<std::vector<LlmProvider>>();
   }
-  if (j.contains("adaptors")) {
-    p.adaptors = j.at("adaptors").get<std::vector<LlmAdaptor>>();
+  if (j.contains("adapters")) {
+    p.adapters = j.at("adapters").get<std::vector<LlmAdapter>>();
   }
 }
 

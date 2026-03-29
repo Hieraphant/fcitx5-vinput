@@ -9,6 +9,7 @@
 
 #include "cli/utils/cli_helpers.h"
 #include "cli/utils/editor_utils.h"
+#include "cli/utils/resource_utils.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/asr/model_manager.h"
@@ -20,17 +21,6 @@
 #include "common/utils/string_utils.h"
 
 namespace {
-
-std::string CommandText(const CommandAsrProvider &provider) {
-  std::string text = provider.command;
-  for (const auto &arg : provider.args) {
-    if (!text.empty()) {
-      text += " ";
-    }
-    text += arg;
-  }
-  return text;
-}
 
 bool IsCommandProvider(const AsrProvider &provider) {
   return std::holds_alternative<CommandAsrProvider>(provider);
@@ -112,119 +102,41 @@ std::filesystem::path ResolveEditableScriptPath(const AsrProvider &provider) {
   return {};
 }
 
-bool TryParseOneBasedIndex(const std::string &text, std::size_t *index) {
-  if (!index || text.empty()) {
-    return false;
-  }
-  if (!std::all_of(text.begin(), text.end(),
-                   [](unsigned char ch) { return std::isdigit(ch) != 0; })) {
-    return false;
-  }
-  try {
-    const std::size_t parsed = std::stoull(text);
-    if (parsed == 0) {
-      return false;
-    }
-    *index = parsed - 1;
-    return true;
-  } catch (...) {
-    return false;
-  }
-}
-
-std::string ResolveInstalledModelSelector(const std::string &selector,
-                                          const std::vector<ModelSummary> &models,
-                                          std::string *error) {
-  std::size_t index = 0;
-  if (TryParseOneBasedIndex(selector, &index)) {
-    if (index >= models.size()) {
-      if (error) {
-        *error = "installed model index out of range";
-      }
-      return {};
-    }
-    return models[index].id;
-  }
-
-  for (const auto &model : models) {
-    if (model.id == selector) {
-      return selector;
-    }
-  }
-  if (error) {
-    *error = "installed model not found: " + selector;
-  }
-  return {};
-}
-
-std::string ResolveRemoteModelSelector(const std::string &selector,
-                                       const std::vector<RemoteModelEntry> &models,
-                                       std::string *error) {
-  std::size_t index = 0;
-  if (TryParseOneBasedIndex(selector, &index)) {
-    if (index >= models.size()) {
-      if (error) {
-        *error = "available model index out of range";
-      }
-      return {};
-    }
-    return models[index].id;
-  }
-
-  for (const auto &model : models) {
-    if (model.id == selector) {
-      return selector;
-    }
-  }
-  if (error) {
-    *error = "available model not found: " + selector;
-  }
-  return {};
-}
-
-std::string ResolveScriptEntrySelector(
-    const std::string &selector,
-    const std::vector<vinput::script::RegistryEntry> &entries,
-    const char *kind_label, std::string *error) {
-  std::size_t index = 0;
-  if (TryParseOneBasedIndex(selector, &index)) {
-    if (index >= entries.size()) {
-      if (error) {
-        *error = std::string("available ") + kind_label + " index out of range";
-      }
-      return {};
-    }
-    return entries[index].id;
-  }
-
-  for (const auto &entry : entries) {
-    if (entry.id == selector) {
-      return selector;
-    }
-  }
-  if (error) {
-    *error = std::string("available ") + kind_label + " not found: " + selector;
-  }
-  return {};
-}
-
 }  // namespace
 
 int RunAsrConfigList(Formatter &fmt, const CliContext &ctx) {
   CoreConfig config = LoadCoreConfig();
+  const auto display_map =
+      vinput::cli::FetchScriptDisplayMap(config, vinput::script::Kind::kAsrProvider);
+  const auto model_display_map = vinput::cli::FetchModelDisplayMap(config);
 
   if (ctx.json_output) {
     nlohmann::json providers = nlohmann::json::array();
     for (const auto &provider : config.asr.providers) {
+      const std::string machine_id = AsrProviderId(provider);
       nlohmann::json entry = {
-          {"id", AsrProviderId(provider)},
+          {"id", vinput::cli::HumanizeResourceId(display_map, machine_id)},
+          {"machine_id", machine_id},
           {"type", std::string(AsrProviderType(provider))},
-          {"active", AsrProviderId(provider) == config.asr.activeProvider},
+          {"active", machine_id == config.asr.activeProvider},
           {"timeout_ms", AsrProviderTimeoutMs(provider)},
       };
+      const auto display_it = display_map.find(machine_id);
+      if (display_it != display_map.end()) {
+        if (!display_it->second.title.empty()) {
+          entry["title"] = display_it->second.title;
+        }
+        if (!display_it->second.description.empty()) {
+          entry["description"] = display_it->second.description;
+        }
+        if (!display_it->second.readme_url.empty()) {
+          entry["readme_url"] = display_it->second.readme_url;
+        }
+      }
 
       if (const auto *local = std::get_if<LocalAsrProvider>(&provider)) {
-        entry["model"] = local->model;
+        entry["model"] =
+            vinput::cli::HumanizeResourceId(model_display_map, local->model);
         entry["hotwords_file"] = local->hotwordsFile;
       } else if (const auto *command = std::get_if<CommandAsrProvider>(&provider)) {
         entry["command"] = command->command;
@@ -237,24 +149,30 @@ int RunAsrConfigList(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
 
-  std::vector<std::string> headers = {_("ID"), _("TYPE"), _("ACTIVE"),
-                                      _("MODEL"), _("COMMAND"),
-                                      _("TIMEOUT")};
+  std::vector<std::string> headers = {_("ID"), _("TITLE"), _("TYPE"),
+                                      _("ACTIVE"), _("MODEL"), _("README")};
   std::vector<std::vector<std::string>> rows;
   for (const auto &provider : config.asr.providers) {
     const std::string id = AsrProviderId(provider);
+    const auto display_it = display_map.find(id);
     const std::string type = std::string(AsrProviderType(provider));
     const std::string active =
         id == config.asr.activeProvider ? _("yes") : _("no");
     std::string model = "-";
-    std::string command = "-";
     if (const auto *local = std::get_if<LocalAsrProvider>(&provider)) {
-      model = local->model.empty() ? _("(not set)") : local->model;
-    } else if (const auto *cmd = std::get_if<CommandAsrProvider>(&provider)) {
-      command = CommandText(*cmd);
+      model = local->model.empty()
+                  ? _("(not set)")
+                  : vinput::cli::HumanizeResourceId(model_display_map,
+                                                   local->model);
     }
-    rows.push_back({id, type, active, model, command,
-                    vinput::str::FmtStr("%d ms", AsrProviderTimeoutMs(provider))});
+    rows.push_back(
+        {vinput::cli::HumanizeResourceId(display_map, id),
+         display_it == display_map.end() ? "" : display_it->second.title, type,
+         active, model,
+         display_it == display_map.end()
+             ? ""
+             : vinput::cli::FormatTerminalLink(ctx, _("Open README"),
+                                               display_it->second.readme_url)});
   }
   fmt.PrintTable(headers, rows);
   return 0;
@@ -264,10 +182,17 @@ int RunAsrConfigRemove(const std::string &id, Formatter &fmt,
                        const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
+  std::string error;
+  const std::string resolved_id =
+      vinput::cli::ResolveInstalledAsrProviderSelector(config, id, &error);
+  if (resolved_id.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
   auto &providers = config.asr.providers;
   auto it = std::find_if(providers.begin(), providers.end(),
-                         [&id](const AsrProvider &provider) {
-                           return AsrProviderId(provider) == id;
+                         [&resolved_id](const AsrProvider &provider) {
+                           return AsrProviderId(provider) == resolved_id;
                          });
   if (it == providers.end()) {
     fmt.PrintError(vinput::str::FmtStr(_("ASR provider '%s' not found."), id));
@@ -275,7 +200,7 @@ int RunAsrConfigRemove(const std::string &id, Formatter &fmt,
   }
 
   providers.erase(it);
-  if (config.asr.activeProvider == id) {
+  if (config.asr.activeProvider == resolved_id) {
     config.asr.activeProvider.clear();
   }
 
@@ -290,12 +215,15 @@ int RunAsrConfigUse(const std::string &id, Formatter &fmt,
                     const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
-  if (ResolveAsrProvider(config, id) == nullptr) {
-    fmt.PrintError(vinput::str::FmtStr(_("ASR provider '%s' not found."), id));
+  std::string error;
+  const std::string resolved_id =
+      vinput::cli::ResolveInstalledAsrProviderSelector(config, id, &error);
+  if (resolved_id.empty()) {
+    fmt.PrintError(error);
     return 1;
   }
 
-  config.asr.activeProvider = id;
+  config.asr.activeProvider = resolved_id;
   if (!SaveConfigOrFail(config, fmt)) {
     return 1;
   }
@@ -327,6 +255,7 @@ int RunAsrConfigListProviders(bool available, Formatter &fmt,
 
   const auto locale = vinput::registry::DetectPreferredLocale();
   const auto i18nMap = vinput::registry::FetchMergedI18nMap(config, locale);
+  const auto display_map = vinput::cli::BuildScriptDisplayMap(entries, i18nMap);
 
   auto isInstalled = [&config](const std::string &id) {
     return ResolveAsrProvider(config, id) != nullptr;
@@ -334,21 +263,18 @@ int RunAsrConfigListProviders(bool available, Formatter &fmt,
 
   if (ctx.json_output) {
     nlohmann::json arr = nlohmann::json::array();
-    std::size_t index = 1;
     for (const auto &entry : entries) {
       nlohmann::json envs = nlohmann::json::array();
       for (const auto &env : entry.envs) {
         envs.push_back({{"name", env.name}, {"required", env.required}});
       }
       arr.push_back({
-          {"index", index++},
-          {"id", entry.id},
-          {"title", vinput::registry::LookupI18n(
-                        i18nMap, entry.id + ".title", entry.id)},
-          {"description", vinput::registry::LookupI18n(
-                              i18nMap, entry.id + ".description", "")},
-          {"command", entry.command},
+          {"id", vinput::cli::HumanizeResourceId(entry.id, entry.short_id)},
+          {"machine_id", entry.id},
+          {"title", display_map.at(entry.id).title},
+          {"description", display_map.at(entry.id).description},
           {"readme_url", entry.readme_url},
+          {"stream", entry.stream},
           {"envs", envs},
           {"status", isInstalled(entry.id) ? "installed" : "available"},
       });
@@ -357,17 +283,16 @@ int RunAsrConfigListProviders(bool available, Formatter &fmt,
     return 0;
   }
 
-  std::vector<std::string> headers = {_("INDEX"), _("ID"), _("TITLE"),
-                                      _("COMMAND"), _("STATUS")};
+  std::vector<std::string> headers = {_("ID"), _("TITLE"),
+                                      _("MODE"), _("STATUS"), _("README")};
   std::vector<std::vector<std::string>> rows;
-  std::size_t index = 1;
   for (const auto &entry : entries) {
-    rows.push_back({std::to_string(index++),
-                    entry.id,
-                    vinput::registry::LookupI18n(i18nMap, entry.id + ".title",
-                                                 entry.id),
-                    entry.command,
-                    isInstalled(entry.id) ? _("installed") : _("available")});
+    rows.push_back({vinput::cli::HumanizeResourceId(entry.id, entry.short_id),
+                    display_map.at(entry.id).title,
+                    entry.stream ? _("stream") : _("batch"),
+                    isInstalled(entry.id) ? _("installed") : _("available"),
+                    vinput::cli::FormatTerminalLink(ctx, _("Open README"),
+                                                    entry.readme_url)});
   }
   fmt.PrintTable(headers, rows);
   return 0;
@@ -394,8 +319,8 @@ int RunAsrConfigInstallProvider(const std::string &selector, Formatter &fmt,
     return 1;
   }
 
-  const std::string id =
-      ResolveScriptEntrySelector(selector, entries, "ASR provider", &error);
+  const std::string id = vinput::cli::ResolveScriptSelectorByShortId(
+      selector, entries, "ASR provider", &error);
   if (id.empty()) {
     fmt.PrintError(error);
     return 1;
@@ -428,10 +353,7 @@ int RunAsrConfigInstallProvider(const std::string &selector, Formatter &fmt,
     return 1;
   }
 
-  fmt.PrintSuccess(vinput::str::FmtStr(
-      _("ASR provider '%s' synchronized to local config."), id));
-  fmt.PrintInfo(
-      vinput::str::FmtStr(_("Local script path: %s"), scriptPath.string()));
+  fmt.PrintSuccess(vinput::str::FmtStr(_("ASR provider '%s' added."), selector));
   return 0;
 }
 
@@ -439,7 +361,14 @@ int RunAsrConfigEdit(const std::string &id, Formatter &fmt,
                      const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
-  const AsrProvider *provider = ResolveAsrProvider(config, id);
+  std::string error;
+  const std::string resolved_id =
+      vinput::cli::ResolveInstalledAsrProviderSelector(config, id, &error);
+  if (resolved_id.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  const AsrProvider *provider = ResolveAsrProvider(config, resolved_id);
   if (!provider) {
     fmt.PrintError(
         vinput::str::FmtStr(_("ASR provider '%s' not found."), id));
@@ -466,8 +395,7 @@ int RunAsrConfigEdit(const std::string &id, Formatter &fmt,
     return ret;
   }
 
-  fmt.PrintSuccess(vinput::str::FmtStr(
-      _("Updated ASR provider script: %s"), scriptPath.string()));
+  fmt.PrintSuccess(vinput::str::FmtStr(_("ASR provider '%s' updated."), id));
   return 0;
 }
 
@@ -475,6 +403,7 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
   CoreConfig config = LoadCoreConfig();
   ModelManager manager(ResolveModelBaseDir(config).string());
   const std::string activeModel = ResolvePreferredLocalModel(config);
+  const auto installed_display_map = vinput::cli::FetchModelDisplayMap(config);
 
   if (available) {
     const auto registryUrls = ResolveModelRegistryUrls(config);
@@ -495,6 +424,7 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
 
     const auto locale = vinput::registry::DetectPreferredLocale();
     const auto i18nMap = vinput::registry::FetchMergedI18nMap(config, locale);
+    const auto display_map = vinput::cli::BuildModelDisplayMap(remoteModels, i18nMap);
     const auto installedModels = manager.ListDetailed(activeModel);
 
     auto isInstalled = [&installedModels](const std::string &id) {
@@ -506,15 +436,12 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
 
     if (ctx.json_output) {
       nlohmann::json arr = nlohmann::json::array();
-      std::size_t index = 1;
       for (const auto &model : remoteModels) {
         arr.push_back({
-            {"index", index++},
-            {"id", model.id},
-            {"title", vinput::registry::LookupI18n(
-                          i18nMap, model.id + ".title", model.id)},
-            {"description", vinput::registry::LookupI18n(
-                                i18nMap, model.id + ".description", "")},
+            {"id", vinput::cli::HumanizeResourceId(model.id, model.short_id)},
+            {"machine_id", model.id},
+            {"title", display_map.at(model.id).title},
+            {"description", display_map.at(model.id).description},
             {"model_type", model.model_type()},
             {"language", model.language},
             {"supports_hotwords", model.supports_hotwords()},
@@ -527,17 +454,13 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
       return 0;
     }
 
-    std::vector<std::string> headers = {_("INDEX"), _("ID"), _("TITLE"),
+    std::vector<std::string> headers = {_("ID"), _("TITLE"),
                                         _("TYPE"), _("LANGUAGE"), _("SIZE"),
                                         _("HOTWORDS"), _("STATUS")};
     std::vector<std::vector<std::string>> rows;
-    std::size_t index = 1;
     for (const auto &model : remoteModels) {
-      rows.push_back({std::to_string(index++),
-                      model.id,
-                      vinput::registry::LookupI18n(i18nMap,
-                                                   model.id + ".title",
-                                                   model.id),
+      rows.push_back({vinput::cli::HumanizeResourceId(model.id, model.short_id),
+                      display_map.at(model.id).title,
                       model.model_type(),
                       model.language,
                       vinput::str::FormatSize(model.size_bytes),
@@ -553,7 +476,6 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
 
   if (ctx.json_output) {
     nlohmann::json arr = nlohmann::json::array();
-    std::size_t index = 1;
     for (const auto &model : models) {
       std::string status = "installed";
       if (model.state == ModelState::Active) {
@@ -562,8 +484,9 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
         status = "broken";
       }
       arr.push_back({
-          {"index", index++},
-          {"id", model.id},
+          {"id", vinput::cli::HumanizeResourceId(installed_display_map,
+                                                 model.id)},
+          {"machine_id", model.id},
           {"model_type", model.model_type},
           {"language", model.language},
           {"supports_hotwords", model.supports_hotwords},
@@ -576,10 +499,9 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
     return 0;
   }
 
-  std::vector<std::string> headers = {_("INDEX"), _("ID"), _("TYPE"), _("LANGUAGE"),
+  std::vector<std::string> headers = {_("ID"), _("TYPE"), _("LANGUAGE"),
                                       _("SIZE"), _("HOTWORDS"), _("STATUS")};
   std::vector<std::vector<std::string>> rows;
-  std::size_t index = 1;
   for (const auto &model : models) {
     std::string status = _("Installed");
     if (model.state == ModelState::Active) {
@@ -587,7 +509,9 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
     } else if (model.state == ModelState::Broken) {
       status = std::string("[!] ") + _("Broken");
     }
-    rows.push_back({std::to_string(index++), model.id, model.model_type, model.language,
+    rows.push_back({vinput::cli::HumanizeResourceId(installed_display_map,
+                                                   model.id),
+                    model.model_type, model.language,
                     vinput::str::FormatSize(model.size_bytes),
                     model.supports_hotwords ? _("yes") : _("no"), status});
   }
@@ -616,7 +540,7 @@ int RunAsrConfigInstallModel(const std::string &selector, Formatter &fmt,
   }
 
   const std::string id =
-      ResolveRemoteModelSelector(selector, remoteModels, &error);
+      vinput::cli::ResolveModelSelectorByShortId(selector, remoteModels, &error);
   if (id.empty()) {
     fmt.PrintError(error);
     return 1;
@@ -631,7 +555,7 @@ int RunAsrConfigInstallModel(const std::string &selector, Formatter &fmt,
   }
 
   char labelBuf[256];
-  snprintf(labelBuf, sizeof(labelBuf), _("Downloading %s..."), id.c_str());
+  snprintf(labelBuf, sizeof(labelBuf), _("Downloading %s..."), selector.c_str());
   ProgressBar bar(labelBuf, totalSize, ctx.is_tty);
 
   const bool ok = repository.InstallModel(
@@ -647,10 +571,38 @@ int RunAsrConfigInstallModel(const std::string &selector, Formatter &fmt,
     return 1;
   }
 
-  fmt.PrintSuccess(
-      vinput::str::FmtStr(_("Model '%s' installed successfully."), id));
-  fmt.PrintInfo(
-      vinput::str::FmtStr(_("Run `vinput asr use-model %s` to activate."), id));
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Model '%s' added."), selector));
+  return 0;
+}
+
+int RunAsrConfigRemoveModel(const std::string &selector, Formatter &fmt,
+                            const CliContext &ctx) {
+  (void)ctx;
+  CoreConfig config = LoadCoreConfig();
+  ModelManager manager(ResolveModelBaseDir(config).string());
+  const std::string activeModel = ResolvePreferredLocalModel(config);
+  const auto models = manager.ListDetailed(activeModel);
+  const auto display_map = vinput::cli::FetchModelDisplayMap(config);
+
+  std::string error;
+  const std::string id = vinput::cli::ResolveModelSelectorByShortId(
+      selector, models, display_map, &error);
+  if (id.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  if (!manager.Remove(id, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  if (activeModel == id) {
+    if (!SetPreferredLocalModel(&config, "", &error)) {
+      fmt.PrintWarning(error);
+    } else if (!SaveConfigOrFail(config, fmt)) {
+      return 1;
+    }
+  }
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Model '%s' removed."), selector));
   return 0;
 }
 
@@ -661,10 +613,11 @@ int RunAsrConfigUseModel(const std::string &selector, Formatter &fmt,
   ModelManager manager(ResolveModelBaseDir(config).string());
   const std::string activeModel = ResolvePreferredLocalModel(config);
   const auto models = manager.ListDetailed(activeModel);
+  const auto display_map = vinput::cli::FetchModelDisplayMap(config);
 
   std::string error;
-  const std::string id =
-      ResolveInstalledModelSelector(selector, models, &error);
+  const std::string id = vinput::cli::ResolveModelSelectorByShortId(
+      selector, models, display_map, &error);
   if (id.empty()) {
     fmt.PrintError(error);
     return 1;
@@ -681,7 +634,8 @@ int RunAsrConfigUseModel(const std::string &selector, Formatter &fmt,
     return 1;
   }
 
-  fmt.PrintSuccess(vinput::str::FmtStr(_("Active local model set to '%s'."), id));
+  fmt.PrintSuccess(
+      vinput::str::FmtStr(_("Active local model set to '%s'."), selector));
   return 0;
 }
 
@@ -692,9 +646,10 @@ int RunAsrConfigModelInfo(const std::string &selector, Formatter &fmt,
   ModelManager manager(baseDir);
   const std::string activeModel = ResolvePreferredLocalModel(config);
   const auto models = manager.ListDetailed(activeModel);
+  const auto display_map = vinput::cli::FetchModelDisplayMap(config);
   std::string error;
-  const std::string id =
-      ResolveInstalledModelSelector(selector, models, &error);
+  const std::string id = vinput::cli::ResolveModelSelectorByShortId(
+      selector, models, display_map, &error);
   if (id.empty()) {
     fmt.PrintError(error);
     return 1;
@@ -712,7 +667,8 @@ int RunAsrConfigModelInfo(const std::string &selector, Formatter &fmt,
   }
 
   nlohmann::json obj;
-  obj["id"] = id;
+  obj["id"] = vinput::cli::HumanizeResourceId(display_map, id);
+  obj["machine_id"] = id;
   obj["backend"] = info.backend;
   obj["runtime"] = info.runtime;
   obj["family"] = info.family;
@@ -730,7 +686,7 @@ int RunAsrConfigModelInfo(const std::string &selector, Formatter &fmt,
 
   std::vector<std::string> headers = {_("FIELD"), _("VALUE")};
   std::vector<std::vector<std::string>> rows = {
-      {"id", id},
+      {"id", vinput::cli::HumanizeResourceId(display_map, id)},
       {"backend", info.backend},
       {"runtime", info.runtime},
       {"family", info.family},
@@ -804,7 +760,7 @@ int RunAsrConfigEditHotword(Formatter &fmt, const CliContext &ctx) {
   const auto *provider = PreferredLocalProvider(config);
   const std::string hotwordPath = provider ? provider->hotwordsFile : "";
   if (hotwordPath.empty()) {
-    fmt.PrintError(_("No hotwords file configured. Use 'asr set-hotword <path>' first."));
+    fmt.PrintError(_("No hotwords file configured. Use 'hotword set <path>' first."));
     return 1;
   }
 

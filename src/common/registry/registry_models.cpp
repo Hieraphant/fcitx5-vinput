@@ -56,6 +56,7 @@ std::vector<RemoteModelEntry> ParseRegistryJson(const std::string &content,
     for (const auto &item : j.at("items")) {
       RemoteModelEntry e;
       e.id = item.value("id", "");
+      e.short_id = item.value("short_id", "");
       e.size_bytes = item.value("size_bytes", uint64_t{0});
       e.language = item.value("language", "");
       if (item.contains("urls") && item.at("urls").is_array()) {

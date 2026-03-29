@@ -22,6 +22,7 @@ add_executable(vinput
     main.cpp
     utils/formatter.cpp
     utils/editor_utils.cpp
+    utils/resource_utils.cpp
     control/register.cpp
     control/register_daemon.cpp
     control/daemon_actions.cpp

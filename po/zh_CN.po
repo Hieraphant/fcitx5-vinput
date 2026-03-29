@@ -3,12 +3,11 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-26 12:33+0800\n"
+"POT-Creation-Date: 2026-03-29 11:03+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,23 +28,22 @@ msgstr "... 正在识别 ..."
 msgid "... Postprocessing ..."
 msgstr "... 正在后处理 ..."
 
-#, fuzzy
 msgid ""
 "Local ASR model configuration is missing. Please configure a model first."
-msgstr "提供商 '%s' 的本地 ASR 模型配置缺失。"
+msgstr "本地 ASR 模型配置缺失。请先配置模型。"
 
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local ASR model configuration is missing for provider '%s'. Please configure "
 "a model first."
-msgstr "提供商 '%s' 的本地 ASR 模型配置缺失。"
+msgstr "提供商 '%s' 的本地 ASR 模型配置缺失。请先配置模型。"
 
-msgid "Local ASR model metadata is missing model_type."
-msgstr "本地 ASR 模型元数据缺少 model_type。"
+msgid "Local ASR model metadata is missing family."
+msgstr "本地 ASR 模型元数据缺少 family。"
 
 #, c-format
-msgid "Local ASR model metadata is missing model_type for provider '%s'."
-msgstr "提供商 '%s' 的本地 ASR 模型元数据缺少 model_type。"
+msgid "Local ASR model metadata is missing family for provider '%s'."
+msgstr "提供商 '%s' 的本地 ASR 模型元数据缺少 family。"
 
 msgid "Local ASR model metadata contains an invalid path."
 msgstr "本地 ASR 模型元数据包含无效路径。"
@@ -234,75 +232,23 @@ msgstr "（当前）"
 msgid "Failed to save active scene."
 msgstr "保存当前活跃场景失败。"
 
-msgid "Failed to save config."
-msgstr "保存配置失败。"
-
-msgid "COMMAND"
-msgstr "命令"
-
 msgid "ID"
 msgstr "ID"
-
-msgid "STATE"
-msgstr "状态"
-
-msgid "(not set)"
-msgstr "（未设置）"
-
-msgid ""
-"No LLM adaptor registry sources configured. Edit config.json and set "
-"registry.llmAdaptors."
-msgstr ""
 
 msgid "TITLE"
 msgstr "标题"
 
-msgid "STATUS"
-msgstr "状态"
-
-msgid "installed"
-msgstr "已安装"
-
-msgid "available"
-msgstr "可用"
-
-#, fuzzy, c-format
-msgid "Adaptor '%s' not found in registry."
-msgstr "未找到 ASR 提供商 '%s'。"
-
-msgid "Failed to save configuration."
-msgstr "保存配置失败。"
-
-#, c-format
-msgid "Adaptor '%s' synchronized to local config."
-msgstr "Adaptor '%s' 已同步到本地配置。"
-
-#, c-format
-msgid "Local script path: %s"
-msgstr "本地脚本路径：%s"
-
-#, c-format
-msgid "Adaptor '%s' started."
-msgstr "Adaptor '%s' 已启动。"
-
-#, c-format
-msgid "Adaptor '%s' stopped."
-msgstr "Adaptor '%s' 已停止。"
+msgid "TYPE"
+msgstr "类型"
 
 msgid "ACTIVE"
 msgstr "当前"
 
-msgid "NAME"
-msgstr "名称"
-
-msgid "TYPE"
-msgstr "类型"
-
 msgid "MODEL"
 msgstr "模型"
 
-msgid "TIMEOUT"
-msgstr "超时"
+msgid "README"
+msgstr "文档"
 
 msgid "no"
 msgstr "否"
@@ -310,78 +256,56 @@ msgstr "否"
 msgid "yes"
 msgstr "是"
 
-msgid ""
-"No ASR provider registry sources configured. Edit config.json and set "
-"registry.asrProviders."
-msgstr ""
+msgid "(not set)"
+msgstr "（未设置）"
 
-msgid "Timeout must be greater than zero."
-msgstr "超时时间必须大于 0。"
-
-#, c-format
-msgid "ASR provider '%s' already exists."
-msgstr "ASR 提供商 '%s' 已存在。"
-
-msgid "Local ASR providers do not accept command or env fields."
-msgstr "本地 ASR 提供商不接受 command 或 env 字段。"
-
-msgid "Command ASR providers do not accept a model field."
-msgstr "命令型 ASR 提供商不接受 model 字段。"
-
-msgid "Command ASR providers require --command."
-msgstr "命令型 ASR 提供商需要指定 --command。"
-
-#, c-format
-msgid "Invalid env entry '%s'. Use KEY=VALUE."
-msgstr "无效的环境变量项 '%s'，请使用 KEY=VALUE。"
-
-#, c-format
-msgid "Unsupported ASR provider type '%s'."
-msgstr "不支持的 ASR 提供商类型 '%s'。"
-
-#, c-format
-msgid "ASR provider '%s' added."
-msgstr "ASR 提供商 '%s' 已添加。"
-
-#, c-format
-msgid "Run `vinput asr use %s` to activate"
-msgstr "运行 `vinput asr use %s` 以启用该提供商"
-
-#, fuzzy, c-format
-msgid "ASR provider '%s' not found in registry."
-msgstr "未找到 ASR 提供商 '%s'。"
-
-#, fuzzy, c-format
-msgid "ASR provider '%s' synchronized to local config."
-msgstr "ASR 提供商 '%s' 启动失败。"
+msgid "Open README"
+msgstr "查看文档"
 
 #, c-format
 msgid "ASR provider '%s' not found."
 msgstr "未找到 ASR 提供商 '%s'。"
 
 #, c-format
-msgid "Cannot remove active ASR provider '%s'. Use --force to override."
-msgstr "不能移除当前 ASR 提供商 '%s'，请用 --force 强制执行。"
-
-#, c-format
-msgid "ASR provider '%s' removed. Active provider is now '%s'."
-msgstr "ASR 提供商 '%s' 已移除，当前提供商现为 '%s'。"
-
-#, c-format
 msgid "ASR provider '%s' removed."
 msgstr "ASR 提供商 '%s' 已移除。"
 
-#, fuzzy, c-format
-msgid ""
-"Active ASR provider set to '%s', but daemon restart failed (exit code: %d)."
-msgstr "活跃模型已设为 '%s'，但守护进程重启失败（退出码：%d）。"
+#, c-format
+msgid "Active ASR provider set to '%s'."
+msgstr "当前 ASR 提供商已设为 '%s'。"
 
-msgid "Restart the daemon manually to apply the new provider."
-msgstr "请手动重启守护进程以应用新的提供商。"
+msgid ""
+"No ASR provider registry base URLs configured. Edit config.json and set "
+"registry.base_urls."
+msgstr ""
+"未配置 ASR 提供商 registry 源地址。请编辑 config.json 设置 "
+"registry.base_urls。"
+
+msgid "MODE"
+msgstr "模式"
+
+msgid "STATUS"
+msgstr "状态"
+
+msgid "batch"
+msgstr "非流"
+
+msgid "stream"
+msgstr "流式"
+
+msgid "available"
+msgstr "可用"
+
+msgid "installed"
+msgstr "已安装"
 
 #, c-format
-msgid "Active ASR provider set to '%s'. Daemon restarted."
-msgstr "当前 ASR 提供商已设为 '%s'，守护进程已重启。"
+msgid "ASR provider '%s' not found in registry."
+msgstr "在 registry 中未找到 ASR 提供商 '%s'。"
+
+#, c-format
+msgid "ASR provider '%s' added."
+msgstr "ASR 提供商 '%s' 已添加。"
 
 #, c-format
 msgid "ASR provider '%s' is not a command provider and cannot be edited."
@@ -395,55 +319,64 @@ msgid "Editor exited with error."
 msgstr "编辑器异常退出。"
 
 #, c-format
-msgid "Updated ASR provider script: %s"
-msgstr "已更新 ASR 提供商脚本：%s"
+msgid "ASR provider '%s' updated."
+msgstr "ASR 提供商 '%s' 已更新。"
 
-msgid "Config value set."
-msgstr "配置值已设置。"
+msgid ""
+"No model registry base URLs configured. Edit config.json and set "
+"registry.base_urls."
+msgstr ""
+"未配置模型 registry 源地址。请编辑 config.json 设置 registry.base_urls。"
 
-msgid "Daemon started."
-msgstr "守护进程已启动。"
+msgid "LANGUAGE"
+msgstr "语言"
 
-#, c-format
-msgid "systemctl start failed (exit code: %d)"
-msgstr "systemctl start 失败（退出码：%d）"
+msgid "SIZE"
+msgstr "大小"
 
-msgid "Daemon stopped."
-msgstr "守护进程已停止。"
+msgid "HOTWORDS"
+msgstr "热词"
 
-#, c-format
-msgid "systemctl stop failed (exit code: %d)"
-msgstr "systemctl stop 失败（退出码：%d）"
-
-msgid "Daemon restarted."
-msgstr "守护进程已重启。"
-
-#, c-format
-msgid "systemctl restart failed (exit code: %d)"
-msgstr "systemctl restart 失败（退出码：%d）"
-
-msgid "No audio capture devices found or PipeWire is not running."
-msgstr "未找到音频输入设备或 PipeWire 未运行。"
-
-msgid "DESCRIPTION"
-msgstr "描述"
+msgid "Installed"
+msgstr "已安装"
 
 msgid "Active"
 msgstr "活跃"
 
-msgid "System Default"
-msgstr "系统默认"
+msgid "Broken"
+msgstr "损坏"
 
 #, c-format
-msgid "Device '%s' not found in PipeWire. Setting it anyway."
-msgstr "在 PipeWire 中未找到设备 '%s'，仍将继续设置。"
+msgid "Downloading %s..."
+msgstr "正在下载 %s..."
 
 #, c-format
-msgid "Capture device set to '%s'. Restart daemon to apply changes."
-msgstr "录音设备已设为 '%s'，请重启守护进程生效。"
+msgid "Model '%s' added."
+msgstr "模型 '%s' 已添加。"
+
+#, c-format
+msgid "Model '%s' removed."
+msgstr "模型 '%s' 已移除。"
+
+#, c-format
+msgid "Model '%s' is not valid: %s"
+msgstr "模型 '%s' 无效：%s"
+
+#, c-format
+msgid "Active local model set to '%s'."
+msgstr "当前本地模型已设为 '%s'。"
+
+msgid "FIELD"
+msgstr "字段"
+
+msgid "VALUE"
+msgstr "值"
 
 msgid "No hotwords file configured."
 msgstr "未配置热词文件。"
+
+msgid "No local ASR provider configured."
+msgstr "未配置本地 ASR 提供商。"
 
 msgid "Hotwords file path saved."
 msgstr "热词文件路径已保存。"
@@ -456,6 +389,32 @@ msgstr "未配置热词文件。请先使用 'hotword set <路径>'。"
 
 msgid "Hotwords file updated."
 msgstr "热词文件已更新。"
+
+msgid "Config value set."
+msgstr "配置值已设置。"
+
+msgid "Unsupported config target. Use 'core' or 'fcitx'."
+msgstr "不支持的配置目标。请使用 'core' 或 'fcitx'。"
+
+msgid "No audio capture devices found or PipeWire is not running."
+msgstr "未找到音频输入设备或 PipeWire 未运行。"
+
+msgid "DESCRIPTION"
+msgstr "描述"
+
+msgid "NAME"
+msgstr "名称"
+
+msgid "System Default"
+msgstr "系统默认"
+
+#, c-format
+msgid "Device '%s' not found in PipeWire. Setting it anyway."
+msgstr "在 PipeWire 中未找到设备 '%s'，仍将继续设置。"
+
+#, c-format
+msgid "Capture device set to '%s'. Restart daemon to apply changes."
+msgstr "录音设备已设为 '%s'，请重启守护进程生效。"
 
 #, c-format
 msgid "Config already exists: %s"
@@ -489,6 +448,13 @@ msgstr "API 密钥"
 msgid "BASE_URL"
 msgstr "服务地址"
 
+msgid ""
+"No LLM adapter registry base URLs configured. Edit config.json and set "
+"registry.base_urls."
+msgstr ""
+"未配置 LLM 适配器 registry 源地址。请编辑 config.json 设置 "
+"registry.base_urls。"
+
 #, c-format
 msgid "LLM provider '%s' already exists."
 msgstr "LLM 提供商 '%s' 已存在。"
@@ -498,6 +464,22 @@ msgid "LLM provider '%s' added."
 msgstr "LLM 提供商 '%s' 已添加。"
 
 #, c-format
+msgid "Adapter '%s' not found in registry."
+msgstr "在 registry 中未找到适配器 '%s'。"
+
+#, c-format
+msgid "Adapter '%s' added."
+msgstr "适配器 '%s' 已添加。"
+
+#, c-format
+msgid "Adapter '%s' started."
+msgstr "Adapter '%s' 已启动。"
+
+#, c-format
+msgid "Adapter '%s' stopped."
+msgstr "Adapter '%s' 已停止。"
+
+#, c-format
 msgid "LLM provider '%s' not found."
 msgstr "LLM 提供商 '%s' 未找到。"
 
@@ -505,87 +487,258 @@ msgstr "LLM 提供商 '%s' 未找到。"
 msgid "LLM provider '%s' removed."
 msgstr "LLM 提供商 '%s' 已移除。"
 
-msgid "HOTWORDS"
-msgstr "热词"
+#, c-format
+msgid "LLM provider '%s' updated."
+msgstr "LLM 提供商 '%s' 已更新。"
 
-msgid "LANGUAGE"
-msgstr "语言"
+msgid "Manage hotword file"
+msgstr "管理热词文件"
 
-msgid "SIZE"
-msgstr "大小"
+msgid "Show configured hotword file path"
+msgstr "显示已配置的热词文件路径"
 
-msgid "Broken"
-msgstr "损坏"
+msgid "Set hotword file path"
+msgstr "设置热词文件路径"
 
-msgid "Installed"
-msgstr "已安装"
+msgid "Path to hotword file"
+msgstr "热词文件路径"
 
-#, fuzzy
-msgid ""
-"No model registry sources configured. Edit config.json and set "
-"registry.models."
-msgstr ""
-"未配置 registry URL。请使用以下命令设置：vinput config set "
-"extra.registry_url <url>"
+msgid "Clear hotword file path"
+msgstr "清除热词文件路径"
+
+msgid "Edit hotword file"
+msgstr "编辑热词文件"
+
+msgid "Manage local ASR models"
+msgstr "管理本地 ASR 模型"
+
+msgid "List models"
+msgstr "列出模型"
+
+msgid "List remote models"
+msgstr "列出远程模型"
+
+msgid "Add a model"
+msgstr "添加模型"
+
+msgid "Model short ID"
+msgstr "模型短 ID"
+
+msgid "Remove a model"
+msgstr "移除模型"
+
+msgid "Set active model"
+msgstr "设置当前使用的模型"
+
+msgid "Show model details"
+msgstr "显示模型详情"
+
+msgid "Manage ASR providers"
+msgstr "管理 ASR 提供商"
+
+msgid "List providers"
+msgstr "列出提供商"
+
+msgid "List remote providers"
+msgstr "列出远程提供商"
+
+msgid "Add a provider"
+msgstr "添加提供商"
+
+msgid "Provider short ID"
+msgstr "提供商短 ID"
+
+msgid "Set active provider"
+msgstr "设置当前提供商"
+
+msgid "Edit provider script"
+msgstr "编辑提供商脚本"
+
+msgid "Remove a provider"
+msgstr "移除提供商"
+
+msgid "Read or write configuration values"
+msgstr "读取或写入配置项"
+
+msgid "Get a config value by JSON Pointer"
+msgstr "通过 JSON Pointer 获取配置值"
+
+msgid "JSON Pointer (e.g. /global/capture_device)"
+msgstr "JSON Pointer（例如 /global/capture_device）"
+
+msgid "Set a config value by JSON Pointer"
+msgstr "通过 JSON Pointer 设置配置值"
+
+msgid "New value"
+msgstr "新值"
+
+msgid "Read value from stdin"
+msgstr "从标准输入读取值"
+
+msgid "Open config file in editor"
+msgstr "用编辑器打开配置文件"
+
+msgid "Config target: fcitx or core"
+msgstr "配置目标：fcitx 或 core"
+
+msgid "Manage capture devices"
+msgstr "管理录音设备"
+
+msgid "List available audio input devices"
+msgstr "列出可用的音频输入设备"
+
+msgid "Set active capture device"
+msgstr "设置当前录音设备"
+
+msgid "Device id or 'default'"
+msgstr "设备 ID 或 'default'"
+
+msgid "Initialize default config and directories"
+msgstr "初始化默认配置和目录"
+
+msgid "Overwrite existing config"
+msgstr "覆盖现有配置"
+
+msgid "Manage LLM providers"
+msgstr "管理 LLM 提供商"
+
+msgid "List configured LLM providers"
+msgstr "列出已配置的 LLM 提供商"
+
+msgid "Add an LLM provider"
+msgstr "添加 LLM 提供商"
+
+msgid "Provider ID"
+msgstr "提供商 ID"
+
+msgid "Base URL"
+msgstr "服务地址"
+
+msgid "API key"
+msgstr "API 密钥"
+
+msgid "Remove an LLM provider"
+msgstr "移除 LLM 提供商"
+
+msgid "Edit an LLM provider"
+msgstr "编辑 LLM 提供商"
+
+msgid "Manage LLM adapters"
+msgstr "管理 LLM 适配器"
+
+msgid "List adapters"
+msgstr "列出适配器"
+
+msgid "List remote adapters"
+msgstr "列出远程适配器"
+
+msgid "Add an adapter"
+msgstr "添加适配器"
+
+msgid "Adapter short ID"
+msgstr "适配器短 ID"
+
+msgid "Start an adapter"
+msgstr "启动适配器"
+
+msgid "Stop an adapter"
+msgstr "停止适配器"
+
+msgid "Manage recognition scenes"
+msgstr "管理识别场景"
+
+msgid "List all scenes"
+msgstr "列出所有场景"
+
+msgid "Add a new scene"
+msgstr "添加新场景"
+
+msgid "Scene id"
+msgstr "场景 ID"
+
+msgid "Display label"
+msgstr "显示标签"
+
+msgid "LLM prompt"
+msgstr "LLM 提示词"
+
+msgid "LLM provider id"
+msgstr "LLM 提供商 ID"
+
+msgid "LLM model id"
+msgstr "LLM 模型 ID"
+
+msgid "Candidate count"
+msgstr "候选数量"
+
+msgid "Request timeout in milliseconds"
+msgstr "请求超时时间（毫秒）"
+
+msgid "Set active scene"
+msgstr "设置当前场景"
+
+msgid "Remove a scene"
+msgstr "移除场景"
+
+msgid "Edit a scene"
+msgstr "编辑场景"
+
+msgid "LABEL"
+msgstr "标签"
+
+msgid "PROVIDER"
+msgstr "提供者"
+
+msgid "CANDIDATES"
+msgstr "候选数"
 
 #, c-format
-msgid "Downloading %s..."
-msgstr "正在下载 %s..."
+msgid "Scene '%s' added."
+msgstr "场景 '%s' 已添加。"
 
 #, c-format
-msgid "Model '%s' installed successfully."
-msgstr "模型 '%s' 安装成功。"
+msgid "Default scene set to '%s'."
+msgstr "默认场景已设为 '%s'。"
 
 #, c-format
-msgid "Run `vinput model use %s` to activate"
-msgstr "运行 `vinput model use %s` 以启用该模型"
+msgid "Scene '%s' removed."
+msgstr "场景 '%s' 已移除。"
 
 #, c-format
-msgid "Model '%s' is not valid: %s"
-msgstr "模型 '%s' 无效：%s"
+msgid "Scene '%s' not found."
+msgstr "未找到场景 '%s'。"
 
 #, c-format
-msgid "Active model set to '%s', but daemon restart failed (exit code: %d)."
-msgstr "活跃模型已设为 '%s'，但守护进程重启失败（退出码：%d）。"
-
-msgid "Restart the daemon manually to apply the new model."
-msgstr "请手动重启守护进程以应用新模型。"
-
-#, c-format
-msgid "Active model set to '%s'. Daemon restarted."
-msgstr "活跃模型已设为 '%s'，守护进程已重启。"
-
-#, c-format
-msgid "Cannot remove active model '%s'. Use --force to override."
-msgstr "不能移除活跃模型 '%s'，请用 --force。"
-
-#, c-format
-msgid "Model '%s' removed."
-msgstr "模型 '%s' 已移除。"
-
-#, c-format
-msgid "Model '%s' not found at: %s"
-msgstr "未找到模型 '%s'：%s"
-
-#, c-format
-msgid "Failed to read: %s"
-msgstr "读取失败：%s"
-
-#, c-format
-msgid "Failed to parse vinput-model.json: %s"
-msgstr "解析 vinput-model.json 失败：%s"
-
-msgid "Name"
-msgstr "名称"
-
-msgid "Path"
-msgstr "路径"
-
-msgid "Size"
-msgstr "大小"
+msgid "Scene '%s' updated."
+msgstr "场景 '%s' 已更新。"
 
 msgid "Daemon is not running."
 msgstr "守护进程未运行。"
+
+#, c-format
+msgid "Daemon status: %s"
+msgstr "守护进程状态：%s"
+
+msgid "Daemon started."
+msgstr "守护进程已启动。"
+
+#, c-format
+msgid "systemctl start failed (exit code: %d)"
+msgstr "systemctl start 失败（退出码：%d）"
+
+msgid "Daemon stopped."
+msgstr "守护进程已停止。"
+
+#, c-format
+msgid "systemctl stop failed (exit code: %d)"
+msgstr "systemctl stop 失败（退出码：%d）"
+
+msgid "Daemon restarted."
+msgstr "守护进程已重启。"
+
+#, c-format
+msgid "systemctl restart failed (exit code: %d)"
+msgstr "systemctl restart 失败（退出码：%d）"
 
 msgid "Recording started."
 msgstr "录音已开始。"
@@ -604,273 +757,19 @@ msgstr "守护进程忙碌（状态：%s）。"
 msgid "Daemon is in error state."
 msgstr "守护进程处于错误状态。"
 
-msgid "Cache Dir"
-msgstr "缓存目录"
+msgid "Control daemon lifecycle"
+msgstr "控制守护进程生命周期"
 
-msgid "KIND"
-msgstr "类型"
+msgid "Show daemon status"
+msgstr "显示守护进程状态"
 
-msgid "PATH"
-msgstr "路径"
-
-msgid "cached"
-msgstr "已缓存"
-
-msgid "missing"
-msgstr "缺失"
-
-msgid "models"
-msgstr "模型"
-
-#, fuzzy
-msgid "asr_providers"
-msgstr "管理 LLM 提供商"
-
-msgid "llm_adaptors"
-msgstr "llm_adaptors"
-
-msgid "Registry cache synchronized."
-msgstr "Registry 缓存已同步。"
-
-msgid "CANDIDATES"
-msgstr "候选数"
-
-msgid "LABEL"
-msgstr "标签"
-
-msgid "PROVIDER"
-msgstr "提供者"
-
-#, c-format
-msgid "Scene '%s' added."
-msgstr "场景 '%s' 已添加。"
-
-#, c-format
-msgid "Default scene set to '%s'."
-msgstr "默认场景已设为 '%s'。"
-
-#, c-format
-msgid "Scene '%s' removed."
-msgstr "场景 '%s' 已移除。"
-
-#, c-format
-msgid "Daemon status: %s"
-msgstr "守护进程状态：%s"
-
-msgid "vinput - Voice input model and daemon manager"
-msgstr "vinput - 语音输入模型与守护进程管理器"
-
-msgid "Print this help message and exit"
-msgstr "显示此帮助信息并退出"
-
-msgid "Output in JSON format"
-msgstr "以 JSON 格式输出"
-
-msgid "Manage ASR models"
-msgstr "管理 ASR 模型"
-
-msgid "List installed or available models"
-msgstr "列出已安装或可用的模型"
-
-msgid "Include available models from registry cache"
-msgstr "包含 registry 缓存中的可用模型"
-
-msgid "Download and install a model"
-msgstr "下载并安装模型"
-
-msgid "Model name"
-msgstr "模型名称"
-
-msgid "Set active model"
-msgstr "设置当前使用的模型"
-
-msgid "Remove an installed model"
-msgstr "移除已安装的模型"
-
-msgid "Skip confirmation"
-msgstr "跳过确认"
-
-msgid "Show model details"
-msgstr "显示模型详情"
-
-msgid "Manage recognition scenes"
-msgstr "管理识别场景"
-
-msgid "List all scenes"
-msgstr "列出所有场景"
-
-msgid "Add a new scene"
-msgstr "添加新场景"
-
-msgid "Scene ID"
-msgstr "场景 ID"
-
-msgid "Display label"
-msgstr "显示标签"
-
-msgid "LLM prompt"
-msgstr "LLM 提示词"
-
-msgid "LLM provider name"
-msgstr "LLM 提供者名称"
-
-msgid "LLM model name"
-msgstr "LLM 模型名称"
-
-msgid "Candidate count"
-msgstr "候选数量"
-
-msgid "Request timeout in milliseconds"
-msgstr "请求超时时间（毫秒）"
-
-msgid "Set active scene"
-msgstr "设置当前场景"
-
-msgid "Remove a scene"
-msgstr "移除场景"
-
-msgid "Force removal of built-in scenes"
-msgstr "强制移除内置场景"
-
-msgid "Manage LLM providers"
-msgstr "管理 LLM 提供商"
-
-msgid "List configured LLM providers"
-msgstr "列出已配置的 LLM 提供商"
-
-msgid "Add an LLM provider"
-msgstr "添加 LLM 提供商"
-
-msgid "Provider name"
-msgstr "提供商名称"
-
-msgid "Base URL"
-msgstr "服务地址"
-
-msgid "API key"
-msgstr "API 密钥"
-
-msgid "Remove an LLM provider"
-msgstr "移除 LLM 提供商"
-
-msgid "Manage registry sources and cache"
-msgstr "管理 registry 源和缓存"
-
-msgid "Show registry cache status"
-msgstr "显示 registry 缓存状态"
-
-msgid "Refresh registry cache"
-msgstr "刷新 registry 缓存"
-
-msgid "Manage ASR providers"
-msgstr "管理 ASR 提供商"
-
-msgid "List configured ASR providers"
-msgstr "列出已配置的 ASR 提供商"
-
-msgid "List available cloud ASR providers from registry cache"
-msgstr "从 registry 缓存列出可用云端 ASR provider"
-
-msgid "Add an ASR provider"
-msgstr "添加 ASR 提供商"
-
-msgid "Provider type: local or command"
-msgstr "提供商类型：local 或 command"
-
-msgid "Local model name"
-msgstr "本地模型名称"
-
-msgid "Command or executable path for command providers"
-msgstr "命令型提供商的命令或可执行文件路径"
-
-msgid "Command argument"
-msgstr "命令参数"
-
-msgid "Environment entry as KEY=VALUE"
-msgstr "以 KEY=VALUE 形式传入环境变量"
-
-msgid "Provider timeout in milliseconds"
-msgstr "提供商超时时间（毫秒）"
-
-msgid "Remove an ASR provider"
-msgstr "移除 ASR 提供商"
-
-msgid "Skip active-provider protection"
-msgstr "跳过当前提供商保护"
-
-msgid "Set active ASR provider"
-msgstr "设置当前 ASR 提供商"
-
-msgid "Open an external ASR provider script"
-msgstr "打开外部 ASR 提供商脚本"
-
-msgid "Install an official cloud ASR provider"
-msgstr "安装官方云端 ASR 提供商"
-
-msgid "Registry provider ID"
-msgstr "Registry 提供商 ID"
-
-msgid "Manage LLM adaptors"
-msgstr "管理 LLM adaptor"
-
-msgid "List available LLM adaptors"
-msgstr "列出可用的 LLM adaptor"
-
-msgid "List available adaptors from registry cache"
-msgstr "列出 registry 缓存中的可用 adaptor"
-
-msgid "Install an official adaptor"
-msgstr "安装官方 adaptor"
-
-msgid "Registry adaptor ID"
-msgstr "Registry adaptor ID"
-
-msgid "Start an LLM adaptor"
-msgstr "启动一个 LLM adaptor"
-
-msgid "Adaptor ID"
-msgstr "Adaptor ID"
-
-msgid "Stop an LLM adaptor"
-msgstr "停止一个 LLM adaptor"
-
-msgid "Read or write configuration values"
-msgstr "读取或写入配置项"
-
-msgid "Get a config value by dotpath"
-msgstr "通过路径获取配置值"
-
-msgid "Config dotpath (e.g. fcitx.triggerKey)"
-msgstr "配置路径（如 fcitx.triggerKey）"
-
-msgid "Set a config value by dotpath"
-msgstr "通过路径设置配置值"
-
-msgid "Config dotpath"
-msgstr "配置路径"
-
-msgid "New value"
-msgstr "新值"
-
-msgid "Read value from stdin"
-msgstr "从标准输入读取值"
-
-msgid "Open config file in editor"
-msgstr "用编辑器打开配置文件"
-
-msgid "Config target: fcitx or extra"
-msgstr "配置目标：fcitx 或 extra"
-
-msgid "Control the vinput daemon"
-msgstr "控制 vinput 守护进程"
-
-msgid "Start the daemon"
+msgid "Start daemon"
 msgstr "启动守护进程"
 
-msgid "Stop the daemon"
+msgid "Stop daemon"
 msgstr "停止守护进程"
 
-msgid "Restart the daemon"
+msgid "Restart daemon"
 msgstr "重启守护进程"
 
 msgid "Show daemon logs"
@@ -879,44 +778,8 @@ msgstr "显示守护进程日志"
 msgid "Follow log output"
 msgstr "持续追踪日志输出"
 
-msgid "Number of lines to show"
-msgstr "显示行数"
-
-msgid "Initialize default config and directories"
-msgstr "初始化默认配置和目录"
-
-msgid "Overwrite existing config"
-msgstr "覆盖现有配置"
-
-msgid "Manage hotwords file"
-msgstr "管理热词文件"
-
-msgid "Show configured hotwords file path"
-msgstr "显示已配置的热词文件路径"
-
-msgid "Set hotwords file path"
-msgstr "设置热词文件路径"
-
-msgid "Path to hotwords file"
-msgstr "热词文件路径"
-
-msgid "Clear hotwords file path"
-msgstr "清除热词文件路径"
-
-msgid "Edit hotwords file in editor"
-msgstr "用编辑器编辑热词文件"
-
-msgid "Manage capture devices"
-msgstr "管理录音设备"
-
-msgid "List available audio input devices"
-msgstr "列出可用的音频输入设备"
-
-msgid "Set active capture device"
-msgstr "设置当前录音设备"
-
-msgid "Device name or 'default'"
-msgstr "设备名称或 'default'"
+msgid "Number of log lines"
+msgstr "日志行数"
 
 msgid "Control voice recording"
 msgstr "控制语音录音"
@@ -927,20 +790,23 @@ msgstr "开始录音"
 msgid "Stop recording and recognize"
 msgstr "停止录音并识别"
 
-msgid "Scene ID (default: active scene)"
-msgstr "场景 ID（默认：当前活跃场景）"
+msgid "Scene id (default: active scene)"
+msgstr "场景 ID（默认：当前场景）"
 
 msgid "Toggle recording start/stop"
 msgstr "切换录音开始/停止"
 
-msgid "Show overall vinput status"
-msgstr "显示 vinput 整体状态"
+msgid "vinput - Voice input manager"
+msgstr "vinput - 语音输入管理器"
 
-msgid "Raw"
-msgstr "原始"
+msgid "Print this help message and exit"
+msgstr "显示此帮助信息并退出"
 
-msgid "Command"
-msgstr "命令"
+msgid "Output in JSON format"
+msgstr "以 JSON 格式输出"
+
+msgid "Failed to save config."
+msgstr "保存配置失败。"
 
 msgid "Trigger Key"
 msgstr "触发键"
@@ -957,12 +823,13 @@ msgstr ""
 msgid "Command Keys"
 msgstr "命令键"
 
-#, fuzzy
 msgid ""
 "Press and hold this key to record a voice command to operate on the selected "
 "text. If there is no active selection, vinput falls back to the current "
 "primary-selection clipboard text. Default is Right Control."
-msgstr "按住该键录制语音指令，将对当前选中的文本进行处理。默认是右 Ctrl。"
+msgstr ""
+"按住该键录制语音指令，将对当前选中的文本进行处理。如果没有选中文本，"
+"vinput 将使用当前主选区剪贴板内容。默认是右 Ctrl。"
 
 msgid "Postprocess Menu Keys"
 msgstr "后处理选单键"
@@ -993,3 +860,19 @@ msgstr ""
 
 msgid "Open Vinput Settings"
 msgstr "打开 Vinput 设置"
+
+msgid "Raw"
+msgstr "原始"
+
+msgid "Command"
+msgstr "命令"
+
+#, c-format
+msgid "Local ASR model configuration is missing for provider '%s'."
+msgstr "提供商 '%s' 的本地 ASR 模型配置缺失。请先配置模型。"
+
+msgid "ASR disabled by command line."
+msgstr "ASR 已被命令行禁用。"
+
+msgid "No active ASR provider configured."
+msgstr "未配置活跃的 ASR 提供商。"

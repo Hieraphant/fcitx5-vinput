@@ -188,12 +188,12 @@ vinput scene remove <ID>        # 删除场景
 vinput llm list                 # 列出已配置 provider
 vinput llm add <名称> --base-url <url>
 vinput llm remove <名称>         # 删除 provider
-vinput adaptor list             # 列出内建/用户 LLM adaptor
-vinput adaptor start <id>       # 启动 LLM adaptor
-vinput adaptor stop <id>        # 停止 LLM adaptor
+vinput adapter list             # 列出内建/用户 LLM adapter
+vinput adapter start <id>       # 启动 LLM adapter
+vinput adapter stop <id>        # 停止 LLM adapter
 ```
 
-LLM provider 由场景引用，不再有单独的“当前 provider”开关。LLM adaptor
+LLM provider 由场景引用，不再有单独的“当前 provider”开关。LLM adapter
 只是本地 OpenAI 兼容桥接进程，provider 可以指向它。
 
 </details>
@@ -245,7 +245,7 @@ vinput config edit fcitx                     # 编辑 Fcitx 插件配置
 ```
 
 高级注册源回退可直接在 `config.json` 里配置分类型的 source 列表，例如
-`registry.models`、`registry.asr_providers`、`registry.llm_adaptors`、
+`registry.models`、`registry.asr_providers`、`registry.llm_adapters`、
 `registry.i18n`。程序会按顺序依次尝试这些 URL，直到某个源成功。
 
 </details>
@@ -317,12 +317,12 @@ vinput scene add --id polish \
 vinput scene use polish
 ```
 
-## Provider 脚本与 Adaptor 约定
+## Provider 脚本与 Adapter 约定
 
 仓库里的可选集成脚本现在统一放在 `data/` 下的两个平铺目录：
 
 - `data/asr-providers/`：外部 ASR provider 脚本
-- `data/llm-adaptors/`：LLM OpenAI 兼容 adaptor 脚本
+- `data/llm-adapters/`：LLM OpenAI 兼容 adapter 脚本
 
 `scripts/` 目录只保留构建、检查、打包之类的项目维护脚本。
 
@@ -377,9 +377,9 @@ vinput scene use polish
 OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao`
 直接对接豆包语音 / 火山引擎录音文件极速版接口。
 
-### LLM Adaptor 协议
+### LLM Adapter 协议
 
-如果你要自己写 LLM adaptor，它需要提供 OpenAI 兼容接口，至少实现：
+如果你要自己写 LLM adapter，它需要提供 OpenAI 兼容接口，至少实现：
 
 - `GET /v1/models`
 - `POST /v1/chat/completions`
@@ -417,15 +417,15 @@ OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao
 }
 ```
 
-官方 LLM adaptor 现在由 `vinput-registry` 发布，并通过
-`vinput adaptor install <id>` 按需安装到 `~/.config/vinput/llm-adaptors/`。
+官方 LLM adapter 现在由 `vinput-registry` 发布，并通过
+`vinput adapter install <id>` 按需安装到 `~/.config/vinput/llm-adapters/`。
 
-对于托管的 LLM adaptor，运行时配置建议统一走环境变量，不要依赖 CLI
-位置参数。`vinput adaptor start/stop` 直接启动脚本，不会为它注入额外位置参数。
+对于托管的 LLM adapter，运行时配置建议统一走环境变量，不要依赖 CLI
+位置参数。`vinput adapter start/stop` 直接启动脚本，不会为它注入额外位置参数。
 
 参考实现：
 
-- `data/llm-adaptors/mtranserver_proxy.py`
+- `data/llm-adapters/mtranserver_proxy.py`
 - `data/asr-providers/elevenlabs_speech_to_text.py`
 
 ## 配置文件位置

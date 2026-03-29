@@ -65,20 +65,20 @@ void NormalizeCoreConfig(CoreConfig *config) {
 
   {
     std::set<std::string> seen;
-    std::vector<LlmAdaptor> normalized;
-    for (auto adaptor : config->llm.adaptors) {
-      if (adaptor.id.empty()) {
-        std::cerr << "Ignoring LLM adaptor with empty id\n";
+    std::vector<LlmAdapter> normalized;
+    for (auto adapter : config->llm.adapters) {
+      if (adapter.id.empty()) {
+        std::cerr << "Ignoring LLM adapter with empty id\n";
         continue;
       }
-      if (!seen.insert(adaptor.id).second) {
-        std::cerr << "Ignoring duplicate LLM adaptor '" << adaptor.id << "'\n";
+      if (!seen.insert(adapter.id).second) {
+        std::cerr << "Ignoring duplicate LLM adapter '" << adapter.id << "'\n";
         continue;
       }
-      EraseEmptyEnvKeys(&adaptor);
-      normalized.push_back(std::move(adaptor));
+      EraseEmptyEnvKeys(&adapter);
+      normalized.push_back(std::move(adapter));
     }
-    config->llm.adaptors = std::move(normalized);
+    config->llm.adapters = std::move(normalized);
   }
 
   {

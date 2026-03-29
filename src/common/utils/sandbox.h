@@ -1,0 +1,27 @@
+#pragma once
+#include <string>
+#include <vector>
+
+namespace vinput::sandbox {
+
+// Whether running inside a sandbox (e.g. Flatpak).
+bool IsInSandbox();
+
+// Wrap a command to execute on the host when inside a sandbox.
+// Returns args unchanged when not sandboxed.
+std::vector<std::string> WrapHostCommand(std::vector<std::string> args);
+
+// Return journalctl filter arguments appropriate for the current environment.
+// Caller appends -n / -f as needed.
+std::vector<std::string> DaemonLogFilter();
+
+// Return names of missing sandbox permissions (empty if not sandboxed or all
+// permissions are present).
+std::vector<std::string> MissingSandboxPermissions();
+
+// Rewrite a systemd unit content string so ExecStart points to the sandboxed
+// daemon executable.  Returns the original content unchanged when not
+// sandboxed.
+std::string RewriteServiceUnit(const std::string& content);
+
+} // namespace vinput::sandbox

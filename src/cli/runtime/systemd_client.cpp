@@ -1,6 +1,7 @@
 #include "cli/runtime/systemd_client.h"
 
 #include "common/utils/path_utils.h"
+#include "common/utils/sandbox.h"
 
 #include <array>
 #include <string>
@@ -13,12 +14,8 @@ namespace vinput::cli {
 namespace {
 
 std::vector<std::string> BuildCommand(const std::vector<std::string>& args) {
-    if (vinput::path::IsInsideFlatpak()) {
-        std::vector<std::string> actual_args = {"flatpak-spawn", "--host"};
-        actual_args.insert(actual_args.end(), args.begin(), args.end());
-        return actual_args;
-    }
-    return args;
+    return vinput::sandbox::WrapHostCommand(
+        std::vector<std::string>(args.begin(), args.end()));
 }
 
 std::vector<char*> BuildExecArgs(std::vector<std::string>& args) {
@@ -32,16 +29,10 @@ std::vector<char*> BuildExecArgs(std::vector<std::string>& args) {
 }
 
 std::vector<std::string> BuildJournalctlCommand(bool follow, int lines) {
-    std::vector<std::string> args;
+    auto args = vinput::sandbox::DaemonLogFilter();
     const std::string lines_str = std::to_string(lines);
-    if (vinput::path::IsInsideFlatpak()) {
-        args = {"journalctl", "--user", "-t", "flatpak", "--grep", "vinput",
-                "-n", lines_str};
-    } else {
-        args = {"journalctl", "--user-unit",
-                std::string(vinput::path::DaemonServiceUnitName()), "-n",
-                lines_str};
-    }
+    args.push_back("-n");
+    args.push_back(lines_str);
     if (follow) {
         args.push_back("-f");
     }

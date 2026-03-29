@@ -503,14 +503,12 @@ private:
       return false;
     }
 
-    if (!asr_config_.hotwords_file.empty()) {
-      config.hotwords_file = asr_config_.hotwords_file.c_str();
-      if (model_info_.supports_hotwords) {
+    if (model_info_.supports_hotwords) {
+      if (!asr_config_.hotwords_file.empty()) {
+        config.hotwords_file = asr_config_.hotwords_file.c_str();
         config.decoding_method = "modified_beam_search";
-      }
-    } else if (!f_hotwords_file.empty()) {
-      config.hotwords_file = f_hotwords_file.c_str();
-      if (model_info_.supports_hotwords) {
+      } else if (!f_hotwords_file.empty()) {
+        config.hotwords_file = f_hotwords_file.c_str();
         config.decoding_method = "modified_beam_search";
       }
     }

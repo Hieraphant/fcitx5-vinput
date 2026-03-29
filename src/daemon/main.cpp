@@ -1,5 +1,5 @@
 #include "daemon/audio/audio_capture.h"
-#include "common/llm/adaptor_manager.h"
+#include "common/llm/adapter_manager.h"
 #include "common/config/core_config.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"
@@ -59,11 +59,11 @@ std::string ReadAvailableText(int fd) {
   return text;
 }
 
-class AdaptorSupervisor {
+class AdapterSupervisor {
 public:
-  explicit AdaptorSupervisor(DbusService *dbus) : dbus_(dbus) {}
+  explicit AdapterSupervisor(DbusService *dbus) : dbus_(dbus) {}
 
-  ~AdaptorSupervisor() {
+  ~AdapterSupervisor() {
     Shutdown();
     if (wake_fd_ >= 0) {
       close(wake_fd_);
@@ -74,7 +74,7 @@ public:
     wake_fd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     if (wake_fd_ < 0) {
       if (error) {
-        *error = std::string("failed to create adaptor wake fd: ") +
+        *error = std::string("failed to create adapter wake fd: ") +
                  strerror(errno);
       }
       return false;
@@ -96,7 +96,7 @@ public:
       }
       if (error) {
         *error =
-            std::string("failed to start adaptor supervisor thread: ") + e.what();
+            std::string("failed to start adapter supervisor thread: ") + e.what();
       }
       close(wake_fd_);
       wake_fd_ = -1;
@@ -124,16 +124,16 @@ public:
     }
   }
 
-  DbusService::MethodResult StartAdaptor(const std::string &adaptor_id) {
-    return SubmitRequest(Request::Type::Start, adaptor_id);
+  DbusService::MethodResult StartAdapter(const std::string &adapter_id) {
+    return SubmitRequest(Request::Type::Start, adapter_id);
   }
 
-  DbusService::MethodResult StopAdaptor(const std::string &adaptor_id) {
-    return SubmitRequest(Request::Type::Stop, adaptor_id);
+  DbusService::MethodResult StopAdapter(const std::string &adapter_id) {
+    return SubmitRequest(Request::Type::Stop, adapter_id);
   }
 
 private:
-  struct ManagedAdaptor {
+  struct ManagedAdapter {
     std::string id;
     pid_t pid = -1;
     int stderr_fd = -1;
@@ -144,23 +144,23 @@ private:
     enum class Type { Start, Stop };
 
     Type type = Type::Start;
-    std::string adaptor_id;
+    std::string adapter_id;
     DbusService::MethodResult result;
     bool done = false;
     std::condition_variable cv;
   };
 
   DbusService::MethodResult SubmitRequest(Request::Type type,
-                                          const std::string &adaptor_id) {
+                                          const std::string &adapter_id) {
     auto request = std::make_shared<Request>();
     request->type = type;
-    request->adaptor_id = adaptor_id;
+    request->adapter_id = adapter_id;
 
     {
       std::lock_guard<std::mutex> lock(mutex_);
       if (!running_ || stop_requested_) {
         return DbusService::MethodResult::Failure(
-            "adaptor supervisor is not running");
+            "adapter supervisor is not running");
       }
       pending_requests_.push_back(request);
     }
@@ -197,63 +197,63 @@ private:
     dbus_->EmitError(vinput::dbus::MakeRawError(notification));
   }
 
-  void FlushAdaptorBuffer(ManagedAdaptor &adaptor, bool flush_partial) {
+  void FlushAdapterBuffer(ManagedAdapter &adapter, bool flush_partial) {
     size_t start = 0;
     while (true) {
-      const size_t end = adaptor.stderr_buffer.find('\n', start);
+      const size_t end = adapter.stderr_buffer.find('\n', start);
       if (end == std::string::npos) {
         break;
       }
-      std::string line = adaptor.stderr_buffer.substr(start, end - start);
+      std::string line = adapter.stderr_buffer.substr(start, end - start);
       if (!line.empty() && line.back() == '\r') {
         line.pop_back();
       }
       if (!line.empty()) {
-        fprintf(stderr, "vinput-daemon: adaptor[%s] stderr: %s\n",
-                adaptor.id.c_str(), line.c_str());
+        fprintf(stderr, "vinput-daemon: adapter[%s] stderr: %s\n",
+                adapter.id.c_str(), line.c_str());
         EmitNotification(line);
       }
       start = end + 1;
     }
 
-    adaptor.stderr_buffer.erase(0, start);
+    adapter.stderr_buffer.erase(0, start);
     if (flush_partial) {
-      std::string line = vinput::str::TrimAsciiWhitespace(adaptor.stderr_buffer);
+      std::string line = vinput::str::TrimAsciiWhitespace(adapter.stderr_buffer);
       if (!line.empty()) {
-        fprintf(stderr, "vinput-daemon: adaptor[%s] stderr: %s\n",
-                adaptor.id.c_str(), line.c_str());
+        fprintf(stderr, "vinput-daemon: adapter[%s] stderr: %s\n",
+                adapter.id.c_str(), line.c_str());
         EmitNotification(line);
       }
-      adaptor.stderr_buffer.clear();
+      adapter.stderr_buffer.clear();
     }
   }
 
-  DbusService::MethodResult HandleStartRequest(const std::string &adaptor_id) {
+  DbusService::MethodResult HandleStartRequest(const std::string &adapter_id) {
     auto runtime_settings = LoadCoreConfig();
     NormalizeCoreConfig(&runtime_settings);
-    const auto *adaptor = ResolveLlmAdaptor(runtime_settings, adaptor_id);
-    if (!adaptor) {
-      return DbusService::MethodResult::Failure("adaptor not found");
+    const auto *adapter = ResolveLlmAdapter(runtime_settings, adapter_id);
+    if (!adapter) {
+      return DbusService::MethodResult::Failure("adapter not found");
     }
 
-    if (adaptors_.find(adaptor_id) != adaptors_.end() ||
-        vinput::adaptor::IsRunning(adaptor_id)) {
-      return DbusService::MethodResult::Failure("adaptor is already running");
+    if (adapters_.find(adapter_id) != adapters_.end() ||
+        vinput::adapter::IsRunning(adapter_id)) {
+      return DbusService::MethodResult::Failure("adapter is already running");
     }
 
-    if (adaptor->command.empty()) {
+    if (adapter->command.empty()) {
       return DbusService::MethodResult::Failure(
-          "adaptor command is not configured");
+          "adapter command is not configured");
     }
 
     std::string error;
-    const auto spec = vinput::adaptor::BuildCommandSpec(*adaptor);
-    const auto working_dir = vinput::adaptor::ResolveWorkingDir(*adaptor);
+    const auto spec = vinput::adapter::BuildCommandSpec(*adapter);
+    const auto working_dir = vinput::adapter::ResolveWorkingDir(*adapter);
     vinput::process::SpawnedProcess process;
     if (!vinput::process::SpawnForMonitoring(spec, working_dir,
                                              &process, &error)) {
       return DbusService::MethodResult::Failure(
-          error.empty() ? "failed to start adaptor" : error);
+          error.empty() ? "failed to start adapter" : error);
     }
 
     usleep(250000);
@@ -264,60 +264,60 @@ private:
       process.stderr_fd = -1;
       stderr_text = vinput::str::TrimAsciiWhitespace(stderr_text);
       if (stderr_text.empty()) {
-        stderr_text = "adaptor exited immediately";
+        stderr_text = "adapter exited immediately";
       }
       return DbusService::MethodResult::Failure(stderr_text);
     }
 
-    if (!vinput::adaptor::WritePidFile(adaptor_id, process.pid, &error)) {
+    if (!vinput::adapter::WritePidFile(adapter_id, process.pid, &error)) {
       kill(process.pid, SIGTERM);
       (void)waitpid(process.pid, nullptr, 0);
       close(process.stderr_fd);
       process.stderr_fd = -1;
       return DbusService::MethodResult::Failure(
-          error.empty() ? "failed to persist adaptor pid" : error);
+          error.empty() ? "failed to persist adapter pid" : error);
     }
 
-    adaptors_.emplace(adaptor_id, ManagedAdaptor{
-                                     .id = adaptor_id,
+    adapters_.emplace(adapter_id, ManagedAdapter{
+                                     .id = adapter_id,
                                      .pid = process.pid,
                                      .stderr_fd = process.stderr_fd,
                                      .stderr_buffer = {},
                                  });
-    fprintf(stderr, "vinput-daemon: adaptor started id=%s pid=%d\n",
-            adaptor_id.c_str(), static_cast<int>(process.pid));
+    fprintf(stderr, "vinput-daemon: adapter started id=%s pid=%d\n",
+            adapter_id.c_str(), static_cast<int>(process.pid));
     return DbusService::MethodResult::Success();
   }
 
-  DbusService::MethodResult HandleStopRequest(const std::string &adaptor_id) {
+  DbusService::MethodResult HandleStopRequest(const std::string &adapter_id) {
     auto runtime_settings = LoadCoreConfig();
     NormalizeCoreConfig(&runtime_settings);
-    if (!ResolveLlmAdaptor(runtime_settings, adaptor_id)) {
-      return DbusService::MethodResult::Failure("adaptor not found");
+    if (!ResolveLlmAdapter(runtime_settings, adapter_id)) {
+      return DbusService::MethodResult::Failure("adapter not found");
     }
 
-    auto it = adaptors_.find(adaptor_id);
+    auto it = adapters_.find(adapter_id);
     pid_t tracked_pid = -1;
-    if (it != adaptors_.end()) {
+    if (it != adapters_.end()) {
       tracked_pid = it->second.pid;
       if (it->second.stderr_fd >= 0) {
         close(it->second.stderr_fd);
         it->second.stderr_fd = -1;
       }
-      adaptors_.erase(it);
+      adapters_.erase(it);
     }
 
     std::string error;
-    if (!vinput::adaptor::Stop(adaptor_id, &error)) {
+    if (!vinput::adapter::Stop(adapter_id, &error)) {
       return DbusService::MethodResult::Failure(
-          error.empty() ? "failed to stop adaptor" : error);
+          error.empty() ? "failed to stop adapter" : error);
     }
 
     if (tracked_pid > 0) {
       (void)waitpid(tracked_pid, nullptr, 0);
     }
 
-    fprintf(stderr, "vinput-daemon: adaptor stopped id=%s\n", adaptor_id.c_str());
+    fprintf(stderr, "vinput-daemon: adapter stopped id=%s\n", adapter_id.c_str());
     return DbusService::MethodResult::Success();
   }
 
@@ -331,9 +331,9 @@ private:
     for (const auto &request : requests) {
       DbusService::MethodResult result;
       if (request->type == Request::Type::Start) {
-        result = HandleStartRequest(request->adaptor_id);
+        result = HandleStartRequest(request->adapter_id);
       } else {
-        result = HandleStopRequest(request->adaptor_id);
+        result = HandleStopRequest(request->adapter_id);
       }
 
       {
@@ -345,25 +345,25 @@ private:
     }
   }
 
-  void ReapExitedAdaptors() {
+  void ReapExitedAdapters() {
     std::vector<std::string> exited_ids;
-    for (auto &[id, adaptor] : adaptors_) {
+    for (auto &[id, adapter] : adapters_) {
       int status = 0;
-      if (waitpid(adaptor.pid, &status, WNOHANG) != adaptor.pid) {
+      if (waitpid(adapter.pid, &status, WNOHANG) != adapter.pid) {
         continue;
       }
 
-      if (adaptor.stderr_fd >= 0) {
-        adaptor.stderr_buffer += ReadAvailableText(adaptor.stderr_fd);
+      if (adapter.stderr_fd >= 0) {
+        adapter.stderr_buffer += ReadAvailableText(adapter.stderr_fd);
       }
-      FlushAdaptorBuffer(adaptor, true);
-      if (adaptor.stderr_fd >= 0) {
-        close(adaptor.stderr_fd);
-        adaptor.stderr_fd = -1;
+      FlushAdapterBuffer(adapter, true);
+      if (adapter.stderr_fd >= 0) {
+        close(adapter.stderr_fd);
+        adapter.stderr_fd = -1;
       }
 
-      fprintf(stderr, "vinput-daemon: adaptor exited id=%s code=%d\n",
-              adaptor.id.c_str(),
+      fprintf(stderr, "vinput-daemon: adapter exited id=%s code=%d\n",
+              adapter.id.c_str(),
               WIFEXITED(status)
                   ? WEXITSTATUS(status)
                   : (WIFSIGNALED(status) ? 128 + WTERMSIG(status) : -1));
@@ -371,32 +371,32 @@ private:
     }
 
     for (const auto &id : exited_ids) {
-      vinput::adaptor::RemovePidFile(id);
-      adaptors_.erase(id);
+      vinput::adapter::RemovePidFile(id);
+      adapters_.erase(id);
     }
   }
 
-  void PollAdaptorsOnce() {
+  void PollAdaptersOnce() {
     std::vector<pollfd> fds;
-    fds.reserve(1 + adaptors_.size());
+    fds.reserve(1 + adapters_.size());
     fds.push_back({.fd = wake_fd_, .events = POLLIN, .revents = 0});
 
-    std::vector<std::string> adaptor_ids;
-    adaptor_ids.reserve(adaptors_.size());
-    for (const auto &[id, adaptor] : adaptors_) {
-      if (adaptor.stderr_fd < 0) {
+    std::vector<std::string> adapter_ids;
+    adapter_ids.reserve(adapters_.size());
+    for (const auto &[id, adapter] : adapters_) {
+      if (adapter.stderr_fd < 0) {
         continue;
       }
-      fds.push_back({.fd = adaptor.stderr_fd,
+      fds.push_back({.fd = adapter.stderr_fd,
                      .events = static_cast<short>(POLLIN | POLLHUP | POLLERR),
                      .revents = 0});
-      adaptor_ids.push_back(id);
+      adapter_ids.push_back(id);
     }
 
     const int ret = poll(fds.data(), static_cast<nfds_t>(fds.size()), 1000);
     if (ret < 0) {
       if (errno != EINTR) {
-        fprintf(stderr, "vinput-daemon: adaptor poll error: %s\n",
+        fprintf(stderr, "vinput-daemon: adapter poll error: %s\n",
                 strerror(errno));
       }
       return;
@@ -407,44 +407,44 @@ private:
       ProcessPendingRequests();
     }
 
-    for (size_t i = 0; i < adaptor_ids.size(); ++i) {
-      auto it = adaptors_.find(adaptor_ids[i]);
-      if (it == adaptors_.end()) {
+    for (size_t i = 0; i < adapter_ids.size(); ++i) {
+      auto it = adapters_.find(adapter_ids[i]);
+      if (it == adapters_.end()) {
         continue;
       }
 
-      ManagedAdaptor &adaptor = it->second;
+      ManagedAdapter &adapter = it->second;
       const pollfd &fd = fds[i + 1];
       if ((fd.revents & (POLLIN | POLLHUP | POLLERR)) == 0 ||
-          adaptor.stderr_fd < 0) {
+          adapter.stderr_fd < 0) {
         continue;
       }
 
-      adaptor.stderr_buffer += ReadAvailableText(adaptor.stderr_fd);
+      adapter.stderr_buffer += ReadAvailableText(adapter.stderr_fd);
       const bool closing_stderr = (fd.revents & (POLLHUP | POLLERR)) != 0;
-      FlushAdaptorBuffer(adaptor, closing_stderr);
+      FlushAdapterBuffer(adapter, closing_stderr);
       if (closing_stderr) {
-        close(adaptor.stderr_fd);
-        adaptor.stderr_fd = -1;
+        close(adapter.stderr_fd);
+        adapter.stderr_fd = -1;
       }
     }
 
-    ReapExitedAdaptors();
+    ReapExitedAdapters();
   }
 
-  void ShutdownAdaptors() {
-    for (auto &[id, adaptor] : adaptors_) {
-      if (adaptor.stderr_fd >= 0) {
-        close(adaptor.stderr_fd);
-        adaptor.stderr_fd = -1;
+  void ShutdownAdapters() {
+    for (auto &[id, adapter] : adapters_) {
+      if (adapter.stderr_fd >= 0) {
+        close(adapter.stderr_fd);
+        adapter.stderr_fd = -1;
       }
-      if (adaptor.pid > 0) {
-        kill(adaptor.pid, SIGTERM);
-        (void)waitpid(adaptor.pid, nullptr, 0);
+      if (adapter.pid > 0) {
+        kill(adapter.pid, SIGTERM);
+        (void)waitpid(adapter.pid, nullptr, 0);
       }
-      vinput::adaptor::RemovePidFile(id);
+      vinput::adapter::RemovePidFile(id);
     }
-    adaptors_.clear();
+    adapters_.clear();
   }
 
   void Run() {
@@ -456,11 +456,11 @@ private:
           break;
         }
       }
-      PollAdaptorsOnce();
+      PollAdaptersOnce();
     }
 
     ProcessPendingRequests();
-    ShutdownAdaptors();
+    ShutdownAdapters();
   }
 
   DbusService *dbus_ = nullptr;
@@ -470,7 +470,7 @@ private:
   bool running_ = false;
   bool stop_requested_ = false;
   std::vector<std::shared_ptr<Request>> pending_requests_;
-  std::map<std::string, ManagedAdaptor> adaptors_;
+  std::map<std::string, ManagedAdapter> adapters_;
 };
 
 }  // namespace
@@ -517,7 +517,7 @@ int main(int argc, char *argv[]) {
   using vinput::dbus::StatusToString;
 
   // --- Single-slot state (all protected by state_mutex) ---
-  AdaptorSupervisor adaptor_supervisor(&dbus);
+  AdapterSupervisor adapter_supervisor(&dbus);
   vinput::daemon::runtime::RecognitionPipeline recognition_pipeline(
       &post_processor);
   vinput::daemon::runtime::DaemonRuntimeController runtime_controller(
@@ -538,14 +538,14 @@ int main(int argc, char *argv[]) {
 
   dbus.SetStatusHandler([&]() -> std::string { return runtime_controller.GetStatus(); });
 
-  dbus.SetStartAdaptorHandler(
-      [&](const std::string &adaptor_id) -> DbusService::MethodResult {
-    return adaptor_supervisor.StartAdaptor(adaptor_id);
+  dbus.SetStartAdapterHandler(
+      [&](const std::string &adapter_id) -> DbusService::MethodResult {
+    return adapter_supervisor.StartAdapter(adapter_id);
   });
 
-  dbus.SetStopAdaptorHandler(
-      [&](const std::string &adaptor_id) -> DbusService::MethodResult {
-    return adaptor_supervisor.StopAdaptor(adaptor_id);
+  dbus.SetStopAdapterHandler(
+      [&](const std::string &adapter_id) -> DbusService::MethodResult {
+    return adapter_supervisor.StopAdapter(adapter_id);
   });
 
   std::string dbus_error;
@@ -557,9 +557,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  std::string adaptor_error;
-  if (!adaptor_supervisor.Start(&adaptor_error)) {
-    fprintf(stderr, "vinput-daemon: %s\n", adaptor_error.c_str());
+  std::string adapter_error;
+  if (!adapter_supervisor.Start(&adapter_error)) {
+    fprintf(stderr, "vinput-daemon: %s\n", adapter_error.c_str());
     return 1;
   }
 
@@ -598,6 +598,6 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, "vinput-daemon: shutting down\n");
   runtime_controller.Shutdown();
   recognition_manager.Shutdown();
-  adaptor_supervisor.Shutdown();
+  adapter_supervisor.Shutdown();
   return 0;
 }

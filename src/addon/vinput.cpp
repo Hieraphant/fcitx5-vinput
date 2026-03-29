@@ -5,6 +5,7 @@
 #include "common/i18n.h"
 #include "common/utils/file_utils.h"
 #include "common/utils/path_utils.h"
+#include "common/utils/sandbox.h"
 #include "common/scene/postprocess_scene.h"
 
 #include <dbus_public.h>
@@ -18,9 +19,9 @@
 using namespace vinput::dbus;
 
 namespace {
-// Auto-install systemd service when running inside flatpak
-void autoInstallSystemdServiceInFlatpak() {
-  if (!vinput::path::IsInsideFlatpak())
+// Auto-install systemd service when running inside a sandbox.
+void ensureDaemonServiceInstalled() {
+  if (!vinput::sandbox::IsInSandbox())
     return;
 
   const std::filesystem::path dest = vinput::path::DaemonServiceUnitInstallPath();
@@ -38,7 +39,6 @@ void autoInstallSystemdServiceInFlatpak() {
   if (destExists)
     return;
 
-  // src: is bundled inside the flatpak
   const auto src = vinput::path::DaemonServiceUnitTemplatePath();
   std::ifstream src_f(src);
   if (!src_f) {
@@ -47,18 +47,7 @@ void autoInstallSystemdServiceInFlatpak() {
   }
 
   std::string content((std::istreambuf_iterator<char>(src_f)), {});
-
-  // Replace ExecStart=/usr/bin/vinput-daemon to flatpak command
-  auto pos = content.find("ExecStart=");
-  if (pos != std::string::npos) {
-    auto end = content.find('\n', pos);
-    const auto daemon_path = vinput::path::DaemonExecutablePath();
-    content.replace(
-        pos, end - pos,
-        "ExecStart=flatpak run --command=" + daemon_path.string() +
-            " org.fcitx.Fcitx5\n"
-            "ExecStop=pkill -INT vinput-daemon");
-  }
+  content = vinput::sandbox::RewriteServiceUnit(content);
 
   std::string file_error;
   if (!vinput::file::EnsureParentDirectory(dest, &file_error)) {
@@ -73,7 +62,14 @@ void autoInstallSystemdServiceInFlatpak() {
   }
   FCITX_LOG(Info) << "vinput: installed vinput-daemon.service to " << dest;
 
-  int ret = system("flatpak-spawn --host systemctl --user daemon-reload");
+  auto reload_cmd = vinput::sandbox::WrapHostCommand(
+      {"systemctl", "--user", "daemon-reload"});
+  std::string cmd;
+  for (const auto &arg : reload_cmd) {
+    if (!cmd.empty()) cmd += ' ';
+    cmd += arg;
+  }
+  int ret = system(cmd.c_str());
   if (ret != 0) {
     FCITX_LOG(Error)
         << "vinput: failed to reload systemd user daemon, return code: "
@@ -84,7 +80,7 @@ void autoInstallSystemdServiceInFlatpak() {
 
 VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
   vinput::i18n::Init();
-  autoInstallSystemdServiceInFlatpak();
+  ensureDaemonServiceInstalled();
   reloadConfig();
 
   eventHandlers_.emplace_back(instance_->watchEvent(

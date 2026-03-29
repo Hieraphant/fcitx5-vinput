@@ -1,0 +1,312 @@
+#include "utils/gui_helpers.h"
+
+#include <QApplication>
+#include <QHash>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLineEdit>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QTimer>
+#include <QUrl>
+
+#include "common/llm/defaults.h"
+#include "utils/cli_runner.h"
+
+namespace vinput::gui {
+
+QString GuiTranslate(const char *sourceText) {
+  return QCoreApplication::translate("MainWindow", sourceText);
+}
+
+QStringList NonEmptyLines(const QString &text) {
+  QStringList lines;
+  for (const QString &line : text.split('\n')) {
+    const QString trimmed = line.trimmed();
+    if (!trimmed.isEmpty()) {
+      lines.push_back(trimmed);
+    }
+  }
+  return lines;
+}
+
+QTableWidgetItem *MakeCell(const QString &text, const QString &data) {
+  auto *cell = new QTableWidgetItem(text);
+  cell->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+  if (!data.isEmpty())
+    cell->setData(Qt::UserRole, data);
+  return cell;
+}
+
+bool ValidateProviderInput(const QString &name, const QString &base_url,
+                           QString *error_out) {
+  if (name.trimmed().isEmpty()) {
+    if (error_out) {
+      *error_out = GuiTranslate("Provider name must not be empty.");
+    }
+    return false;
+  }
+
+  const QUrl url = QUrl::fromUserInput(base_url.trimmed());
+  if (!url.isValid() || url.scheme().isEmpty() || url.host().isEmpty() ||
+      (url.scheme() != "http" && url.scheme() != "https")) {
+    if (error_out) {
+      *error_out =
+          GuiTranslate("Base URL must be a valid http:// or https:// URL.");
+    }
+    return false;
+  }
+
+  return true;
+}
+
+bool ParseCommandEnv(const QString &text,
+                     std::map<std::string, std::string> *env,
+                     QString *error_out) {
+  if (!env) {
+    return false;
+  }
+
+  env->clear();
+  for (const QString &line : NonEmptyLines(text)) {
+    const int pos = line.indexOf('=');
+    if (pos <= 0) {
+      if (error_out) {
+        *error_out =
+            GuiTranslate("Invalid env entry '%1'. Use KEY=VALUE.").arg(line);
+      }
+      return false;
+    }
+    (*env)[line.left(pos).toStdString()] = line.mid(pos + 1).toStdString();
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Provider model fetch (OpenAI /models endpoint)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+struct ProviderInfo {
+  QString id;
+  QString base_url;
+};
+
+QString ProviderModelCacheKey(const ProviderInfo &p) {
+  return p.base_url;
+}
+
+void ApplyFetchedProviderModels(QComboBox *comboModel,
+                                const QStringList &models) {
+  comboModel->setEnabled(true);
+  comboModel->clear();
+  comboModel->setToolTip(QString());
+  if (auto *lineEdit = comboModel->lineEdit()) {
+    lineEdit->setPlaceholderText(
+        models.isEmpty()
+            ? GuiTranslate(
+                  "No models returned. You can type one manually.")
+            : QString());
+  }
+  comboModel->addItems(models);
+
+  const QString desiredModel =
+      comboModel->property("vinput_desired_model").toString();
+  if (!desiredModel.isEmpty()) {
+    comboModel->setCurrentText(desiredModel);
+  }
+  comboModel->setProperty("vinput_desired_model", QString());
+}
+
+void ApplyProviderModelFetchError(QComboBox *comboModel,
+                                  const QString &error) {
+  comboModel->setEnabled(true);
+  comboModel->clear();
+  comboModel->setToolTip(error);
+  if (auto *lineEdit = comboModel->lineEdit()) {
+    lineEdit->setPlaceholderText(
+        GuiTranslate("Failed to load models. Type one manually or reselect "
+                     "the provider to retry."));
+  }
+
+  const QString desiredModel =
+      comboModel->property("vinput_desired_model").toString();
+  if (!desiredModel.isEmpty()) {
+    comboModel->setCurrentText(desiredModel);
+  }
+  comboModel->setProperty("vinput_desired_model", QString());
+}
+
+void FetchModelsFromProviderAsync(const ProviderInfo &provider,
+                                  QComboBox *comboModel) {
+  static QHash<QString, QStringList> cache;
+
+  if (provider.base_url.isEmpty()) {
+    comboModel->setEnabled(true);
+    comboModel->clear();
+    comboModel->setToolTip(QString());
+    if (auto *lineEdit = comboModel->lineEdit()) {
+      lineEdit->setPlaceholderText(QString());
+    }
+    return;
+  }
+
+  const QString cacheKey = ProviderModelCacheKey(provider);
+  const int generation =
+      comboModel->property("vinput_provider_fetch_generation").toInt() + 1;
+  comboModel->setProperty("vinput_provider_fetch_generation", generation);
+  comboModel->setProperty("vinput_provider_fetch_key", cacheKey);
+
+  if (cache.contains(cacheKey)) {
+    ApplyFetchedProviderModels(comboModel, cache.value(cacheKey));
+    return;
+  }
+
+  comboModel->setEnabled(false);
+  comboModel->clear();
+  comboModel->setToolTip(QString());
+  if (auto *lineEdit = comboModel->lineEdit()) {
+    lineEdit->setPlaceholderText(GuiTranslate("Loading models..."));
+  }
+
+  QString url = provider.base_url;
+  if (!url.endsWith('/'))
+    url += '/';
+  url += vinput::llm::kOpenAiModelsPath;
+
+  auto *nam = new QNetworkAccessManager(comboModel);
+  QNetworkRequest req{QUrl(url)};
+  // No api_key — best-effort fetch (works for local providers).
+
+  QNetworkReply *reply = nam->get(req);
+  auto *timeout = new QTimer(reply);
+  timeout->setSingleShot(true);
+  QObject::connect(timeout, &QTimer::timeout, reply, [reply]() {
+    if (!reply->isFinished()) {
+      reply->abort();
+    }
+  });
+  timeout->start(vinput::llm::kModelFetchTimeoutMs);
+
+  QObject::connect(
+      reply, &QNetworkReply::finished, comboModel,
+      [comboModel, reply, timeout, cacheKey, generation]() {
+        timeout->stop();
+
+        const bool stale =
+            comboModel->property("vinput_provider_fetch_generation").toInt() !=
+                generation ||
+            comboModel->property("vinput_provider_fetch_key").toString() !=
+                cacheKey;
+
+        QStringList models;
+        QString error;
+        bool success = false;
+        if (reply->error() == QNetworkReply::NoError) {
+          QJsonParseError parseError;
+          const QJsonDocument doc =
+              QJsonDocument::fromJson(reply->readAll(), &parseError);
+          if (parseError.error != QJsonParseError::NoError || !doc.isObject() ||
+              !doc.object().value("data").isArray()) {
+            error = GuiTranslate(
+                "Provider returned invalid JSON for /v1/models.");
+          } else {
+            const QJsonArray data = doc.object().value("data").toArray();
+            for (const auto &v : data) {
+              const QString id = v.toObject().value("id").toString();
+              if (!id.isEmpty()) {
+                models.append(id);
+              }
+            }
+            models.removeDuplicates();
+            models.sort();
+            success = true;
+          }
+        } else {
+          error = reply->errorString();
+        }
+
+        if (!stale) {
+          if (success) {
+            cache.insert(cacheKey, models);
+            ApplyFetchedProviderModels(comboModel, models);
+          } else {
+            ApplyProviderModelFetchError(comboModel, error);
+          }
+        }
+
+        reply->deleteLater();
+        reply->manager()->deleteLater();
+      });
+}
+
+// Load LLM providers from CLI.
+QList<ProviderInfo> LoadLlmProviders() {
+  QJsonDocument doc;
+  if (!RunVinputJson({"llm", "list"}, &doc) || !doc.isArray()) {
+    return {};
+  }
+
+  QList<ProviderInfo> providers;
+  for (const auto &v : doc.array()) {
+    if (!v.isObject())
+      continue;
+    QJsonObject obj = v.toObject();
+    ProviderInfo info;
+    info.id = obj.value("id").toString();
+    info.base_url = obj.value("base_url").toString();
+    if (!info.id.isEmpty()) {
+      providers.push_back(info);
+    }
+  }
+  return providers;
+}
+
+}  // namespace
+
+void SetupProviderModelCombos(QComboBox *comboProvider, QComboBox *comboModel,
+                              const QString &currentProvider,
+                              const QString &currentModel) {
+  comboProvider->clear();
+  comboProvider->addItem(QString());  // empty = inherit / none
+
+  const auto providers = LoadLlmProviders();
+  for (const auto &p : providers) {
+    comboProvider->addItem(p.id);
+  }
+
+  comboModel->setEditable(true);
+  comboModel->setProperty("vinput_desired_model", currentModel);
+
+  auto refreshModels = [comboModel, comboProvider, providers]() {
+    QString selected = comboProvider->currentText();
+    if (selected.isEmpty()) {
+      comboModel->setEnabled(true);
+      comboModel->clear();
+      comboModel->setToolTip(QString());
+      if (auto *lineEdit = comboModel->lineEdit()) {
+        lineEdit->setPlaceholderText(QString());
+      }
+      return;
+    }
+    for (const auto &p : providers) {
+      if (p.id == selected) {
+        FetchModelsFromProviderAsync(p, comboModel);
+        break;
+      }
+    }
+  };
+
+  QObject::connect(comboProvider, QOverload<int>::of(&QComboBox::activated),
+                   comboProvider, refreshModels);
+
+  if (!currentProvider.isEmpty()) {
+    comboProvider->setCurrentText(currentProvider);
+    refreshModels();
+  }
+}
+
+}  // namespace vinput::gui

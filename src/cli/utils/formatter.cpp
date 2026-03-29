@@ -1,18 +1,59 @@
 #include "cli/utils/formatter.h"
 
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <wchar.h>
 
+static std::string StripTerminalEscapes(const std::string& s) {
+  std::string out;
+  out.reserve(s.size());
+  for (size_t i = 0; i < s.size();) {
+    if (s[i] == '\033') {
+      if (i + 1 < s.size() && s[i + 1] == ']') {
+        i += 2;
+        while (i < s.size()) {
+          if (s[i] == '\a') {
+            ++i;
+            break;
+          }
+          if (s[i] == '\033' && i + 1 < s.size() && s[i + 1] == '\\') {
+            i += 2;
+            break;
+          }
+          ++i;
+        }
+        continue;
+      }
+      if (i + 1 < s.size() && s[i + 1] == '[') {
+        i += 2;
+        while (i < s.size()) {
+          const unsigned char ch = static_cast<unsigned char>(s[i]);
+          if (ch >= 0x40 && ch <= 0x7e) {
+            ++i;
+            break;
+          }
+          ++i;
+        }
+        continue;
+      }
+    }
+    out.push_back(s[i]);
+    ++i;
+  }
+  return out;
+}
+
 // Returns the display column width of a UTF-8 string (handles CJK wide chars)
 static int DisplayWidth(const std::string& s) {
+  const std::string plain = StripTerminalEscapes(s);
   // Convert UTF-8 to wchar_t and use wcswidth
-  size_t len = s.size() + 1;
+  size_t len = plain.size() + 1;
   std::vector<wchar_t> wbuf(len);
-  size_t n = mbstowcs(wbuf.data(), s.c_str(), len);
-  if (n == (size_t)-1) return (int)s.size(); // fallback
+  size_t n = mbstowcs(wbuf.data(), plain.c_str(), len);
+  if (n == (size_t)-1) return (int)plain.size(); // fallback
   int w = wcswidth(wbuf.data(), n);
   return w < 0 ? (int)n : w;
 }

@@ -7,17 +7,23 @@
 namespace vinput::cli::config {
 
 void RegisterDeviceCommands(CLI::App &app, CliAction *action);
-void RegisterAsrCommands(CLI::App &app, CliAction *action);
+void RegisterHotwordCommands(CLI::App &app, CliAction *action);
+void RegisterInitCommands(CLI::App &app, CliAction *action);
+void RegisterModelCommands(CLI::App &app, CliAction *action);
+void RegisterProviderCommands(CLI::App &app, CliAction *action);
 void RegisterLlmCommands(CLI::App &app, CliAction *action);
+void RegisterAdapterCommands(CLI::App &app, CliAction *action);
 void RegisterSceneCommands(CLI::App &app, CliAction *action);
 void RegisterConfigCommands(CLI::App &app, CliAction *action);
-void RegisterInitCommands(CLI::App &app, CliAction *action);
 
 void RegisterConfigCli(CLI::App &app, CliAction *action) {
   RegisterInitCommands(app, action);
-  RegisterDeviceCommands(app, action);
-  RegisterAsrCommands(app, action);
+  RegisterModelCommands(app, action);
+  RegisterProviderCommands(app, action);
   RegisterLlmCommands(app, action);
+  RegisterAdapterCommands(app, action);
+  RegisterHotwordCommands(app, action);
+  RegisterDeviceCommands(app, action);
   RegisterSceneCommands(app, action);
   RegisterConfigCommands(app, action);
 }

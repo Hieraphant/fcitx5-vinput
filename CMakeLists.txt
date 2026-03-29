@@ -53,8 +53,8 @@ set(VINPUT_ASR_PROVIDER_DIR
     "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/asr-providers"
     CACHE PATH "Install directory for built-in ASR provider scripts")
 set(VINPUT_LLM_ADAPTOR_DIR
-    "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/llm-adaptors"
-    CACHE PATH "Install directory for built-in LLM adaptor scripts")
+    "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/llm-adapters"
+    CACHE PATH "Install directory for built-in LLM adapter scripts")
 set(VINPUT_RUNTIME_MODE "bundled"
     CACHE STRING "Runtime library mode for vinput-daemon: system or bundled")
 set_property(CACHE VINPUT_RUNTIME_MODE PROPERTY STRINGS system bundled)

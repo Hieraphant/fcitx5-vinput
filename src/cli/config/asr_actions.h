@@ -20,6 +20,8 @@ int RunAsrConfigListModels(bool available, Formatter &fmt,
                            const CliContext &ctx);
 int RunAsrConfigInstallModel(const std::string &selector, Formatter &fmt,
                              const CliContext &ctx);
+int RunAsrConfigRemoveModel(const std::string &selector, Formatter &fmt,
+                            const CliContext &ctx);
 int RunAsrConfigUseModel(const std::string &selector, Formatter &fmt,
                          const CliContext &ctx);
 int RunAsrConfigModelInfo(const std::string &selector, Formatter &fmt,

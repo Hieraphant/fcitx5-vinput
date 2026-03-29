@@ -4,9 +4,11 @@
 #include <nlohmann/json.hpp>
 
 #include "cli/utils/cli_helpers.h"
+#include "cli/utils/resource_utils.h"
 #include "cli/runtime/dbus_client.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
+#include "common/llm/adapter_manager.h"
 #include "common/registry/registry_i18n.h"
 #include "common/registry/registry_scripts.h"
 #include "common/utils/string_utils.h"
@@ -19,52 +21,6 @@ std::string MaskApiKey(const std::string &key) {
   }
   return key.substr(0, 4) + std::string(key.size() - 8, '*') +
          key.substr(key.size() - 4);
-}
-
-bool TryParseOneBasedIndex(const std::string &text, std::size_t *index) {
-  if (!index || text.empty()) {
-    return false;
-  }
-  if (!std::all_of(text.begin(), text.end(),
-                   [](unsigned char ch) { return std::isdigit(ch) != 0; })) {
-    return false;
-  }
-  try {
-    const std::size_t parsed = std::stoull(text);
-    if (parsed == 0) {
-      return false;
-    }
-    *index = parsed - 1;
-    return true;
-  } catch (...) {
-    return false;
-  }
-}
-
-std::string ResolveAdaptorSelector(
-    const std::string &selector,
-    const std::vector<vinput::script::RegistryEntry> &entries,
-    std::string *error) {
-  std::size_t index = 0;
-  if (TryParseOneBasedIndex(selector, &index)) {
-    if (index >= entries.size()) {
-      if (error) {
-        *error = "available adaptor index out of range";
-      }
-      return {};
-    }
-    return entries[index].id;
-  }
-
-  for (const auto &entry : entries) {
-    if (entry.id == selector) {
-      return selector;
-    }
-  }
-  if (error) {
-    *error = "available adaptor not found: " + selector;
-  }
-  return {};
 }
 
 }  // namespace
@@ -94,48 +50,63 @@ int RunLlmConfigList(Formatter &fmt, const CliContext &ctx) {
   return 0;
 }
 
-int RunLlmConfigListAdaptors(bool available, Formatter &fmt,
+int RunLlmConfigListAdapters(bool available, Formatter &fmt,
                              const CliContext &ctx) {
   CoreConfig config = LoadCoreConfig();
+  const auto installed_display_map =
+      vinput::cli::FetchScriptDisplayMap(config, vinput::script::Kind::kLlmAdapter);
 
   if (!available) {
     if (ctx.json_output) {
       nlohmann::json arr = nlohmann::json::array();
-      std::size_t index = 1;
-      for (const auto &adaptor : config.llm.adaptors) {
+      for (const auto &adapter : config.llm.adapters) {
+        const auto it = installed_display_map.find(adapter.id);
         arr.push_back({
-            {"index", index++},
-            {"id", adaptor.id},
-            {"command", adaptor.command},
-            {"args", adaptor.args},
-            {"env", adaptor.env},
+            {"id", vinput::cli::HumanizeResourceId(installed_display_map,
+                                                   adapter.id)},
+            {"machine_id", adapter.id},
+            {"title", it == installed_display_map.end() ? "" : it->second.title},
+            {"readme_url",
+             it == installed_display_map.end() ? "" : it->second.readme_url},
+            {"command", adapter.command},
+            {"args", adapter.args},
+            {"env", adapter.env},
+            {"running", vinput::adapter::IsRunning(adapter.id)},
         });
       }
       fmt.PrintJson(arr);
       return 0;
     }
 
-    std::vector<std::string> headers = {_("INDEX"), _("ID"), _("COMMAND")};
+    std::vector<std::string> headers = {_("ID"), _("TITLE"),
+                                        _("README")};
     std::vector<std::vector<std::string>> rows;
-    std::size_t index = 1;
-    for (const auto &adaptor : config.llm.adaptors) {
-      rows.push_back({std::to_string(index++), adaptor.id,
-                      adaptor.command.empty() ? _("(not set)") : adaptor.command});
+    for (const auto &adapter : config.llm.adapters) {
+      rows.push_back({vinput::cli::HumanizeResourceId(installed_display_map,
+                                                     adapter.id),
+                      installed_display_map.count(adapter.id) == 0
+                          ? ""
+                          : installed_display_map.at(adapter.id).title,
+                      installed_display_map.count(adapter.id) == 0
+                          ? ""
+                          : vinput::cli::FormatTerminalLink(
+                                ctx, _("Open README"),
+                                installed_display_map.at(adapter.id).readme_url)});
     }
     fmt.PrintTable(headers, rows);
     return 0;
   }
 
-  const auto registryUrls = ResolveLlmAdaptorRegistryUrls(config);
+  const auto registryUrls = ResolveLlmAdapterRegistryUrls(config);
   if (registryUrls.empty()) {
     fmt.PrintError(
-        _("No LLM adaptor registry base URLs configured. Edit config.json and set registry.base_urls."));
+        _("No LLM adapter registry base URLs configured. Edit config.json and set registry.base_urls."));
     return 1;
   }
 
   std::string error;
   const auto entries = vinput::script::FetchRegistry(
-      config, vinput::script::Kind::kLlmAdaptor, registryUrls, &error);
+      config, vinput::script::Kind::kLlmAdapter, registryUrls, &error);
   if (!error.empty()) {
     fmt.PrintError(error);
     return 1;
@@ -143,27 +114,24 @@ int RunLlmConfigListAdaptors(bool available, Formatter &fmt,
 
   const auto locale = vinput::registry::DetectPreferredLocale();
   const auto i18nMap = vinput::registry::FetchMergedI18nMap(config, locale);
+  const auto display_map = vinput::cli::BuildScriptDisplayMap(entries, i18nMap);
 
   auto isInstalled = [&config](const std::string &id) {
-    return ResolveLlmAdaptor(config, id) != nullptr;
+    return ResolveLlmAdapter(config, id) != nullptr;
   };
 
   if (ctx.json_output) {
     nlohmann::json arr = nlohmann::json::array();
-    std::size_t index = 1;
     for (const auto &entry : entries) {
       nlohmann::json envs = nlohmann::json::array();
       for (const auto &env : entry.envs) {
         envs.push_back({{"name", env.name}, {"required", env.required}});
       }
       arr.push_back({
-          {"index", index++},
-          {"id", entry.id},
-          {"title", vinput::registry::LookupI18n(
-                        i18nMap, entry.id + ".title", entry.id)},
-          {"description", vinput::registry::LookupI18n(
-                              i18nMap, entry.id + ".description", "")},
-          {"command", entry.command},
+          {"id", vinput::cli::HumanizeResourceId(entry.id, entry.short_id)},
+          {"machine_id", entry.id},
+          {"title", display_map.at(entry.id).title},
+          {"description", display_map.at(entry.id).description},
           {"readme_url", entry.readme_url},
           {"envs", envs},
           {"status", isInstalled(entry.id) ? "installed" : "available"},
@@ -173,17 +141,15 @@ int RunLlmConfigListAdaptors(bool available, Formatter &fmt,
     return 0;
   }
 
-  std::vector<std::string> headers = {_("INDEX"), _("ID"), _("TITLE"),
-                                      _("COMMAND"), _("STATUS")};
+  std::vector<std::string> headers = {_("ID"), _("TITLE"),
+                                      _("STATUS"), _("README")};
   std::vector<std::vector<std::string>> rows;
-  std::size_t index = 1;
   for (const auto &entry : entries) {
-    rows.push_back({std::to_string(index++),
-                    entry.id,
-                    vinput::registry::LookupI18n(i18nMap, entry.id + ".title",
-                                                 entry.id),
-                    entry.command,
-                    isInstalled(entry.id) ? _("installed") : _("available")});
+    rows.push_back({vinput::cli::HumanizeResourceId(entry.id, entry.short_id),
+                    display_map.at(entry.id).title,
+                    isInstalled(entry.id) ? _("installed") : _("available"),
+                    vinput::cli::FormatTerminalLink(ctx, _("Open README"),
+                                                    entry.readme_url)});
   }
   fmt.PrintTable(headers, rows);
   return 0;
@@ -212,28 +178,29 @@ int RunLlmConfigAdd(const std::string &id, const std::string &baseUrl,
   return 0;
 }
 
-int RunLlmConfigInstallAdaptor(const std::string &selector, Formatter &fmt,
+int RunLlmConfigInstallAdapter(const std::string &selector, Formatter &fmt,
                                const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
   NormalizeCoreConfig(&config);
 
-  const auto registryUrls = ResolveLlmAdaptorRegistryUrls(config);
+  const auto registryUrls = ResolveLlmAdapterRegistryUrls(config);
   if (registryUrls.empty()) {
     fmt.PrintError(
-        _("No LLM adaptor registry base URLs configured. Edit config.json and set registry.base_urls."));
+        _("No LLM adapter registry base URLs configured. Edit config.json and set registry.base_urls."));
     return 1;
   }
 
   std::string error;
   const auto entries = vinput::script::FetchRegistry(
-      config, vinput::script::Kind::kLlmAdaptor, registryUrls, &error);
+      config, vinput::script::Kind::kLlmAdapter, registryUrls, &error);
   if (!error.empty()) {
     fmt.PrintError(error);
     return 1;
   }
 
-  const std::string id = ResolveAdaptorSelector(selector, entries, &error);
+  const std::string id = vinput::cli::ResolveScriptSelectorByShortId(
+      selector, entries, "LLM adapter", &error);
   if (id.empty()) {
     fmt.PrintError(error);
     return 1;
@@ -246,17 +213,17 @@ int RunLlmConfigInstallAdaptor(const std::string &selector, Formatter &fmt,
                    });
   if (it == entries.end()) {
     fmt.PrintError(
-        vinput::str::FmtStr(_("Adaptor '%s' not found in registry."), id));
+        vinput::str::FmtStr(_("Adapter '%s' not found in registry."), id));
     return 1;
   }
 
   std::filesystem::path scriptPath;
-  if (!vinput::script::DownloadScript(*it, vinput::script::Kind::kLlmAdaptor,
+  if (!vinput::script::DownloadScript(*it, vinput::script::Kind::kLlmAdapter,
                                       &scriptPath, &error)) {
     fmt.PrintError(error);
     return 1;
   }
-  if (!vinput::script::MaterializeLlmAdaptor(&config, *it, scriptPath,
+  if (!vinput::script::MaterializeLlmAdapter(&config, *it, scriptPath,
                                              &error)) {
     fmt.PrintError(error);
     return 1;
@@ -266,36 +233,47 @@ int RunLlmConfigInstallAdaptor(const std::string &selector, Formatter &fmt,
     return 1;
   }
 
-  fmt.PrintSuccess(
-      vinput::str::FmtStr(_("Adaptor '%s' synchronized to local config."), id));
-  fmt.PrintInfo(
-      vinput::str::FmtStr(_("Local script path: %s"), scriptPath.string()));
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Adapter '%s' added."), selector));
   return 0;
 }
 
-int RunLlmConfigStartAdaptor(const std::string &id, Formatter &fmt,
+int RunLlmConfigStartAdapter(const std::string &id, Formatter &fmt,
                              const CliContext &ctx) {
   (void)ctx;
+  CoreConfig config = LoadCoreConfig();
   std::string error;
-  vinput::cli::DbusClient dbus;
-  if (!dbus.StartAdaptor(id, &error)) {
+  const std::string resolved_id =
+      vinput::cli::ResolveInstalledLlmAdapterSelector(config, id, &error);
+  if (resolved_id.empty()) {
     fmt.PrintError(error);
     return 1;
   }
-  fmt.PrintSuccess(vinput::str::FmtStr(_("Adaptor '%s' started."), id));
+  vinput::cli::DbusClient dbus;
+  if (!dbus.StartAdapter(resolved_id, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Adapter '%s' started."), id));
   return 0;
 }
 
-int RunLlmConfigStopAdaptor(const std::string &id, Formatter &fmt,
+int RunLlmConfigStopAdapter(const std::string &id, Formatter &fmt,
                             const CliContext &ctx) {
   (void)ctx;
+  CoreConfig config = LoadCoreConfig();
   std::string error;
-  vinput::cli::DbusClient dbus;
-  if (!dbus.StopAdaptor(id, &error)) {
+  const std::string resolved_id =
+      vinput::cli::ResolveInstalledLlmAdapterSelector(config, id, &error);
+  if (resolved_id.empty()) {
     fmt.PrintError(error);
     return 1;
   }
-  fmt.PrintSuccess(vinput::str::FmtStr(_("Adaptor '%s' stopped."), id));
+  vinput::cli::DbusClient dbus;
+  if (!dbus.StopAdapter(resolved_id, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Adapter '%s' stopped."), id));
   return 0;
 }
 
@@ -317,5 +295,33 @@ int RunLlmConfigRemove(const std::string &id, Formatter &fmt,
     return 1;
   }
   fmt.PrintSuccess(vinput::str::FmtStr(_("LLM provider '%s' removed."), id));
+  return 0;
+}
+
+int RunLlmConfigEdit(const std::string &id, const std::string &baseUrl,
+                     const std::string &apiKey, bool hasBaseUrl, bool hasApiKey,
+                     Formatter &fmt, const CliContext &ctx) {
+  (void)ctx;
+  CoreConfig config = LoadCoreConfig();
+  auto &providers = config.llm.providers;
+  const auto it = std::find_if(
+      providers.begin(), providers.end(),
+      [&id](const LlmProvider &provider) { return provider.id == id; });
+  if (it == providers.end()) {
+    fmt.PrintError(vinput::str::FmtStr(_("LLM provider '%s' not found."), id));
+    return 1;
+  }
+
+  if (hasBaseUrl) {
+    it->base_url = baseUrl;
+  }
+  if (hasApiKey) {
+    it->api_key = apiKey;
+  }
+
+  if (!SaveConfigOrFail(config, fmt)) {
+    return 1;
+  }
+  fmt.PrintSuccess(vinput::str::FmtStr(_("LLM provider '%s' updated."), id));
   return 0;
 }

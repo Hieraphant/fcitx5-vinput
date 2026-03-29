@@ -18,6 +18,7 @@ int RunSceneConfigList(Formatter &fmt, const CliContext &ctx) {
       bool active = (scene.id == config.scenes.activeScene);
       arr.push_back({{"id", scene.id},
                      {"label", vinput::scene::DisplayLabel(scene)},
+                     {"prompt", scene.prompt},
                      {"provider_id", scene.provider_id},
                      {"model", scene.model},
                      {"candidate_count", scene.candidate_count},
@@ -116,5 +117,51 @@ int RunSceneConfigRemove(const std::string &id, bool force, Formatter &fmt,
     return 1;
 
   fmt.PrintSuccess(vinput::str::FmtStr(_("Scene '%s' removed."), id));
+  return 0;
+}
+
+int RunSceneConfigEdit(const std::string &id, const std::string &label,
+                       const std::string &prompt,
+                       const std::string &provider_id,
+                       const std::string &model, int candidate_count,
+                       int timeout_ms, bool hasLabel, bool hasPrompt,
+                       bool hasProvider, bool hasModel, bool hasCandidates,
+                       bool hasTimeout, Formatter &fmt,
+                       const CliContext &ctx) {
+  (void)ctx;
+  CoreConfig config = LoadCoreConfig();
+
+  const vinput::scene::Definition *existing = nullptr;
+  for (const auto &scene : config.scenes.definitions) {
+    if (scene.id == id) {
+      existing = &scene;
+      break;
+    }
+  }
+  if (!existing) {
+    fmt.PrintError(vinput::str::FmtStr(_("Scene '%s' not found."), id));
+    return 1;
+  }
+
+  vinput::scene::Definition updated = *existing;
+  if (hasLabel) updated.label = label;
+  if (hasPrompt) updated.prompt = prompt;
+  if (hasProvider) updated.provider_id = provider_id;
+  if (hasModel) updated.model = model;
+  if (hasCandidates) updated.candidate_count = candidate_count;
+  if (hasTimeout) updated.timeout_ms = timeout_ms;
+
+  vinput::scene::Config scene_config = ToSceneConfig(config.scenes);
+  std::string error;
+  if (!vinput::scene::UpdateScene(&scene_config, id, updated, &error)) {
+    fmt.PrintError(error);
+    return 1;
+  }
+  FromSceneConfig(config.scenes, scene_config);
+
+  if (!SaveConfigOrFail(config, fmt))
+    return 1;
+
+  fmt.PrintSuccess(vinput::str::FmtStr(_("Scene '%s' updated."), id));
   return 0;
 }

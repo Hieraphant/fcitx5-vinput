@@ -15,6 +15,25 @@ namespace vinput::i18n {
 
 namespace {
 
+std::string NormalizeLocaleName(std::string locale) {
+  const auto colon = locale.find(':');
+  if (colon != std::string::npos) {
+    locale = locale.substr(0, colon);
+  }
+  const auto dot = locale.find('.');
+  if (dot != std::string::npos) {
+    locale = locale.substr(0, dot);
+  }
+  const auto at = locale.find('@');
+  if (at != std::string::npos) {
+    locale = locale.substr(0, at);
+  }
+  if (locale.empty() || locale == "C" || locale == "POSIX") {
+    return {};
+  }
+  return locale;
+}
+
 std::vector<std::string> LocaleCandidates() {
   std::vector<std::string> candidates;
   const auto add_candidate = [&candidates](const char *value) {
@@ -22,20 +41,8 @@ std::vector<std::string> LocaleCandidates() {
       return;
     }
 
-    std::string locale = value;
-    const auto colon = locale.find(':');
-    if (colon != std::string::npos) {
-      locale = locale.substr(0, colon);
-    }
-    const auto dot = locale.find('.');
-    if (dot != std::string::npos) {
-      locale = locale.substr(0, dot);
-    }
-    const auto at = locale.find('@');
-    if (at != std::string::npos) {
-      locale = locale.substr(0, at);
-    }
-    if (locale.empty() || locale == "C" || locale == "POSIX") {
+    std::string locale = NormalizeLocaleName(value);
+    if (locale.empty()) {
       return;
     }
     if (std::find(candidates.begin(), candidates.end(), locale) ==
@@ -61,6 +68,39 @@ std::vector<std::string> LocaleCandidates() {
   return candidates;
 }
 
+std::string PreferredMessageLocale() {
+  const char *vars[] = {"LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"};
+  for (const char *name : vars) {
+    const char *value = std::getenv(name);
+    if (!value || !*value) {
+      continue;
+    }
+    std::string locale = NormalizeLocaleName(value);
+    if (!locale.empty()) {
+      return locale;
+    }
+  }
+  return {};
+}
+
+void ApplyPreferredMessageLocale() {
+  const std::string preferred_locale = PreferredMessageLocale();
+  if (preferred_locale.empty()) {
+    return;
+  }
+
+  const std::string candidates[] = {
+      preferred_locale,
+      preferred_locale + ".UTF-8",
+      preferred_locale + ".utf8",
+  };
+  for (const auto &candidate : candidates) {
+    if (setlocale(LC_MESSAGES, candidate.c_str()) != nullptr) {
+      return;
+    }
+  }
+}
+
 const char *ResolveLocaleDir() {
   const fs::path build_locale_dir = VINPUT_BUILD_LOCALEDIR;
   std::error_code ec;
@@ -80,6 +120,7 @@ const char *ResolveLocaleDir() {
 
 void Init() {
   setlocale(LC_ALL, "");
+  ApplyPreferredMessageLocale();
   bindtextdomain("fcitx5-vinput", ResolveLocaleDir());
   bind_textdomain_codeset("fcitx5-vinput", "UTF-8");
   textdomain("fcitx5-vinput");

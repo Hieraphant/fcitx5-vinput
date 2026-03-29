@@ -10,6 +10,7 @@
 
 struct RemoteModelEntry {
   std::string id;
+  std::string short_id;
   std::vector<std::string> urls; // download URLs (tried in order, fallback)
   std::string sha256;
   uint64_t size_bytes = 0;
