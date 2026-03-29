@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-    sherpa-onnx.url = "github:kakapt/sherpa-onnx-flake";
+    sherpa-onnx.url = "github:xifan2333/sherpa-onnx-flake";
     sherpa-onnx.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -34,7 +34,7 @@
 
           fcitx5-vinput = pkgs.stdenv.mkDerivation {
             pname = "fcitx5-vinput";
-            version = "1.1.18";
+            version = self.shortRev or self.dirtyShortRev or "unknown";
             src = self;
 
             nativeBuildInputs = with pkgs; [
