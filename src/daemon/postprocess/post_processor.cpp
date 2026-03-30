@@ -10,7 +10,6 @@
 #include <cstdio>
 #include <optional>
 
-#include <set>
 #include <string>
 #include <string_view>
 
@@ -346,11 +345,10 @@ RewriteWithOpenAiCompatible(const std::string &text,
   return candidates;
 }
 
-void AppendUniqueCandidate(vinput::result::Payload &payload,
-                           std::set<std::string> &seen, std::string text,
-                           const char *source) {
+void AppendCandidate(vinput::result::Payload &payload, std::string text,
+                     const char *source) {
   text = TrimAsciiWhitespace(std::move(text));
-  if (text.empty() || !seen.insert(text).second) {
+  if (text.empty()) {
     return;
   }
 
@@ -384,8 +382,7 @@ PostProcessor::Process(const std::string &raw_text,
       vinput::scene::NormalizeCandidateCount(scene.candidate_count);
 
   vinput::result::Payload fallback;
-  std::set<std::string> fallback_seen;
-  AppendUniqueCandidate(fallback, fallback_seen, normalized, vinput::result::kSourceRaw);
+  AppendCandidate(fallback, normalized, vinput::result::kSourceRaw);
   fallback.commitText = normalized;
 
   const LlmProvider *provider =
@@ -402,11 +399,9 @@ PostProcessor::Process(const std::string &raw_text,
   }
 
   vinput::result::Payload payload;
-  std::set<std::string> seen;
-  AppendUniqueCandidate(payload, seen, normalized, vinput::result::kSourceRaw);
+  AppendCandidate(payload, normalized, vinput::result::kSourceRaw);
   for (auto &text : *rewritten) {
-    AppendUniqueCandidate(payload, seen, std::move(text),
-                          vinput::result::kSourceLlm);
+    AppendCandidate(payload, std::move(text), vinput::result::kSourceLlm);
   }
 
   payload.commitText = normalized;
@@ -429,11 +424,9 @@ PostProcessor::ProcessCommand(const std::string &asr_text,
   std::string normalized_asr = TrimAsciiWhitespace(asr_text);
 
   vinput::result::Payload fallback;
-  std::set<std::string> fallback_seen;
   const std::string &fallback_text =
       normalized_asr.empty() ? selected_text : normalized_asr;
-  AppendUniqueCandidate(fallback, fallback_seen, fallback_text,
-                        vinput::result::kSourceRaw);
+  AppendCandidate(fallback, fallback_text, vinput::result::kSourceRaw);
   fallback.commitText = fallback_text;
 
   if (normalized_asr.empty() || selected_text.empty()) {
@@ -462,15 +455,14 @@ PostProcessor::ProcessCommand(const std::string &asr_text,
                                    task_prompt, false);
 
   vinput::result::Payload payload;
-  std::set<std::string> seen;
   // 1st: original selected text (always)
-  AppendUniqueCandidate(payload, seen, selected_text, vinput::result::kSourceRaw);
+  AppendCandidate(payload, selected_text, vinput::result::kSourceRaw);
   // 2nd: ASR recognized command (always)
-  AppendUniqueCandidate(payload, seen, normalized_asr, vinput::result::kSourceAsr);
+  AppendCandidate(payload, normalized_asr, vinput::result::kSourceAsr);
   // 3rd+: LLM results (if available)
   if (rewritten.has_value()) {
     for (auto &text : *rewritten) {
-      AppendUniqueCandidate(payload, seen, std::move(text), vinput::result::kSourceLlm);
+      AppendCandidate(payload, std::move(text), vinput::result::kSourceLlm);
     }
   }
 

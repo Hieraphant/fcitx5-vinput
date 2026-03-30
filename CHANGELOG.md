@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.6](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.6) — 2026-03-31
+
+### Bug Fixes
+
+- **postprocess:** Preserve duplicate LLM candidates so result menus still appear when providers return repeated outputs
+
 ## [2.0.5](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.5) — 2026-03-31
 
 ### Bug Fixes
