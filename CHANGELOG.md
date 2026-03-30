@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.7](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.7) — 2026-03-31
+
+### Bug Fixes
+
+- **addon:** Include scene IDs in scene menu filtering without showing them in the menu labels
+
 ## [2.0.6](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.6) — 2026-03-31
 
 ### Bug Fixes

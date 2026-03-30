@@ -22,7 +22,8 @@ constexpr int kMenuPageSize = 10;
 
 struct SceneOption {
   std::size_t index;
-  std::string label;
+  std::string display_label;
+  std::string search_text;
 };
 
 std::string SceneMenuTitle() { return _("Scenes /filter"); }
@@ -61,7 +62,7 @@ bool MatchesSearch(const SceneOption &item, const std::string &query) {
   if (query.empty()) {
     return true;
   }
-  return NormalizeSearchText(item.label).find(NormalizeSearchText(query)) !=
+  return NormalizeSearchText(item.search_text).find(NormalizeSearchText(query)) !=
          std::string::npos;
 }
 
@@ -216,7 +217,7 @@ class SceneCandidateWord : public fcitx::CandidateWord {
 public:
   SceneCandidateWord(VinputEngine *engine, SceneOption option, bool active)
       : fcitx::CandidateWord(fcitx::Text(DisplayTextWithComment(
-            option.label, active ? _(" (Current)") : std::string()))),
+            option.display_label, active ? _(" (Current)") : std::string()))),
         engine_(engine), index_(option.index) {}
 
   void select(fcitx::InputContext *inputContext) const override {
@@ -296,9 +297,12 @@ void VinputEngine::rebuildSceneMenu(fcitx::InputContext *ic) {
   scene_menu_filtered_indices_.clear();
   std::vector<SceneOption> scene_options;
   for (std::size_t i = 0; i < scene_config_.scenes.size(); ++i) {
+    const auto &scene = scene_config_.scenes[i];
+    const std::string label = vinput::scene::DisplayLabel(scene);
     scene_options.push_back(SceneOption{
         .index = i,
-        .label = vinput::scene::DisplayLabel(scene_config_.scenes[i]),
+        .display_label = label,
+        .search_text = label + " " + scene.id,
     });
     if (MatchesSearch(scene_options.back(), scene_menu_query_)) {
       scene_menu_filtered_indices_.push_back(i);
