@@ -117,6 +117,7 @@ DbusService::MethodResult DaemonRuntimeController::StartRecordingInternal(
   pending_chunk_pcm_.clear();
   current_sample_count_ = 0;
   current_input_gain_ = static_cast<float>(runtime_settings.asr.inputGain);
+  latest_final_text_.clear();
   recording_started_at_ = std::chrono::steady_clock::now();
   first_non_silent_at_.reset();
   first_partial_logged_ = false;
@@ -250,6 +251,7 @@ void DaemonRuntimeController::EmitStreamingEvents(
       break;
     case vinput::daemon::asr::RecognitionEventKind::FinalText:
       if (!event.text.empty()) {
+        latest_final_text_ = event.text;
         if (latest_partial_text) {
           *latest_partial_text = event.text;
         }
@@ -356,6 +358,7 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
   current_order_->session = std::move(active_session_);
   current_order_->backend = active_backend_;
   current_order_->pcm = std::move(current_recording_pcm_);
+  current_order_->recognized_text = latest_final_text_;
   current_order_->scene_id = scene_id;
   current_order_->is_command = current_is_command_;
   current_order_->selected_text = current_selected_text_;
@@ -382,6 +385,7 @@ void DaemonRuntimeController::CancelActiveSession() {
   pending_chunk_pcm_.clear();
   current_sample_count_ = 0;
   current_input_gain_ = 1.0f;
+  latest_final_text_.clear();
   recording_started_at_.reset();
   first_non_silent_at_.reset();
   first_partial_logged_ = false;
@@ -491,7 +495,9 @@ void DaemonRuntimeController::WorkerMain() {
                   result.error.c_str());
           dbus_->EmitError(vinput::dbus::ClassifyErrorText(result.error));
         }
-        order.recognized_text = std::move(result.text);
+        if (!result.text.empty()) {
+          order.recognized_text = std::move(result.text);
+        }
         order.pcm.clear();
       }
 

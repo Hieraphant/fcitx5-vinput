@@ -65,6 +65,7 @@ private:
   std::vector<int16_t> pending_chunk_pcm_;
   std::size_t current_sample_count_ = 0;
   float current_input_gain_ = 1.0f;
+  std::string latest_final_text_;
   std::optional<std::chrono::steady_clock::time_point> recording_started_at_;
   std::optional<std::chrono::steady_clock::time_point> first_non_silent_at_;
   bool first_partial_logged_ = false;
