@@ -32,8 +32,9 @@ namespace {
 using json = nlohmann::json;
 using Clock = std::chrono::steady_clock;
 
-constexpr int kDefaultTimeoutMs = 60000;
 constexpr int kPollSliceMs = 50;
+constexpr int kAwaitFinalTimeoutMs = 10000;
+constexpr int kFinalGraceMs = 200;
 
 bool SetNonBlocking(int fd) {
   const int flags = fcntl(fd, F_GETFL, 0);
@@ -253,11 +254,8 @@ class CommandStreamingSession : public RecognitionSession {
 public:
   CommandStreamingSession(const CommandAsrProvider &provider,
                           std::string provider_id)
-      : provider_(provider), provider_id_(std::move(provider_id)) {
-    const int timeout_ms =
-        provider_.timeoutMs > 0 ? provider_.timeoutMs : kDefaultTimeoutMs;
-    deadline_ = Clock::now() + std::chrono::milliseconds(timeout_ms);
-  }
+      : provider_(provider), provider_id_(std::move(provider_id)),
+        deadline_(Clock::time_point::max()) {}
 
   ~CommandStreamingSession() override { Terminate(false); }
 
@@ -313,8 +311,9 @@ public:
     }
     CloseIfOpen(&child_.stdin_fd);
     child_.stdin_closed = true;
+    deadline_ = Clock::now() + std::chrono::milliseconds(kAwaitFinalTimeoutMs);
 
-    while (!completed_ && !child_.child_exited) {
+    while (!saw_final_text_ && !completed_ && !child_.child_exited) {
       if (!PumpIo(kPollSliceMs, error)) {
         return false;
       }
@@ -327,6 +326,23 @@ public:
         }
         return false;
       }
+    }
+
+    if (saw_final_text_) {
+      const Clock::time_point grace_deadline =
+          Clock::now() + std::chrono::milliseconds(kFinalGraceMs);
+      while (!HasTimedOut(grace_deadline) && !completed_ && !child_.child_exited) {
+        if (!PumpIo(RemainingMs(grace_deadline, kPollSliceMs), error)) {
+          return false;
+        }
+      }
+      PumpIo(0, nullptr);
+      QueueCompleted();
+      Terminate(true);
+      if (error) {
+        error->clear();
+      }
+      return true;
     }
 
     PumpIo(0, nullptr);
@@ -529,7 +545,8 @@ private:
     }
 
     ReapChild();
-    if (child_.child_exited && child_.exit_code != 0 && !saw_error_) {
+    if (child_.child_exited && child_.exit_code != 0 && !saw_error_ &&
+        !saw_final_text_) {
       QueueError(FormatProviderError(std::move(stderr_tail_), "failed."));
     }
     if (error) {

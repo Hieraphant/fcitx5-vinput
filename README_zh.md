@@ -427,9 +427,9 @@ vinput scene use polish
     "~/.config/vinput/asr-providers/openai-compatible.py"
   ],
   "env": {
-    "OPENAI_COMPATIBLE_ASR_API_KEY": "...",
-    "OPENAI_COMPATIBLE_ASR_URL": "https://api.openai.com/v1/audio/transcriptions",
-    "OPENAI_COMPATIBLE_ASR_MODEL": "gpt-4o-mini-transcribe"
+    "VINPUT_ASR_API_KEY": "...",
+    "VINPUT_ASR_URL": "https://api.openai.com/v1/audio/transcriptions",
+    "VINPUT_ASR_MODEL": "gpt-4o-mini-transcribe"
   },
   "timeout_ms": 60000
 }
