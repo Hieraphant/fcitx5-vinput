@@ -24,9 +24,10 @@
 
       forAllSystems = nixpkgs.lib.genAttrs systems;
       pkgsFor = system: import nixpkgs { inherit system; };
+      version = nixpkgs.lib.removeSuffix "\n" (builtins.readFile ./VERSION);
     in
     {
-      version = nixpkgs.lib.removeSuffix "\n" (builtins.readFile ./VERSION);
+      inherit version;
 
       packages = forAllSystems (
         system:
