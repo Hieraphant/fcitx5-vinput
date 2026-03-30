@@ -656,8 +656,7 @@ private:
       const std::string text = Trim(payload.value("text", std::string{}));
       if (!text.empty() && text != last_partial_text_) {
         last_partial_text_ = text;
-        const std::string combined = committed_prefix_ + text;
-        events_.push_back({RecognitionEventKind::PartialText, combined, {}});
+        events_.push_back({RecognitionEventKind::PartialText, text, {}});
       }
       return true;
     }
@@ -666,9 +665,7 @@ private:
       if (!text.empty()) {
         saw_final_text_ = true;
         last_partial_text_.clear();
-        committed_prefix_ += text;
-        events_.push_back(
-            {RecognitionEventKind::FinalText, committed_prefix_, {}});
+        events_.push_back({RecognitionEventKind::FinalText, text, {}});
       }
       return true;
     }
@@ -752,7 +749,6 @@ private:
   std::string stderr_buffer_;
   std::string stderr_tail_;
   std::string last_partial_text_;
-  std::string committed_prefix_;
   std::vector<std::byte> pending_chunk_;
   std::vector<RecognitionEvent> events_;
 };

@@ -457,6 +457,50 @@ Official cloud ASR providers currently include:
 transcription endpoints by changing the URL and model env vars. `doubao`
 targets the ByteDance / Volcengine fast file-recognition API directly.
 
+### Streaming ASR Provider Contract Draft
+
+For streaming providers, `vinput-registry` should define one normalized event
+contract and require every provider script to adapt upstream vendor events into
+that contract. The main program should consume only the normalized contract and
+must not guess whether a provider returned incremental text or full text.
+
+Recommended normalized semantics:
+
+- `partial.text`: the full user-visible transcript at the current moment
+- `final.text`: the full confirmed transcript at the current moment
+- `segment_final`: optional boolean, one segment has been finalized
+- `utterance_final`: optional boolean, the utterance is finished
+- `words`: optional per-word timing payload
+
+Recommended rules:
+
+- Provider scripts own transcript accumulation and de-duplication.
+- If an upstream API only returns incremental segment text, the script must
+  accumulate it before emitting `partial.text` or `final.text`.
+- If an upstream API already returns full text, the script should forward it as
+  is.
+- `vinput` should treat `partial.text` as preedit text and the last `final.text`
+  as the recognized result.
+- `vinput` should not implement provider-specific merge logic for different
+  cloud ASR vendors.
+
+Why this is not a direct copy of OpenAI Realtime:
+
+- OpenAI Realtime is a useful reference, but vendor event semantics differ.
+- Even OpenAI-style `delta` events are not guaranteed to mean the same thing
+  across models or providers.
+- A stricter internal contract is easier to document, test, and implement in
+  provider scripts.
+
+Suggested JSONL output examples:
+
+```json
+{"type":"partial","text":"hello world"}
+{"type":"final","text":"hello world","segment_final":true}
+{"type":"partial","text":"hello world again"}
+{"type":"final","text":"hello world again","segment_final":true,"utterance_final":true}
+```
+
 ### LLM Adapter Contract
 
 If you want to write your own LLM adapter, it should expose an OpenAI-compatible

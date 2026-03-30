@@ -449,6 +449,47 @@ vinput scene use polish
 OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao`
 直接对接豆包语音 / 火山引擎录音文件极速版接口。
 
+### Streaming ASR provider 协议草案
+
+对于流式 provider，建议由 `vinput-registry` 定义一套统一的事件协议，
+要求所有 provider 脚本先把上游厂商的事件格式适配成这套协议，再交给
+主程序消费。主程序只承接这套统一协议，不再猜测某个 provider 返回的
+到底是“增量文本”还是“全文文本”。
+
+建议统一语义如下：
+
+- `partial.text`：当前时刻用户应该看到的完整文本
+- `final.text`：当前时刻已经确认的完整文本
+- `segment_final`：可选布尔值，表示一个 segment 已完成
+- `utterance_final`：可选布尔值，表示整次语音输入已经结束
+- `words`：可选逐词时间戳信息
+
+建议规则如下：
+
+- 文本累计、去重、分段拼接属于 provider 脚本职责。
+- 如果上游 API 只返回当前 segment 的增量文本，脚本必须先累计，再输出
+  `partial.text` 或 `final.text`。
+- 如果上游 API 已经返回全文，脚本可以直接透传。
+- `vinput` 主程序只把 `partial.text` 当作 preedit，把最后一个
+  `final.text` 当作识别结果。
+- `vinput` 主程序不再为某一家云 ASR 单独实现拼接逻辑。
+
+为什么不直接照搬 OpenAI Realtime：
+
+- OpenAI Realtime 很适合作为参考，但不同厂商的事件语义并不一致。
+- 即使是 OpenAI 风格的 `delta`，在不同模型或不同服务里也未必都严格表示
+  同一种增量语义。
+- 内部定义一套更严格的协议，更利于文档约束、脚本实现和主程序消费。
+
+建议 JSONL 输出示例：
+
+```json
+{"type":"partial","text":"hello world"}
+{"type":"final","text":"hello world","segment_final":true}
+{"type":"partial","text":"hello world again"}
+{"type":"final","text":"hello world again","segment_final":true,"utterance_final":true}
+```
+
 ### LLM Adapter 协议
 
 如果你要自己写 LLM adapter，它需要提供 OpenAI 兼容接口，至少实现：
