@@ -322,6 +322,10 @@ Please follow the instructions.</source>
         <translation>&lt;b&gt;已安装模型&lt;/b&gt;</translation>
     </message>
     <message>
+        <source>Filter installed models...</source>
+        <translation>筛选已安装模型...</translation>
+    </message>
+    <message>
         <source>Name</source>
         <translation>名称</translation>
     </message>
@@ -362,6 +366,10 @@ Please follow the instructions.</source>
         <translation>&lt;b&gt;可用模型&lt;/b&gt;</translation>
     </message>
     <message>
+        <source>Filter available models...</source>
+        <translation>筛选可用模型...</translation>
+    </message>
+    <message>
         <source>Title</source>
         <translation>标题</translation>
     </message>
@@ -378,6 +386,10 @@ Please follow the instructions.</source>
         <translation>&lt;b&gt;可用 ASR 提供商&lt;/b&gt;</translation>
     </message>
     <message>
+        <source>Filter available ASR providers...</source>
+        <translation>筛选可用 ASR 提供商...</translation>
+    </message>
+    <message>
         <source>Mode</source>
         <translation>模式</translation>
     </message>
@@ -388,6 +400,22 @@ Please follow the instructions.</source>
     <message>
         <source>&lt;b&gt;Available LLM Adapters&lt;/b&gt;</source>
         <translation>&lt;b&gt;可用 LLM 适配器&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>Filter available LLM adapters...</source>
+        <translation>筛选可用 LLM 适配器...</translation>
+    </message>
+    <message>
+        <source>Models</source>
+        <translation>模型</translation>
+    </message>
+    <message>
+        <source>ASR Providers</source>
+        <translation>ASR 提供商</translation>
+    </message>
+    <message>
+        <source>LLM Adapters</source>
+        <translation>LLM 适配器</translation>
     </message>
     <message>
         <source>yes</source>
@@ -472,6 +500,10 @@ Please follow the instructions.</source>
     <message>
         <source>Downloading... %1% at %2</source>
         <translation>正在下载... %1% 速度 %2</translation>
+    </message>
+    <message>
+        <source>Preparing download...</source>
+        <translation>正在准备下载...</translation>
     </message>
     <message>
         <source>Download Error</source>

@@ -93,10 +93,11 @@ namespace {
 struct ProviderInfo {
   QString id;
   QString base_url;
+  QString api_key;
 };
 
 QString ProviderModelCacheKey(const ProviderInfo &p) {
-  return p.base_url;
+  return p.base_url + '\n' + p.api_key;
 }
 
 void ApplyFetchedProviderModels(QComboBox *comboModel,
@@ -179,7 +180,12 @@ void FetchModelsFromProviderAsync(const ProviderInfo &provider,
 
   auto *nam = new QNetworkAccessManager(comboModel);
   QNetworkRequest req{QUrl(url)};
-  // No api_key — best-effort fetch (works for local providers).
+  req.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
+  if (!provider.api_key.trimmed().isEmpty()) {
+    const QByteArray bearer =
+        QByteArray(vinput::llm::kBearerPrefix) + provider.api_key.trimmed().toUtf8();
+    req.setRawHeader(vinput::llm::kAuthorizationHeader, bearer);
+  }
 
   QNetworkReply *reply = nam->get(req);
   auto *timeout = new QTimer(reply);
@@ -251,6 +257,7 @@ QList<ProviderInfo> LoadLlmProviders() {
     ProviderInfo info;
     info.id = QString::fromStdString(prov.id);
     info.base_url = QString::fromStdString(prov.base_url);
+    info.api_key = QString::fromStdString(prov.api_key);
     if (!info.id.isEmpty()) {
       providers.push_back(info);
     }

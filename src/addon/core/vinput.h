@@ -50,6 +50,7 @@ private:
   void showSceneMenu(fcitx::InputContext *ic);
   void hideSceneMenu();
   bool handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent);
+  void rebuildSceneMenu(fcitx::InputContext *ic);
   void showAsrMenu(fcitx::InputContext *ic);
   void hideAsrMenu();
   bool handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent);
@@ -127,6 +128,9 @@ private:
   bool result_menu_visible_ = false;
   std::string active_scene_id_;
   vinput::scene::Config scene_config_;
+  std::vector<std::size_t> scene_menu_filtered_indices_;
+  std::string scene_menu_query_;
+  bool scene_menu_filter_mode_ = false;
   std::vector<AsrMenuItem> asr_menu_items_;
   std::vector<std::size_t> asr_menu_filtered_indices_;
   std::string asr_menu_query_;

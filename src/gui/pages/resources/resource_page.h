@@ -1,8 +1,10 @@
 #pragma once
 
 #include <QLabel>
+#include <QLineEdit>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QTabWidget>
 #include <QTableWidget>
 #include <QTextEdit>
 #include <QWidget>
@@ -42,9 +44,15 @@ private:
   void populateRemoteModels(const std::vector<RemoteModelEntry> &models);
   void populateRemoteProviders(const std::vector<vinput::script::RegistryEntry> &providers);
   void populateRemoteAdapters(const std::vector<vinput::script::RegistryEntry> &adapters);
+  void applyTableFilter(QTableWidget *table, const QString &filter_text);
 
   void abortDownload();
 
+  QLineEdit *filterInstalledModels_;
+  QLineEdit *filterAvailableModels_;
+  QLineEdit *filterAvailableProviders_;
+  QLineEdit *filterAvailableAdapters_;
+  QTabWidget *resourceTabs_;
   QTableWidget *tableInstalledModels_;
   QTableWidget *tableAvailableModels_;
   QTableWidget *tableAvailableProviders_;

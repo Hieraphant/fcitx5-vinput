@@ -6,11 +6,14 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QPalette>
+#include <QPointer>
+#include <QThreadPool>
+#include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <QtConcurrent/QtConcurrent>
 
 #include "utils/gui_helpers.h"
 #include "gui/utils/config_manager.h"
@@ -36,13 +39,28 @@ void SetupTable(QTableWidget *t, const QStringList &headers) {
   t->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 }
 
+QLineEdit *CreateFilterEdit(const QString &placeholder, QWidget *parent) {
+  auto *edit = new QLineEdit(parent);
+  edit->setClearButtonEnabled(true);
+  edit->setPlaceholderText(placeholder);
+  return edit;
+}
+
 }  // namespace
 
 ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
   auto *layout = new QVBoxLayout(this);
+  resourceTabs_ = new QTabWidget(this);
+  layout->addWidget(resourceTabs_, 1);
+
+  auto *modelsTab = new QWidget(this);
+  auto *modelsLayout = new QVBoxLayout(modelsTab);
 
   auto *lblLocal = new QLabel(tr("<b>Installed Models</b>"));
-  layout->addWidget(lblLocal);
+  modelsLayout->addWidget(lblLocal);
+  filterInstalledModels_ =
+      CreateFilterEdit(tr("Filter installed models..."), modelsTab);
+  modelsLayout->addWidget(filterInstalledModels_);
 
   auto *topLayout = new QHBoxLayout();
   tableInstalledModels_ = new QTableWidget();
@@ -60,10 +78,13 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
   btnLayout->addWidget(btnRefreshResources_);
   btnLayout->addStretch();
   topLayout->addLayout(btnLayout);
-  layout->addLayout(topLayout);
+  modelsLayout->addLayout(topLayout, 1);
 
   auto *lblRemote = new QLabel(tr("<b>Available Models</b>"));
-  layout->addWidget(lblRemote);
+  modelsLayout->addWidget(lblRemote);
+  filterAvailableModels_ =
+      CreateFilterEdit(tr("Filter available models..."), modelsTab);
+  modelsLayout->addWidget(filterAvailableModels_);
 
   auto *remoteLayout = new QHBoxLayout();
   tableAvailableModels_ = new QTableWidget();
@@ -77,10 +98,16 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
   dlLayout->addWidget(btnDownloadModel_);
   dlLayout->addStretch();
   remoteLayout->addLayout(dlLayout);
-  layout->addLayout(remoteLayout);
+  modelsLayout->addLayout(remoteLayout, 1);
+  resourceTabs_->addTab(modelsTab, tr("Models"));
 
+  auto *providersTab = new QWidget(this);
+  auto *providersLayout = new QVBoxLayout(providersTab);
   auto *lblProviders = new QLabel(tr("<b>Available ASR Providers</b>"));
-  layout->addWidget(lblProviders);
+  providersLayout->addWidget(lblProviders);
+  filterAvailableProviders_ =
+      CreateFilterEdit(tr("Filter available ASR providers..."), providersTab);
+  providersLayout->addWidget(filterAvailableProviders_);
 
   auto *providerLayout = new QHBoxLayout();
   tableAvailableProviders_ = new QTableWidget();
@@ -93,10 +120,16 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
   providerBtnLayout->addWidget(btnAddProvider_);
   providerBtnLayout->addStretch();
   providerLayout->addLayout(providerBtnLayout);
-  layout->addLayout(providerLayout);
+  providersLayout->addLayout(providerLayout, 1);
+  resourceTabs_->addTab(providersTab, tr("ASR Providers"));
 
+  auto *adaptersTab = new QWidget(this);
+  auto *adaptersLayout = new QVBoxLayout(adaptersTab);
   auto *lblAdapters = new QLabel(tr("<b>Available LLM Adapters</b>"));
-  layout->addWidget(lblAdapters);
+  adaptersLayout->addWidget(lblAdapters);
+  filterAvailableAdapters_ =
+      CreateFilterEdit(tr("Filter available LLM adapters..."), adaptersTab);
+  adaptersLayout->addWidget(filterAvailableAdapters_);
 
   auto *adapterLayout = new QHBoxLayout();
   tableAvailableAdapters_ = new QTableWidget();
@@ -109,7 +142,8 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
   adapterBtnLayout->addWidget(btnAddAdapter_);
   adapterBtnLayout->addStretch();
   adapterLayout->addLayout(adapterBtnLayout);
-  layout->addLayout(adapterLayout);
+  adaptersLayout->addLayout(adapterLayout, 1);
+  resourceTabs_->addTab(adaptersTab, tr("LLM Adapters"));
 
   textLog_ = new QTextEdit();
   textLog_->setReadOnly(true);
@@ -139,6 +173,22 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
           &ResourcePage::onAddProviderClicked);
   connect(btnAddAdapter_, &QPushButton::clicked, this,
           &ResourcePage::onAddAdapterClicked);
+  connect(filterInstalledModels_, &QLineEdit::textChanged, this,
+          [this](const QString &text) {
+            applyTableFilter(tableInstalledModels_, text);
+          });
+  connect(filterAvailableModels_, &QLineEdit::textChanged, this,
+          [this](const QString &text) {
+            applyTableFilter(tableAvailableModels_, text);
+          });
+  connect(filterAvailableProviders_, &QLineEdit::textChanged, this,
+          [this](const QString &text) {
+            applyTableFilter(tableAvailableProviders_, text);
+          });
+  connect(filterAvailableAdapters_, &QLineEdit::textChanged, this,
+          [this](const QString &text) {
+            applyTableFilter(tableAvailableAdapters_, text);
+          });
 
   connect(&I18nCache::Get(), &I18nCache::mapUpdated, this,
           &ResourcePage::refreshAll);
@@ -151,6 +201,33 @@ void ResourcePage::reload() { refreshAll(); }
 // ---------------------------------------------------------------------------
 // Populate helpers
 // ---------------------------------------------------------------------------
+
+void ResourcePage::applyTableFilter(QTableWidget *table,
+                                    const QString &filter_text) {
+  if (!table) {
+    return;
+  }
+
+  const QString needle = filter_text.trimmed();
+  for (int row = 0; row < table->rowCount(); ++row) {
+    bool matches = needle.isEmpty();
+    if (!matches) {
+      for (int col = 0; col < table->columnCount(); ++col) {
+        const auto *item = table->item(row, col);
+        if (!item) {
+          continue;
+        }
+        const QString haystack =
+            item->text() + '\n' + item->data(Qt::UserRole).toString();
+        if (haystack.contains(needle, Qt::CaseInsensitive)) {
+          matches = true;
+          break;
+        }
+      }
+    }
+    table->setRowHidden(row, !matches);
+  }
+}
 
 void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) {
   const QPalette pal = QApplication::palette();
@@ -197,6 +274,8 @@ void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) 
     }
     tableInstalledModels_->setItem(row, 5, stCell);
   }
+
+  applyTableFilter(tableInstalledModels_, filterInstalledModels_->text());
 }
 
 void ResourcePage::populateRemoteModels(const std::vector<RemoteModelEntry> &models) {
@@ -247,6 +326,8 @@ void ResourcePage::populateRemoteModels(const std::vector<RemoteModelEntry> &mod
     }
     tableAvailableModels_->setItem(row, 6, stCell);
   }
+
+  applyTableFilter(tableAvailableModels_, filterAvailableModels_->text());
 }
 
 void ResourcePage::populateRemoteProviders(const std::vector<vinput::script::RegistryEntry> &providers) {
@@ -286,6 +367,8 @@ void ResourcePage::populateRemoteProviders(const std::vector<vinput::script::Reg
     }
     tableAvailableProviders_->setItem(row, 3, stCell);
   }
+
+  applyTableFilter(tableAvailableProviders_, filterAvailableProviders_->text());
 }
 
 void ResourcePage::populateRemoteAdapters(const std::vector<vinput::script::RegistryEntry> &adapters) {
@@ -324,12 +407,15 @@ void ResourcePage::populateRemoteAdapters(const std::vector<vinput::script::Regi
     }
     tableAvailableAdapters_->setItem(row, 2, stCell);
   }
+
+  applyTableFilter(tableAvailableAdapters_, filterAvailableAdapters_->text());
 }
 
 void ResourcePage::refreshAll() {
   CoreConfig config = ConfigManager::Get().Load();
   QString baseDir = QString::fromStdString(ResolveModelBaseDir(config).string());
   QString preferredModel = QString::fromStdString(ResolvePreferredLocalModel(config));
+  QPointer<ResourcePage> self(this);
 
   ModelManager manager(baseDir.toStdString());
   auto localModels = manager.ListDetailed(preferredModel.toStdString());
@@ -338,36 +424,57 @@ void ResourcePage::refreshAll() {
   btnRefreshResources_->setEnabled(false);
   textLog_->append(tr("Fetching remote registry..."));
 
-  QtConcurrent::run([this, config, baseDir]() {
+  QThreadPool::globalInstance()->start([self, config, baseDir]() {
+     if (!self) {
+         return;
+     }
      ModelRepository repo(baseDir.toStdString());
      std::string err;
      
      auto registryUrls = ResolveModelRegistryUrls(config);
      auto remoteModels = repo.FetchRegistry(config, registryUrls, &err);
      if (!err.empty()) {
-         QMetaObject::invokeMethod(this, [this, err]() { textLog_->append(tr("Models fetch error: %1").arg(QString::fromStdString(err))); });
+         QMetaObject::invokeMethod(self, [self, err]() {
+             if (!self) {
+                 return;
+             }
+             self->textLog_->append(self->tr("Models fetch error: %1").arg(QString::fromStdString(err)));
+         });
      }
      
      err.clear();
      auto providerUrls = ResolveAsrProviderRegistryUrls(config);
      auto remoteProviders = vinput::script::FetchRegistry(config, vinput::script::Kind::kAsrProvider, providerUrls, &err);
      if (!err.empty()) {
-         QMetaObject::invokeMethod(this, [this, err]() { textLog_->append(tr("Providers fetch error: %1").arg(QString::fromStdString(err))); });
+         QMetaObject::invokeMethod(self, [self, err]() {
+             if (!self) {
+                 return;
+             }
+             self->textLog_->append(self->tr("Providers fetch error: %1").arg(QString::fromStdString(err)));
+         });
      }
      
      err.clear();
      auto adapterUrls = ResolveLlmAdapterRegistryUrls(config);
      auto remoteAdapters = vinput::script::FetchRegistry(config, vinput::script::Kind::kLlmAdapter, adapterUrls, &err);
      if (!err.empty()) {
-         QMetaObject::invokeMethod(this, [this, err]() { textLog_->append(tr("Adapters fetch error: %1").arg(QString::fromStdString(err))); });
+         QMetaObject::invokeMethod(self, [self, err]() {
+             if (!self) {
+                 return;
+             }
+             self->textLog_->append(self->tr("Adapters fetch error: %1").arg(QString::fromStdString(err)));
+         });
      }
 
-     QMetaObject::invokeMethod(this, [this, remoteModels, remoteProviders, remoteAdapters]() {
-         populateRemoteModels(remoteModels);
-         populateRemoteProviders(remoteProviders);
-         populateRemoteAdapters(remoteAdapters);
-         btnRefreshResources_->setEnabled(true);
-         textLog_->append(tr("Registry fetch completed."));
+     QMetaObject::invokeMethod(self, [self, remoteModels, remoteProviders, remoteAdapters]() {
+         if (!self) {
+             return;
+         }
+         self->populateRemoteModels(remoteModels);
+         self->populateRemoteProviders(remoteProviders);
+         self->populateRemoteAdapters(remoteAdapters);
+         self->btnRefreshResources_->setEnabled(true);
+         self->textLog_->append(self->tr("Registry fetch completed."));
      });
   });
 }

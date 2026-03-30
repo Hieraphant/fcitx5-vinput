@@ -210,10 +210,10 @@ msgstr ""
 msgid "No LLM provider configured for command mode."
 msgstr ""
 
-msgid "Choose Postprocess Menu"
+msgid "Scenes /filter"
 msgstr ""
 
-msgid "Choose ASR Provider / Model"
+msgid "Models /filter"
 msgstr ""
 
 #, c-format

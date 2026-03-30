@@ -31,7 +31,6 @@ constexpr uint64_t kSystemdCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr const char *kReplaceMode = "replace";
 constexpr uint64_t kDaemonCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr uint64_t kStatusSyncIntervalUsec = 200 * 1000;
-
 std::string RecordingPreeditText() { return _("... Recording ..."); }
 
 std::string CommandingPreeditText() { return _("... Commanding ..."); }

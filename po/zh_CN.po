@@ -209,11 +209,11 @@ msgstr "命令模式已禁用（候选数为 0）。"
 msgid "No LLM provider configured for command mode."
 msgstr "未配置命令模式的 LLM 提供者。"
 
-msgid "Choose Postprocess Menu"
-msgstr "选择后处理选单"
+msgid "Scenes /filter"
+msgstr "场景 /过滤"
 
-msgid "Choose ASR Provider / Model"
-msgstr "选择语音识别引擎 / 模型"
+msgid "Models /filter"
+msgstr "模型 /过滤"
 
 #, c-format
 msgid "Choose Result (%zu)"

@@ -34,7 +34,7 @@
 
           fcitx5-vinput = pkgs.stdenv.mkDerivation {
             pname = "fcitx5-vinput";
-            version = "2.0.3";
+            version = "2.0.4";
             src = self;
 
             nativeBuildInputs = with pkgs; [

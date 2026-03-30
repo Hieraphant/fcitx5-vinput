@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.4](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.4) — 2026-03-30
+
+### Bug Fixes
+
+- **gui:** Ignore invalid `QT_STYLE_OVERRIDE` values before creating `QApplication`
+- **gui:** Fetch provider `/models` with auth and HTTP/1.1 fallback to avoid authentication and HTTP/2 issues
+- **addon:** Drop unreliable multiline wrapping from preedit and result display paths
+
+### Features
+
+- **gui:** Add internal resource tabs and per-list filtering for models, ASR providers, and LLM adapters
+- **addon:** Add `/filter` search to scene selection and shorten menu titles to `Scenes /filter` and `Models /filter`
+
 ## [2.0.3](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.3) — 2026-03-30
 
 ### Bug Fixes

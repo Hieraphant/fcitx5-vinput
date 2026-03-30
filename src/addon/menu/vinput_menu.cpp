@@ -25,9 +25,9 @@ struct SceneOption {
   std::string label;
 };
 
-std::string SceneMenuTitle() { return _("Choose Postprocess Menu"); }
+std::string SceneMenuTitle() { return _("Scenes /filter"); }
 
-std::string AsrMenuTitle() { return _("Choose ASR Provider / Model"); }
+std::string AsrMenuTitle() { return _("Models /filter"); }
 
 std::string NormalizeSearchText(std::string text) {
   std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) {
@@ -57,6 +57,14 @@ bool MatchesSearch(const AsrMenuItem &item, const std::string &query) {
          std::string::npos;
 }
 
+bool MatchesSearch(const SceneOption &item, const std::string &query) {
+  if (query.empty()) {
+    return true;
+  }
+  return NormalizeSearchText(item.label).find(NormalizeSearchText(query)) !=
+         std::string::npos;
+}
+
 std::string ResultMenuTitle(std::size_t count) {
   char buf[128];
   std::snprintf(buf, sizeof(buf), _("Choose Result (%zu)"), count);
@@ -74,15 +82,6 @@ std::string ResultCandidateComment(const vinput::result::Candidate &candidate,
   char buf[8];
   std::snprintf(buf, sizeof(buf), "%zu", llm_index);
   return buf;
-}
-
-std::string DisplayCandidateText(std::string text) {
-  for (char &ch : text) {
-    if (ch == '\r' || ch == '\n' || ch == '\t') {
-      ch = ' ';
-    }
-  }
-  return text;
 }
 
 std::string DecoratePagedMenuTitle(const std::string &base_title,
@@ -108,6 +107,10 @@ std::string DecorateFilterTitle(const std::string &base_title,
                                 bool filter_mode) {
   if (!filter_mode && query.empty()) {
     return base_title;
+  }
+  if (base_title.size() >= 2 &&
+      base_title.compare(base_title.size() - 2, 2, " /") == 0) {
+    return base_title + query;
   }
   return base_title + " / " + query;
 }
@@ -246,7 +249,7 @@ class ResultCandidateWord : public fcitx::CandidateWord {
 public:
   ResultCandidateWord(VinputEngine *engine, std::size_t index,
                       const std::string &text, const std::string &comment)
-      : fcitx::CandidateWord(fcitx::Text(DisplayCandidateText(text))),
+      : fcitx::CandidateWord(fcitx::Text(text)),
         engine_(engine), index_(index) {
     if (!comment.empty()) {
 #ifdef VINPUT_FCITX5_CORE_HAVE_SET_COMMENT
@@ -274,6 +277,15 @@ void VinputEngine::showSceneMenu(fcitx::InputContext *ic) {
   reloadSceneConfig();
   scene_menu_ic_ = ic;
   scene_menu_visible_ = true;
+  scene_menu_query_.clear();
+  scene_menu_filter_mode_ = false;
+  rebuildSceneMenu(ic);
+}
+
+void VinputEngine::rebuildSceneMenu(fcitx::InputContext *ic) {
+  if (!ic) {
+    return;
+  }
 
   auto candidate_list = std::make_unique<fcitx::CommonCandidateList>();
   candidate_list->setPageSize(kMenuPageSize);
@@ -281,24 +293,35 @@ void VinputEngine::showSceneMenu(fcitx::InputContext *ic) {
   candidate_list->setCursorPositionAfterPaging(
       fcitx::CursorPositionAfterPaging::ResetToFirst);
 
-  int active_index = 0;
+  scene_menu_filtered_indices_.clear();
+  std::vector<SceneOption> scene_options;
   for (std::size_t i = 0; i < scene_config_.scenes.size(); ++i) {
-    const auto &scene = scene_config_.scenes[i];
+    scene_options.push_back(SceneOption{
+        .index = i,
+        .label = vinput::scene::DisplayLabel(scene_config_.scenes[i]),
+    });
+    if (MatchesSearch(scene_options.back(), scene_menu_query_)) {
+      scene_menu_filtered_indices_.push_back(i);
+    }
+  }
+
+  int active_index = 0;
+  for (std::size_t i = 0; i < scene_menu_filtered_indices_.size(); ++i) {
+    const std::size_t scene_index = scene_menu_filtered_indices_[i];
+    const auto &scene = scene_config_.scenes[scene_index];
     const bool active = scene.id == active_scene_id_;
     if (active) {
       active_index = static_cast<int>(i);
     }
     candidate_list->append<SceneCandidateWord>(
         this,
-        SceneOption{
-            .index = i,
-            .label = vinput::scene::DisplayLabel(scene),
-        },
+        scene_options[scene_index],
         active);
   }
   MoveCursorToIndex(candidate_list.get(), active_index);
 
-  SetMenuTitle(ic, SceneMenuTitle(), candidate_list.get());
+  SetMenuTitle(ic, SceneMenuTitle(), scene_menu_query_, scene_menu_filter_mode_,
+               candidate_list.get());
   ic->inputPanel().setCandidateList(std::move(candidate_list));
   ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
@@ -311,6 +334,9 @@ void VinputEngine::hideSceneMenu() {
   }
 
   scene_menu_visible_ = false;
+  scene_menu_query_.clear();
+  scene_menu_filter_mode_ = false;
+  scene_menu_filtered_indices_.clear();
   fcitx::Text empty;
   scene_menu_ic_->inputPanel().setAuxUp(empty);
   scene_menu_ic_->inputPanel().setCandidateList({});
@@ -332,11 +358,19 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
         keyEvent.key().checkKeyList(page_prev_keys_) ||
         keyEvent.key().checkKeyList(page_next_keys_) ||
         keyEvent.key().digitSelection() >= 0 ||
+        keyEvent.key().check(FcitxKey_slash) ||
+        keyEvent.key().check(FcitxKey_BackSpace) ||
         keyEvent.key().check(FcitxKey_Up) ||
         keyEvent.key().check(FcitxKey_Down) ||
         keyEvent.key().check(FcitxKey_Return) ||
         keyEvent.key().check(FcitxKey_KP_Enter) ||
         keyEvent.key().check(FcitxKey_Escape)) {
+      keyEvent.filterAndAccept();
+      return true;
+    }
+    if (scene_menu_filter_mode_ &&
+        !fcitx::Key::keySymToUTF8(keyEvent.key().sym()).empty() &&
+        !keyEvent.key().hasModifier()) {
       keyEvent.filterAndAccept();
       return true;
     }
@@ -349,19 +383,62 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
   }
 
   if (keyEvent.key().check(FcitxKey_Escape)) {
+    if (scene_menu_filter_mode_ || !scene_menu_query_.empty()) {
+      scene_menu_query_.clear();
+      scene_menu_filter_mode_ = false;
+      rebuildSceneMenu(scene_menu_ic_);
+      keyEvent.filterAndAccept();
+      return true;
+    }
     hideSceneMenu();
     keyEvent.filterAndAccept();
     return true;
   }
 
+  if (keyEvent.key().check(FcitxKey_slash)) {
+    scene_menu_filter_mode_ = true;
+    rebuildSceneMenu(scene_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (keyEvent.key().check(FcitxKey_BackSpace) && scene_menu_filter_mode_) {
+    if (!scene_menu_query_.empty()) {
+      PopLastUtf8Char(&scene_menu_query_);
+    } else {
+      scene_menu_filter_mode_ = false;
+    }
+    rebuildSceneMenu(scene_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (scene_menu_filter_mode_) {
+    const std::string utf8 = fcitx::Key::keySymToUTF8(keyEvent.key().sym());
+    if (!utf8.empty() && !keyEvent.key().hasModifier()) {
+      scene_menu_query_.append(utf8);
+      rebuildSceneMenu(scene_menu_ic_);
+      keyEvent.filterAndAccept();
+      return true;
+    }
+  }
+
   if (keyEvent.key().checkKeyList(page_prev_keys_)) {
-    ChangeCandidatePage(scene_menu_ic_, SceneMenuTitle(), false);
+    ChangeCandidatePage(
+        scene_menu_ic_,
+        DecorateFilterTitle(SceneMenuTitle(), scene_menu_query_,
+                            scene_menu_filter_mode_),
+        false);
     keyEvent.filterAndAccept();
     return true;
   }
 
   if (keyEvent.key().checkKeyList(page_next_keys_)) {
-    ChangeCandidatePage(scene_menu_ic_, SceneMenuTitle(), true);
+    ChangeCandidatePage(
+        scene_menu_ic_,
+        DecorateFilterTitle(SceneMenuTitle(), scene_menu_query_,
+                            scene_menu_filter_mode_),
+        true);
     keyEvent.filterAndAccept();
     return true;
   }
@@ -369,8 +446,8 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
   const int digit = keyEvent.key().digitSelection();
   const int digit_index = DigitSelectionIndex(candidate_list.get(), digit);
   if (digit >= 0 &&
-      digit_index < static_cast<int>(scene_config_.scenes.size())) {
-    selectScene(static_cast<std::size_t>(digit_index), scene_menu_ic_);
+      digit_index < static_cast<int>(scene_menu_filtered_indices_.size())) {
+    selectScene(scene_menu_filtered_indices_[digit_index], scene_menu_ic_);
     keyEvent.filterAndAccept();
     return true;
   }
@@ -395,15 +472,17 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
       keyEvent.key().check(FcitxKey_KP_Enter)) {
     int index = CurrentSelectionIndex(candidate_list.get());
     if (index < 0) {
-      for (std::size_t i = 0; i < scene_config_.scenes.size(); ++i) {
-        if (scene_config_.scenes[i].id == active_scene_id_) {
+      for (std::size_t i = 0; i < scene_menu_filtered_indices_.size(); ++i) {
+        if (scene_config_.scenes[scene_menu_filtered_indices_[i]].id ==
+            active_scene_id_) {
           index = static_cast<int>(i);
           break;
         }
       }
     }
-    if (index >= 0 && index < static_cast<int>(scene_config_.scenes.size())) {
-      selectScene(static_cast<std::size_t>(index), scene_menu_ic_);
+    if (index >= 0 &&
+        index < static_cast<int>(scene_menu_filtered_indices_.size())) {
+      selectScene(scene_menu_filtered_indices_[index], scene_menu_ic_);
     } else {
       hideSceneMenu();
     }
