@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.1) — 2026-03-30
+
+### Bug Fixes
+
+- **streaming:** Accumulate committed segments for multi-segment ASR
+
+### Features
+
+- **addon:** Add unified ASR provider / model selection menu with configurable `ASR Menu Keys` (`F8` by default)
+
+### Internationalization
+
+- Add translations for ASR menu strings
+
 ## [1.1.1](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v1.1.1) — 2026-03-19
 
 ### Features
@@ -275,4 +289,3 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - Initial completion of first version
-
