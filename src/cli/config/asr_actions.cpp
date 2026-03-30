@@ -488,10 +488,14 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
       } else if (model.state == ModelState::Broken) {
         status = "broken";
       }
+      const auto display_it = installed_display_map.find(model.id);
       arr.push_back({
           {"id", vinput::cli::HumanizeResourceId(installed_display_map,
                                                  model.id)},
           {"machine_id", model.id},
+          {"title", display_it == installed_display_map.end()
+                        ? model.id
+                        : display_it->second.title},
           {"model_type", model.model_type},
           {"language", model.language},
           {"supports_hotwords", model.supports_hotwords},
@@ -504,7 +508,7 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
     return 0;
   }
 
-  std::vector<std::string> headers = {_("ID"), _("TYPE"), _("LANGUAGE"),
+  std::vector<std::string> headers = {_("ID"), _("TITLE"), _("TYPE"), _("LANGUAGE"),
                                       _("SIZE"), _("HOTWORDS"), _("STATUS")};
   std::vector<std::vector<std::string>> rows;
   for (const auto &model : models) {
@@ -514,8 +518,12 @@ int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx
     } else if (model.state == ModelState::Broken) {
       status = std::string("[!] ") + _("Broken");
     }
+    const auto display_it = installed_display_map.find(model.id);
     rows.push_back({vinput::cli::HumanizeResourceId(installed_display_map,
                                                    model.id),
+                    display_it == installed_display_map.end()
+                        ? model.id
+                        : display_it->second.title,
                     model.model_type, model.language,
                     vinput::str::FormatSize(model.size_bytes),
                     model.supports_hotwords ? _("yes") : _("no"), status});

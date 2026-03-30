@@ -43,9 +43,6 @@ std::string HumanizeResourceId(const ResourceDisplayMap &display_map,
   if (it == display_map.end()) {
     return id;
   }
-  if (!it->second.title.empty()) {
-    return it->second.title;
-  }
   return HumanizeResourceId(it->second.id, it->second.short_id);
 }
 
