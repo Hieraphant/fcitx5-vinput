@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.8](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.8) — 2026-03-31
+
+### Bug Fixes
+
+- **daemon:** Reload ASR backends inside the daemon with atomic swap semantics so broken model/provider changes keep the previous working backend
+- **gui:** Stop forcing daemon restarts for local model and ASR provider changes
+- **gui:** Surface daemon start/restart failures through the existing addon notification path
+
 ## [2.0.7](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.7) — 2026-03-31
 
 ### Bug Fixes
