@@ -109,8 +109,13 @@ void MainWindow::onSaveClicked() {
     return;
   }
 
-  // Restart daemon to apply
-  vinput::cli::SystemctlRestart();
+  const auto result = vinput::cli::SystemctlRestartWithDiagnostics();
+  if (!result.ok()) {
+    vinput::cli::NotifyDaemonFailure(result.notification);
+    QMessageBox::critical(this, tr("Error"),
+                          QString::fromStdString(result.failure_message));
+    return;
+  }
   QMessageBox::information(this, tr("Success"),
                            tr("Settings saved successfully!"));
   close();

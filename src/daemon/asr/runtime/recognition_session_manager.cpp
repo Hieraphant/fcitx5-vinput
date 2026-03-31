@@ -213,18 +213,27 @@ bool RecognitionSessionManager::EnsureBackendReady(const CoreConfig &settings,
     return true;
   }
 
-  ResetBackend();
   LogActiveBackend(settings);
 
   std::string init_error;
-  backend_ = CreateBackend(settings, &init_error);
-  if (!backend_) {
+  auto candidate_backend = CreateBackend(settings, &init_error);
+  if (!candidate_backend) {
+    if (backend_) {
+      vinput::debug::Log(
+          "ASR backend reload rejected; keeping previous backend: %s\n",
+          init_error.c_str());
+      if (error) {
+        error->clear();
+      }
+      return true;
+    }
     if (error) {
       *error = std::move(init_error);
     }
     return false;
   }
 
+  backend_ = std::move(candidate_backend);
   backend_signature_ = signature;
   if (error) {
     error->clear();

@@ -509,7 +509,6 @@ void ResourcePage::onUseModelClicked() {
       return;
   }
 
-  vinput::cli::SystemctlRestart();
   QMessageBox::information(
       this, tr("Local Model Updated"),
       tr("Selected model '%1' has been assigned to the preferred local ASR provider.").arg(model_name));
@@ -619,10 +618,7 @@ void ResourcePage::onAddProviderClicked() {
   
   downloadWorker_ = new DownloadWorker(this);
   connect(downloadWorker_, &DownloadWorker::error, this, &ResourcePage::onDownloadError);
-  connect(downloadWorker_, &QThread::finished, this, [&](){
-      vinput::cli::SystemctlRestart();
-      onDownloadFinished();
-  });
+  connect(downloadWorker_, &QThread::finished, this, [&](){ onDownloadFinished(); });
 
   CoreConfig config = ConfigManager::Get().Load();
   

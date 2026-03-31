@@ -258,7 +258,6 @@ void ControlPage::onAsrEdit() {
      return;
   }
   
-  vinput::cli::SystemctlRestart();
   refreshAsrList();
   emit configChanged();
 }
@@ -290,7 +289,6 @@ void ControlPage::onAsrRemove() {
           QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
           return;
       }
-      vinput::cli::SystemctlRestart();
       refreshAsrList();
       emit configChanged();
   }
@@ -309,7 +307,6 @@ void ControlPage::onAsrSetActive() {
       return;
   }
   
-  vinput::cli::SystemctlRestart();
   refreshAsrList();
   emit configChanged();
 }
@@ -340,7 +337,13 @@ void ControlPage::refreshDaemonStatus() {
 
 void ControlPage::onDaemonStart() {
   btnDaemonStart_->setEnabled(false);
-  vinput::cli::SystemctlStart();
+  const auto result = vinput::cli::SystemctlStartWithDiagnostics();
+  if (!result.ok()) {
+      vinput::cli::NotifyDaemonFailure(result.notification);
+      QMessageBox::critical(this, tr("Error"),
+                            QString::fromStdString(result.failure_message));
+  }
+  refreshDaemonStatus();
 }
 
 void ControlPage::onDaemonStop() {
@@ -351,7 +354,13 @@ void ControlPage::onDaemonStop() {
 void ControlPage::onDaemonRestart() {
   btnDaemonRestart_->setEnabled(false);
   btnDaemonStop_->setEnabled(false);
-  vinput::cli::SystemctlRestart();
+  const auto result = vinput::cli::SystemctlRestartWithDiagnostics();
+  if (!result.ok()) {
+      vinput::cli::NotifyDaemonFailure(result.notification);
+      QMessageBox::critical(this, tr("Error"),
+                            QString::fromStdString(result.failure_message));
+  }
+  refreshDaemonStatus();
 }
 
 void ControlPage::checkSandboxPermissions() {
