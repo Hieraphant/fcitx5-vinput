@@ -146,7 +146,7 @@ CMake / 脚本入口：
 
 ```bash
 just sherpa
-just release
+just configure-release
 just build
 sudo just install
 ```
@@ -157,6 +157,16 @@ sudo just install
 会落到 Fcitx5 会扫描的目录里。若你之前的旧构建已经安装到 `/usr/local`，
 请清理旧 build 目录后重新安装，让 `vinput.conf` 和 `fcitx5-vinput.so`
 进入 Fcitx5 的系统路径。
+
+如果你要直接从命令行触发打包/发布 workflow，可以使用：
+
+```bash
+just release
+just release ref=main version=$(cat VERSION)
+```
+
+这个命令会通过 `gh` 触发 `.github/workflows/channels.yml`，因此需要先确保
+`gh auth login` 的认证是有效的。
 
 ## 快速开始
 

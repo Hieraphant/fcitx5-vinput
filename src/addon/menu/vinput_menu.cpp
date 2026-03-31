@@ -326,6 +326,14 @@ void MoveCursorToIndex(fcitx::CandidateList *candidate_list, int target_index) {
   }
 }
 
+void SelectFirstCandidate(fcitx::CommonCandidateList *candidate_list) {
+  if (!candidate_list || candidate_list->totalSize() <= 0) {
+    return;
+  }
+
+  candidate_list->setGlobalCursorIndex(0);
+}
+
 bool ChangeCandidatePage(fcitx::InputContext *ic, const std::string &base_title,
                          bool next_page) {
   if (!ic) {
@@ -460,6 +468,7 @@ void VinputEngine::rebuildSceneMenu(fcitx::InputContext *ic) {
   for (const std::size_t scene_index : scene_menu_filtered_indices_) {
     candidate_list->append<SceneCandidateWord>(this, scene_options[scene_index]);
   }
+  SelectFirstCandidate(candidate_list.get());
 
   SetMenuTitle(ic, SceneMenuTitle(), scene_menu_query_, scene_menu_filter_mode_,
                candidate_list.get());
@@ -753,6 +762,7 @@ void VinputEngine::rebuildAsrMenu(fcitx::InputContext *ic) {
     candidate_list->append<AsrCandidateWord>(
         this, item_index, item.display_label);
   }
+  SelectFirstCandidate(candidate_list.get());
 
   SetMenuTitle(ic, AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_,
                candidate_list.get());

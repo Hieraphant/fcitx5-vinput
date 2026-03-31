@@ -22,8 +22,18 @@ configure type="Release" prefix="/usr" *cmake_args:
 dev prefix="/usr" *cmake_args:
   cmake --preset debug-clang-mold -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
 
-release prefix="/usr" *cmake_args:
+configure-release prefix="/usr" *cmake_args:
   cmake --preset release-clang-mold -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
+
+release ref="main" version="":
+  version_value="{{version}}"; \
+  if [ -z "${version_value}" ]; then \
+    version_value="$$(tr -d '\n' < VERSION)"; \
+  fi; \
+  gh workflow run channels.yml \
+    --ref main \
+    --field ref="{{ref}}" \
+    --field version="${version_value}"
 
 build:
   cmake --build --preset release-clang-mold

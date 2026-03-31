@@ -146,7 +146,7 @@ commands:
 
 ```bash
 just sherpa
-just release
+just configure-release
 just build
 sudo just install
 ```
@@ -158,6 +158,16 @@ Source builds now default to the Fcitx5 system prefix (`/usr`) so the addon is
 installed under the directories Fcitx5 scans. If you installed an older build
 under `/usr/local`, reinstall from a clean build directory so `vinput.conf` and
 `fcitx5-vinput.so` move to the Fcitx5 system paths.
+
+To trigger the packaging/publish workflow from the CLI, use:
+
+```bash
+just release
+just release ref=main version=$(cat VERSION)
+```
+
+This dispatches `.github/workflows/channels.yml` through `gh`, so make sure
+`gh auth login` is valid first.
 
 ## Quick Start
 
