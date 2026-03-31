@@ -214,7 +214,6 @@ bool RecognitionSessionManager::EnsureBackendReady(const CoreConfig &settings,
   }
 
   LogActiveBackend(settings);
-
   std::string init_error;
   auto candidate_backend = CreateBackend(settings, &init_error);
   if (!candidate_backend) {
@@ -232,7 +231,6 @@ bool RecognitionSessionManager::EnsureBackendReady(const CoreConfig &settings,
     }
     return false;
   }
-
   backend_ = std::move(candidate_backend);
   backend_signature_ = signature;
   if (error) {

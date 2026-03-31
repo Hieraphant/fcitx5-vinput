@@ -24,8 +24,8 @@ public:
     bool StopRecording(const std::string& scene_id, std::string* error = nullptr);
     bool StartAdapter(const std::string& adapter_id, std::string* error = nullptr);
     bool StopAdapter(const std::string& adapter_id, std::string* error = nullptr);
-    bool NotifyError(const vinput::dbus::ErrorInfo& error_info,
-                     std::string* error = nullptr);
+    bool Notify(const vinput::dbus::ErrorInfo& notification,
+                std::string* error = nullptr);
 
 private:
     sd_bus* bus_ = nullptr;

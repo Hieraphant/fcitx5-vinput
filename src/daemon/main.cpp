@@ -195,7 +195,7 @@ private:
     if (notification.empty()) {
       return;
     }
-    dbus_->EmitError(vinput::dbus::MakeRawError(notification));
+    dbus_->EmitNotification(vinput::dbus::MakeRawError(notification));
   }
 
   void FlushAdapterBuffer(ManagedAdapter &adapter, bool flush_partial) {

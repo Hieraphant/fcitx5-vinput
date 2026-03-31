@@ -21,6 +21,6 @@ int JournalctlLogs(bool follow, int lines);
 std::string JournalctlLogsText(int lines);
 DaemonControlResult SystemctlStartWithDiagnostics();
 DaemonControlResult SystemctlRestartWithDiagnostics();
-bool NotifyDaemonFailure(const vinput::dbus::ErrorInfo &error);
+bool NotifyDaemonNotification(const vinput::dbus::ErrorInfo &notification);
 
 } // namespace vinput::cli

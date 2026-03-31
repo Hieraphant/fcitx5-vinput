@@ -238,6 +238,11 @@ std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
   return _("Unknown error.");
 }
 
+bool IsErrorLikeNotification(const vinput::dbus::ErrorInfo &notification) {
+  return notification.code != vinput::dbus::kErrorCodeUnknown ||
+         !notification.subject.empty() || !notification.detail.empty();
+}
+
 } // namespace
 
 void VinputEngine::setupDBusWatcher() {
@@ -270,11 +275,11 @@ void VinputEngine::setupDBusWatcher() {
   });
 
   fcitx::dbus::MatchRule error_rule(kBusName, kObjectPath, kInterface,
-                                    kSignalDaemonError);
+                                    kSignalDaemonNotification);
 
   error_slot_ =
       bus_->addMatch(error_rule, [this](fcitx::dbus::Message &msg) {
-        onDaemonError(msg);
+        onDaemonNotification(msg);
         return true;
       });
 }
@@ -582,22 +587,49 @@ void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
   }
 }
 
-void VinputEngine::onDaemonError(fcitx::dbus::Message &msg) {
+void VinputEngine::onDaemonNotification(fcitx::dbus::Message &msg) {
   std::tuple<std::string, std::string, std::string, std::string> payload;
   msg >> payload;
-  auto error = vinput::dbus::MakeErrorInfo(
+  auto notification = vinput::dbus::MakeErrorInfo(
       std::move(std::get<0>(payload)), std::move(std::get<1>(payload)),
       std::move(std::get<2>(payload)), std::move(std::get<3>(payload)));
 
-  if (error.empty()) {
+  if (notification.empty()) {
     return;
   }
 
-  auto *ic = session_ ? session_->ic : status_ic_;
-  hideResultMenu();
-  finishFrontendSession(ic);
+  if (IsErrorLikeNotification(notification)) {
+    auto *ic = session_ ? session_->ic : status_ic_;
+    hideResultMenu();
+    finishFrontendSession(ic);
+  }
 
-  notifyError(error);
+  showDaemonNotification(notification);
+}
+
+void VinputEngine::showDaemonNotification(
+    const vinput::dbus::ErrorInfo &notification) {
+  if (notification.empty()) {
+    return;
+  }
+
+  std::string title = _("Voice Input");
+  std::string message = RenderErrorMessage(notification);
+  const bool error_like = IsErrorLikeNotification(notification);
+  const char *icon = error_like ? "dialog-error" : "dialog-information";
+  const int timeout = error_like ? 5000 : 3000;
+
+  auto *notifications =
+      instance_->addonManager().addon("notifications", true);
+  if (notifications) {
+    notifications->call<fcitx::INotifications::sendNotification>(
+        "fcitx5-vinput", 0, icon, title, message,
+        std::vector<std::string>{}, timeout,
+        fcitx::NotificationActionCallback{},
+        fcitx::NotificationClosedCallback{});
+  } else {
+    fprintf(stderr, "vinput: %s: %s\n", title.c_str(), message.c_str());
+  }
 }
 
 void VinputEngine::notifyError(const vinput::dbus::ErrorInfo &error) {
@@ -635,9 +667,9 @@ void VinputEngine::notifyInfo(const std::string &message) {
       instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
-        "fcitx5-vinput", 0, "dialog-information",
-        title, message, std::vector<std::string>{},
-        3000, fcitx::NotificationActionCallback{},
+        "fcitx5-vinput", 0, "dialog-information", title, message,
+        std::vector<std::string>{}, 3000,
+        fcitx::NotificationActionCallback{},
         fcitx::NotificationClosedCallback{});
   } else {
     fprintf(stderr, "vinput: %s: %s\n", title.c_str(), message.c_str());

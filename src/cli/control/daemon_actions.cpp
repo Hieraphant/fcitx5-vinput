@@ -52,7 +52,7 @@ int RunDaemonControlStart(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
   fmt.PrintError(result.failure_message);
-  vinput::cli::NotifyDaemonFailure(result.notification);
+  vinput::cli::NotifyDaemonNotification(result.notification);
   return 1;
 }
 
@@ -76,7 +76,7 @@ int RunDaemonControlRestart(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
   fmt.PrintError(result.failure_message);
-  vinput::cli::NotifyDaemonFailure(result.notification);
+  vinput::cli::NotifyDaemonNotification(result.notification);
   return 1;
 }
 

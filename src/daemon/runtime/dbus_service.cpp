@@ -58,7 +58,7 @@ static const sd_bus_vtable vtable[] = {
     SD_BUS_SIGNAL(kSignalRecognitionResult, "s", 0),
     SD_BUS_SIGNAL(kSignalRecognitionPartial, "s", 0),
     SD_BUS_SIGNAL(kSignalStatusChanged, "s", 0),
-    SD_BUS_SIGNAL(kSignalDaemonError, kErrorInfoSignature, 0),
+    SD_BUS_SIGNAL(kSignalDaemonNotification, kErrorInfoSignature, 0),
     SD_BUS_VTABLE_END,
 };
 
@@ -137,10 +137,12 @@ void DbusService::FlushEmitQueue() {
       sd_bus_emit_signal(bus_, kObjectPath, kInterface, kSignalStatusChanged,
                          "s", item.payload.c_str());
     } else {
-      sd_bus_emit_signal(bus_, kObjectPath, kInterface, kSignalDaemonError,
-                         kErrorInfoSignature, item.error.code.c_str(),
-                         item.error.subject.c_str(), item.error.detail.c_str(),
-                         item.error.raw_message.c_str());
+      sd_bus_emit_signal(bus_, kObjectPath, kInterface,
+                         kSignalDaemonNotification, kErrorInfoSignature,
+                         item.notification.code.c_str(),
+                         item.notification.subject.c_str(),
+                         item.notification.detail.c_str(),
+                         item.notification.raw_message.c_str());
     }
   }
 }
@@ -172,10 +174,11 @@ void DbusService::EmitStatusChanged(const std::string &status) {
   (void)write(notify_fd_, &val, sizeof(val));
 }
 
-void DbusService::EmitError(const vinput::dbus::ErrorInfo &error) {
+void DbusService::EmitNotification(
+    const vinput::dbus::ErrorInfo &notification) {
   {
     std::lock_guard<std::mutex> lock(emit_mutex_);
-    emit_queue_.push_back({PendingEmit::Type::Error, {}, error});
+    emit_queue_.push_back({PendingEmit::Type::Notification, {}, notification});
   }
   uint64_t val = 1;
   (void)write(notify_fd_, &val, sizeof(val));

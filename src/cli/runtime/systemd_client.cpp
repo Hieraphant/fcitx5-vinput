@@ -286,12 +286,12 @@ DaemonControlResult SystemctlRestartWithDiagnostics() {
         vinput::dbus::kErrorCodeDaemonRestartFailed);
 }
 
-bool NotifyDaemonFailure(const vinput::dbus::ErrorInfo &error) {
-    if (error.empty()) {
+bool NotifyDaemonNotification(const vinput::dbus::ErrorInfo &notification) {
+    if (notification.empty()) {
         return false;
     }
     vinput::cli::DbusClient dbus;
-    return dbus.NotifyError(error);
+    return dbus.Notify(notification);
 }
 
 } // namespace vinput::cli

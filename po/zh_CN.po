@@ -215,6 +215,17 @@ msgstr "场景 /过滤"
 msgid "Models /filter"
 msgstr "模型 /过滤"
 
+msgid "Current: "
+msgstr "当前："
+
+#, c-format
+msgid "Switched scene to '%s'."
+msgstr "已切换场景到 '%s'。"
+
+#, c-format
+msgid "Switched ASR to '%s'."
+msgstr "已切换 ASR 到 '%s'。"
+
 #, c-format
 msgid "Choose Result (%zu)"
 msgstr "选择结果（%zu项）"

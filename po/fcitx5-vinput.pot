@@ -216,6 +216,17 @@ msgstr ""
 msgid "Models /filter"
 msgstr ""
 
+msgid "Current: "
+msgstr ""
+
+#, c-format
+msgid "Switched scene to '%s'."
+msgstr ""
+
+#, c-format
+msgid "Switched ASR to '%s'."
+msgstr ""
+
 #, c-format
 msgid "Choose Result (%zu)"
 msgstr ""

@@ -72,7 +72,8 @@ private:
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onRecognitionPartial(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
-  void onDaemonError(fcitx::dbus::Message &msg);
+  void onDaemonNotification(fcitx::dbus::Message &msg);
+  void showDaemonNotification(const vinput::dbus::ErrorInfo &notification);
   void notifyError(const vinput::dbus::ErrorInfo &error);
   void notifyError(const std::string &message);
   void notifyInfo(const std::string &message);

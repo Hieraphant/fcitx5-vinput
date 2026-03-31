@@ -126,7 +126,9 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
   if (dbus_addon) {
     bus_ = dbus_addon->call<fcitx::IDBusModule::bus>();
     notifier_dbus_ = std::make_unique<VinputNotifierDBusObject>(
-        [this](const vinput::dbus::ErrorInfo &error) { notifyError(error); });
+        [this](const vinput::dbus::ErrorInfo &notification) {
+          showDaemonNotification(notification);
+        });
     if (!bus_->addObjectVTable(vinput::dbus::kNotifierObjectPath,
                                vinput::dbus::kNotifierInterface,
                                *notifier_dbus_)) {

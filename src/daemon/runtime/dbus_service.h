@@ -42,7 +42,7 @@ public:
   void EmitRecognitionResult(const std::string &text);
   void EmitRecognitionPartial(const std::string &text);
   void EmitStatusChanged(const std::string &status);
-  void EmitError(const vinput::dbus::ErrorInfo &error);
+  void EmitNotification(const vinput::dbus::ErrorInfo &notification);
 
   void SetStartHandler(std::function<MethodResult()> handler);
   void SetStartCommandHandler(
@@ -74,10 +74,10 @@ private:
   int notify_fd_ = -1;
 
   struct PendingEmit {
-    enum class Type { Result, Partial, Status, Error };
+    enum class Type { Result, Partial, Status, Notification };
     Type type;
     std::string payload;
-    vinput::dbus::ErrorInfo error;
+    vinput::dbus::ErrorInfo notification;
   };
   std::mutex emit_mutex_;
   std::vector<PendingEmit> emit_queue_;

@@ -19,12 +19,12 @@ constexpr const char *kMethodStopRecording = "StopRecording";
 constexpr const char *kMethodGetStatus = "GetStatus";
 constexpr const char *kMethodStartAdapter = "StartAdapter";
 constexpr const char *kMethodStopAdapter = "StopAdapter";
-constexpr const char *kMethodNotifyError = "NotifyError";
+constexpr const char *kMethodNotify = "Notify";
 
 constexpr const char *kSignalRecognitionResult = "RecognitionResult";
 constexpr const char *kSignalRecognitionPartial = "RecognitionPartial";
 constexpr const char *kSignalStatusChanged = "StatusChanged";
-constexpr const char *kSignalDaemonError = "DaemonError";
+constexpr const char *kSignalDaemonNotification = "DaemonNotification";
 
 constexpr const char *kErrorOperationFailed =
     "org.fcitx.Vinput.Error.OperationFailed";

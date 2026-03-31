@@ -201,7 +201,7 @@ void DaemonRuntimeController::HandleIncomingAudio(std::span<const int16_t> pcm) 
         dbus_->EmitStatusChanged(
             vinput::dbus::StatusToString(vinput::dbus::Status::Error));
         if (!error.empty()) {
-          dbus_->EmitError(vinput::dbus::MakeRawError(error));
+          dbus_->EmitNotification(vinput::dbus::MakeRawError(error));
         }
         capture_->EndRecording();
         capture_->Stop();
@@ -260,7 +260,7 @@ void DaemonRuntimeController::EmitStreamingEvents(
       break;
     case vinput::daemon::asr::RecognitionEventKind::Error:
       if (!event.error.empty()) {
-        dbus_->EmitError(vinput::dbus::ClassifyErrorText(event.error));
+        dbus_->EmitNotification(vinput::dbus::ClassifyErrorText(event.error));
       }
       break;
     case vinput::daemon::asr::RecognitionEventKind::Completed:
@@ -319,7 +319,7 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
         dbus_->EmitStatusChanged(
             vinput::dbus::StatusToString(vinput::dbus::Status::Error));
         if (!error.empty()) {
-          dbus_->EmitError(vinput::dbus::MakeRawError(error));
+          dbus_->EmitNotification(vinput::dbus::MakeRawError(error));
         }
         phase_ = vinput::dbus::Status::Idle;
         dbus_->EmitStatusChanged(
@@ -492,7 +492,7 @@ void DaemonRuntimeController::WorkerMain() {
         if (!result.error.empty()) {
           fprintf(stderr, "vinput-daemon: recognition error: %s\n",
                   result.error.c_str());
-          dbus_->EmitError(vinput::dbus::ClassifyErrorText(result.error));
+          dbus_->EmitNotification(vinput::dbus::ClassifyErrorText(result.error));
         }
         if (!result.text.empty()) {
           order.recognized_text = std::move(result.text);
@@ -508,16 +508,16 @@ void DaemonRuntimeController::WorkerMain() {
           fprintf(stderr, "vinput-daemon: processing error: %s\n",
                   error.raw_message.c_str());
         }
-        dbus_->EmitError(error);
+        dbus_->EmitNotification(error);
       }
       dbus_->EmitRecognitionResult(
           vinput::result::Serialize(pipeline_result.payload));
     } catch (const std::exception &e) {
       fprintf(stderr, "vinput-daemon: worker exception: %s\n", e.what());
-      dbus_->EmitError(vinput::dbus::MakeRawError(e.what()));
+      dbus_->EmitNotification(vinput::dbus::MakeRawError(e.what()));
     } catch (...) {
       fprintf(stderr, "vinput-daemon: worker unknown exception\n");
-      dbus_->EmitError(vinput::dbus::MakeErrorInfo(
+      dbus_->EmitNotification(vinput::dbus::MakeErrorInfo(
           vinput::dbus::kErrorCodeProcessingUnknown, {}, {},
           "Unknown error during processing"));
     }

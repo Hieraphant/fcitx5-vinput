@@ -238,8 +238,8 @@ bool DbusClient::StopAdapter(const std::string& adapter_id, std::string* error) 
     return true;
 }
 
-bool DbusClient::NotifyError(const vinput::dbus::ErrorInfo& error_info,
-                             std::string* error) {
+bool DbusClient::Notify(const vinput::dbus::ErrorInfo& notification,
+                        std::string* error) {
     if (!bus_) {
         if (error) *error = "D-Bus not connected";
         return false;
@@ -252,12 +252,12 @@ bool DbusClient::NotifyError(const vinput::dbus::ErrorInfo& error_info,
         vinput::dbus::kFcitxBusName,
         vinput::dbus::kNotifierObjectPath,
         vinput::dbus::kNotifierInterface,
-        vinput::dbus::kMethodNotifyError,
+        vinput::dbus::kMethodNotify,
         &err, &reply, vinput::dbus::kErrorInfoSignature,
-        error_info.code.c_str(),
-        error_info.subject.c_str(),
-        error_info.detail.c_str(),
-        error_info.raw_message.c_str());
+        notification.code.c_str(),
+        notification.subject.c_str(),
+        notification.detail.c_str(),
+        notification.raw_message.c_str());
 
     if (r < 0) {
         if (error) {

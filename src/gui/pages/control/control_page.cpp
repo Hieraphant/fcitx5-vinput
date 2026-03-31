@@ -339,7 +339,7 @@ void ControlPage::onDaemonStart() {
   btnDaemonStart_->setEnabled(false);
   const auto result = vinput::cli::SystemctlStartWithDiagnostics();
   if (!result.ok()) {
-      vinput::cli::NotifyDaemonFailure(result.notification);
+      vinput::cli::NotifyDaemonNotification(result.notification);
       QMessageBox::critical(this, tr("Error"),
                             QString::fromStdString(result.failure_message));
   }
@@ -356,7 +356,7 @@ void ControlPage::onDaemonRestart() {
   btnDaemonStop_->setEnabled(false);
   const auto result = vinput::cli::SystemctlRestartWithDiagnostics();
   if (!result.ok()) {
-      vinput::cli::NotifyDaemonFailure(result.notification);
+      vinput::cli::NotifyDaemonNotification(result.notification);
       QMessageBox::critical(this, tr("Error"),
                             QString::fromStdString(result.failure_message));
   }
