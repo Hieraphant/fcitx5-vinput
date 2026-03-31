@@ -550,6 +550,13 @@ OpenAI 兼容转写接口，只需要调整 URL 和 model 环境变量；`doubao
 
 Flatpak 下，Vinput 是作为 Fcitx5 Add-on 的形式安装的
 
+### 安装
+
+```bash
+flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
+flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
+```
+
 ### 额外的权限
 
 Vinput Add-on 的权限取决于 Fcitx5 本体，因此安装后需要执行以下命令，来为 Fcitx5 提供权限

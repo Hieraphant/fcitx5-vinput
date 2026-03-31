@@ -564,6 +564,13 @@ Reference implementations are available in the `vinput-registry` repository.
 
 In Flatpak, Vinput is installed as an Fcitx5 Add-on.
 
+### Install
+
+```bash
+flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
+flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
+```
+
 ### Additional Permissions
 
 The permissions for the Vinput Add-on depend on the Fcitx5 instance. So, after installation, the following commands need to be executed:
