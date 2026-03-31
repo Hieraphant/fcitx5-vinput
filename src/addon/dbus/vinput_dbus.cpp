@@ -625,6 +625,25 @@ void VinputEngine::notifyError(const std::string &message) {
   notifyError(vinput::dbus::MakeRawError(message));
 }
 
+void VinputEngine::notifyInfo(const std::string &message) {
+  if (message.empty()) {
+    return;
+  }
+
+  std::string title = _("Voice Input");
+  auto *notifications =
+      instance_->addonManager().addon("notifications", true);
+  if (notifications) {
+    notifications->call<fcitx::INotifications::sendNotification>(
+        "fcitx5-vinput", 0, "dialog-information",
+        title, message, std::vector<std::string>{},
+        3000, fcitx::NotificationActionCallback{},
+        fcitx::NotificationClosedCallback{});
+  } else {
+    fprintf(stderr, "vinput: %s: %s\n", title.c_str(), message.c_str());
+  }
+}
+
 void VinputEngine::updatePreedit(fcitx::InputContext *ic,
                                  const std::string &text) {
   if (!ic)

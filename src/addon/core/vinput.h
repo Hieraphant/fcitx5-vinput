@@ -75,6 +75,7 @@ private:
   void onDaemonError(fcitx::dbus::Message &msg);
   void notifyError(const vinput::dbus::ErrorInfo &error);
   void notifyError(const std::string &message);
+  void notifyInfo(const std::string &message);
   std::string queryDaemonStatus() const;
   void ensureStatusSync();
   void stopStatusSyncIfIdle();

@@ -46,3 +46,10 @@ Translation files are in `po/`. To add a new language:
 
 - C++20
 - Follow the existing style in the codebase
+
+## Fcitx Key API Note
+
+- `fcitx::Key::check(...)` and `fcitx::Key::checkKeyList(...)` are upstream Fcitx5 APIs from `Fcitx5/Utils/fcitx-utils/key.h`.
+- They are not implemented by `fcitx5-vinput`; this project only calls them.
+- For user-configurable hotkeys, `checkKeyList(...)` is still appropriate.
+- For internal menu control paths that need strict press/release behavior, explicit `keysym + state` checks are preferred over relying on `check(...)` alone.

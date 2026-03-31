@@ -5,7 +5,7 @@
 #include "common/i18n.h"
 #include "common/registry/registry_i18n.h"
 #include "common/scene/postprocess_scene.h"
-
+#include "common/utils/string_utils.h"
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputcontext.h>
 #include <fcitx/inputpanel.h>
@@ -14,6 +14,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <sstream>
 #include <string>
 
 namespace {
@@ -30,11 +31,42 @@ std::string SceneMenuTitle() { return _("Scenes /filter"); }
 
 std::string AsrMenuTitle() { return _("Models /filter"); }
 
+std::string CurrentItemText(const std::string &label) {
+  if (label.empty()) {
+    return {};
+  }
+  return std::string(_("Current: ")) + label;
+}
+
 std::string NormalizeSearchText(std::string text) {
   std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) {
     return static_cast<char>(std::tolower(ch));
   });
   return text;
+}
+
+std::vector<std::string> SplitSearchTerms(const std::string &text) {
+  std::vector<std::string> terms;
+  std::istringstream stream(NormalizeSearchText(text));
+  std::string term;
+  while (stream >> term) {
+    terms.push_back(std::move(term));
+  }
+  return terms;
+}
+
+bool MatchesAllTerms(const std::string &haystack, const std::string &query) {
+  if (query.empty()) {
+    return true;
+  }
+
+  const std::string normalized_haystack = NormalizeSearchText(haystack);
+  for (const auto &term : SplitSearchTerms(query)) {
+    if (normalized_haystack.find(term) == std::string::npos) {
+      return false;
+    }
+  }
+  return true;
 }
 
 void PopLastUtf8Char(std::string *text) {
@@ -51,19 +83,11 @@ void PopLastUtf8Char(std::string *text) {
 }
 
 bool MatchesSearch(const AsrMenuItem &item, const std::string &query) {
-  if (query.empty()) {
-    return true;
-  }
-  return NormalizeSearchText(item.search_text).find(NormalizeSearchText(query)) !=
-         std::string::npos;
+  return MatchesAllTerms(item.search_text, query);
 }
 
 bool MatchesSearch(const SceneOption &item, const std::string &query) {
-  if (query.empty()) {
-    return true;
-  }
-  return NormalizeSearchText(item.search_text).find(NormalizeSearchText(query)) !=
-         std::string::npos;
+  return MatchesAllTerms(item.search_text, query);
 }
 
 std::string ResultMenuTitle(std::size_t count) {
@@ -134,6 +158,134 @@ void SetMenuTitle(fcitx::InputContext *ic, const std::string &base_title,
                candidate_list);
 }
 
+void SetMenuAuxDown(fcitx::InputContext *ic, const std::string &text) {
+  if (!ic) {
+    return;
+  }
+
+  fcitx::Text aux_down;
+  aux_down.append(text);
+  ic->inputPanel().setAuxDown(aux_down);
+}
+
+bool IsCtrlShortcut(const fcitx::Key &key, fcitx::KeySym sym) {
+  auto matches = [sym](const fcitx::Key &candidate) {
+    if (candidate.states() != fcitx::KeyState::Ctrl) {
+      return false;
+    }
+    if (candidate.sym() == sym) {
+      return true;
+    }
+
+    const uint32_t expected = fcitx::Key::keySymToUnicode(sym);
+    const uint32_t actual = fcitx::Key::keySymToUnicode(candidate.sym());
+    if (expected == 0 || actual == 0) {
+      return false;
+    }
+    return std::tolower(static_cast<unsigned char>(actual)) ==
+           std::tolower(static_cast<unsigned char>(expected));
+  };
+
+  return matches(key) || matches(key.normalize());
+}
+
+bool IsPureModifierKey(const fcitx::Key &key) {
+  return key.normalize().isModifier();
+}
+
+bool HasNoModifiers(const fcitx::Key &key) {
+  return key.normalize().states() == fcitx::KeyStates();
+}
+
+bool IsKeySym(const fcitx::Key &key, fcitx::KeySym sym) {
+  const auto normalized = key.normalize();
+  return normalized.sym() == sym && HasNoModifiers(normalized);
+}
+
+bool IsOneOfKeySyms(const fcitx::Key &key,
+                    std::initializer_list<fcitx::KeySym> syms) {
+  for (const auto sym : syms) {
+    if (IsKeySym(key, sym)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsPagePrevKey(const fcitx::Key &key) {
+  return IsOneOfKeySyms(key, {FcitxKey_Page_Up, FcitxKey_KP_Page_Up});
+}
+
+bool IsPageNextKey(const fcitx::Key &key) {
+  return IsOneOfKeySyms(key, {FcitxKey_Page_Down, FcitxKey_KP_Page_Down});
+}
+
+bool IsEnterKey(const fcitx::Key &key) {
+  return IsOneOfKeySyms(key, {FcitxKey_Return, FcitxKey_KP_Enter});
+}
+
+bool IsEscapeKey(const fcitx::Key &key) { return IsKeySym(key, FcitxKey_Escape); }
+
+bool IsSlashKey(const fcitx::Key &key) { return IsKeySym(key, FcitxKey_slash); }
+
+bool IsBackspaceKey(const fcitx::Key &key) {
+  return IsKeySym(key, FcitxKey_BackSpace);
+}
+
+bool IsUpKey(const fcitx::Key &key) { return IsKeySym(key, FcitxKey_Up); }
+
+bool IsDownKey(const fcitx::Key &key) { return IsKeySym(key, FcitxKey_Down); }
+
+bool IsPrintableMenuInput(const fcitx::Key &key, bool filter_mode) {
+  if (!filter_mode) {
+    return false;
+  }
+
+  if (IsEnterKey(key) || IsEscapeKey(key) || IsSlashKey(key) ||
+      IsBackspaceKey(key) || IsUpKey(key) || IsDownKey(key) ||
+      IsPagePrevKey(key) || IsPageNextKey(key) ||
+      IsCtrlShortcut(key, FcitxKey_w) || IsCtrlShortcut(key, FcitxKey_u) ||
+      IsPureModifierKey(key)) {
+    return false;
+  }
+
+  const auto normalized = key.normalize();
+  if (normalized.states() != fcitx::KeyStates()) {
+    return false;
+  }
+
+  const std::string utf8 = fcitx::Key::keySymToUTF8(normalized.sym());
+  if (utf8.empty()) {
+    return false;
+  }
+
+  for (unsigned char ch : utf8) {
+    if (ch < 0x20 || ch == 0x7f) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void DeleteLastWord(std::string *text) {
+  if (!text || text->empty()) {
+    return;
+  }
+
+  while (!text->empty() &&
+         static_cast<unsigned char>(text->back()) < 0x80 &&
+         std::isspace(static_cast<unsigned char>(text->back()))) {
+    text->pop_back();
+  }
+  while (!text->empty()) {
+    const unsigned char ch = static_cast<unsigned char>(text->back());
+    if (ch < 0x80 && std::isspace(ch)) {
+      break;
+    }
+    PopLastUtf8Char(text);
+  }
+}
+
 int DigitSelectionIndex(fcitx::CandidateList *candidate_list, int digit) {
   auto *pageable = candidate_list ? candidate_list->toPageable() : nullptr;
   int current_page = pageable ? pageable->currentPage() : 0;
@@ -174,16 +326,6 @@ void MoveCursorToIndex(fcitx::CandidateList *candidate_list, int target_index) {
   }
 }
 
-std::string DisplayTextWithComment(std::string text,
-                                   const std::string &comment) {
-  if (comment.empty()) {
-    return text;
-  }
-  text.append(" ");
-  text.append(comment);
-  return text;
-}
-
 bool ChangeCandidatePage(fcitx::InputContext *ic, const std::string &base_title,
                          bool next_page) {
   if (!ic) {
@@ -215,9 +357,8 @@ bool ChangeCandidatePage(fcitx::InputContext *ic, const std::string &base_title,
 
 class SceneCandidateWord : public fcitx::CandidateWord {
 public:
-  SceneCandidateWord(VinputEngine *engine, SceneOption option, bool active)
-      : fcitx::CandidateWord(fcitx::Text(DisplayTextWithComment(
-            option.display_label, active ? _(" (Current)") : std::string()))),
+  SceneCandidateWord(VinputEngine *engine, SceneOption option)
+      : fcitx::CandidateWord(fcitx::Text(option.display_label)),
         engine_(engine), index_(option.index) {}
 
   void select(fcitx::InputContext *inputContext) const override {
@@ -232,9 +373,8 @@ private:
 class AsrCandidateWord : public fcitx::CandidateWord {
 public:
   AsrCandidateWord(VinputEngine *engine, std::size_t index,
-                   const std::string &label, bool active)
-      : fcitx::CandidateWord(fcitx::Text(DisplayTextWithComment(
-            label, active ? _(" (Current)") : std::string()))),
+                   const std::string &label)
+      : fcitx::CandidateWord(fcitx::Text(label)),
         engine_(engine), index_(index) {}
 
   void select(fcitx::InputContext *inputContext) const override {
@@ -310,22 +450,22 @@ void VinputEngine::rebuildSceneMenu(fcitx::InputContext *ic) {
   }
 
   int active_index = 0;
+  std::string active_label;
   for (std::size_t i = 0; i < scene_menu_filtered_indices_.size(); ++i) {
     const std::size_t scene_index = scene_menu_filtered_indices_[i];
     const auto &scene = scene_config_.scenes[scene_index];
     const bool active = scene.id == active_scene_id_;
     if (active) {
       active_index = static_cast<int>(i);
+      active_label = scene_options[scene_index].display_label;
     }
-    candidate_list->append<SceneCandidateWord>(
-        this,
-        scene_options[scene_index],
-        active);
+    candidate_list->append<SceneCandidateWord>(this, scene_options[scene_index]);
   }
   MoveCursorToIndex(candidate_list.get(), active_index);
 
   SetMenuTitle(ic, SceneMenuTitle(), scene_menu_query_, scene_menu_filter_mode_,
                candidate_list.get());
+  SetMenuAuxDown(ic, CurrentItemText(active_label));
   ic->inputPanel().setCandidateList(std::move(candidate_list));
   ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
@@ -343,6 +483,7 @@ void VinputEngine::hideSceneMenu() {
   scene_menu_filtered_indices_.clear();
   fcitx::Text empty;
   scene_menu_ic_->inputPanel().setAuxUp(empty);
+  scene_menu_ic_->inputPanel().setAuxDown(empty);
   scene_menu_ic_->inputPanel().setCandidateList({});
   scene_menu_ic_->updateUserInterface(
       fcitx::UserInterfaceComponent::InputPanel);
@@ -357,56 +498,64 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
   auto candidate_list = scene_menu_ic_->inputPanel().candidateList();
   auto *cursor_list =
       candidate_list ? candidate_list->toCursorMovable() : nullptr;
-  if (keyEvent.isRelease()) {
-    if (keyEvent.key().checkKeyList(scene_menu_key_) ||
-        keyEvent.key().checkKeyList(page_prev_keys_) ||
-        keyEvent.key().checkKeyList(page_next_keys_) ||
-        keyEvent.key().digitSelection() >= 0 ||
-        keyEvent.key().check(FcitxKey_slash) ||
-        keyEvent.key().check(FcitxKey_BackSpace) ||
-        keyEvent.key().check(FcitxKey_Up) ||
-        keyEvent.key().check(FcitxKey_Down) ||
-        keyEvent.key().check(FcitxKey_Return) ||
-        keyEvent.key().check(FcitxKey_KP_Enter) ||
-        keyEvent.key().check(FcitxKey_Escape)) {
-      keyEvent.filterAndAccept();
-      return true;
-    }
-    if (scene_menu_filter_mode_ &&
-        !fcitx::Key::keySymToUTF8(keyEvent.key().sym()).empty() &&
-        !keyEvent.key().hasModifier()) {
-      keyEvent.filterAndAccept();
-      return true;
-    }
-    return false;
-  }
+  const auto normalized_key = keyEvent.key().normalize();
+  const bool printable_filter_input =
+      IsPrintableMenuInput(keyEvent.key(), scene_menu_filter_mode_);
+  const bool handled_key =
+      keyEvent.key().checkKeyList(scene_menu_key_) ||
+      IsPagePrevKey(keyEvent.key()) ||
+      IsPageNextKey(keyEvent.key()) ||
+      keyEvent.key().digitSelection() >= 0 ||
+      IsSlashKey(keyEvent.key()) ||
+      IsBackspaceKey(keyEvent.key()) ||
+      IsCtrlShortcut(keyEvent.key(), FcitxKey_w) ||
+      IsCtrlShortcut(keyEvent.key(), FcitxKey_u) ||
+      IsUpKey(keyEvent.key()) ||
+      IsDownKey(keyEvent.key()) ||
+      IsEnterKey(keyEvent.key()) ||
+      IsEscapeKey(keyEvent.key()) ||
+      IsPureModifierKey(keyEvent.key()) ||
+      printable_filter_input;
 
-  if (keyEvent.key().checkKeyList(scene_menu_key_)) {
+  if (keyEvent.isRelease()) {
+    if (!handled_key) {
+      return false;
+    }
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_Escape)) {
+  if (!handled_key) {
+    hideSceneMenu();
+    return false;
+  }
+
+  if (keyEvent.key().checkKeyList(scene_menu_key_) ||
+      IsPureModifierKey(keyEvent.key())) {
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (IsEscapeKey(keyEvent.key())) {
     if (scene_menu_filter_mode_ || !scene_menu_query_.empty()) {
       scene_menu_query_.clear();
       scene_menu_filter_mode_ = false;
       rebuildSceneMenu(scene_menu_ic_);
-      keyEvent.filterAndAccept();
-      return true;
+    } else {
+      hideSceneMenu();
     }
-    hideSceneMenu();
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_slash)) {
+  if (IsSlashKey(keyEvent.key())) {
     scene_menu_filter_mode_ = true;
     rebuildSceneMenu(scene_menu_ic_);
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_BackSpace) && scene_menu_filter_mode_) {
+  if (IsBackspaceKey(keyEvent.key()) && scene_menu_filter_mode_) {
     if (!scene_menu_query_.empty()) {
       PopLastUtf8Char(&scene_menu_query_);
     } else {
@@ -417,17 +566,33 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (scene_menu_filter_mode_) {
-    const std::string utf8 = fcitx::Key::keySymToUTF8(keyEvent.key().sym());
-    if (!utf8.empty() && !keyEvent.key().hasModifier()) {
-      scene_menu_query_.append(utf8);
-      rebuildSceneMenu(scene_menu_ic_);
-      keyEvent.filterAndAccept();
-      return true;
+  if (scene_menu_filter_mode_ && IsCtrlShortcut(keyEvent.key(), FcitxKey_w)) {
+    DeleteLastWord(&scene_menu_query_);
+    if (scene_menu_query_.empty()) {
+      scene_menu_filter_mode_ = false;
     }
+    rebuildSceneMenu(scene_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
   }
 
-  if (keyEvent.key().checkKeyList(page_prev_keys_)) {
+  if (scene_menu_filter_mode_ && IsCtrlShortcut(keyEvent.key(), FcitxKey_u)) {
+    scene_menu_query_.clear();
+    scene_menu_filter_mode_ = false;
+    rebuildSceneMenu(scene_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (printable_filter_input) {
+    const std::string utf8 = fcitx::Key::keySymToUTF8(normalized_key.sym());
+    scene_menu_query_.append(utf8);
+    rebuildSceneMenu(scene_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (IsPagePrevKey(keyEvent.key())) {
     ChangeCandidatePage(
         scene_menu_ic_,
         DecorateFilterTitle(SceneMenuTitle(), scene_menu_query_,
@@ -437,7 +602,7 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (keyEvent.key().checkKeyList(page_next_keys_)) {
+  if (IsPageNextKey(keyEvent.key())) {
     ChangeCandidatePage(
         scene_menu_ic_,
         DecorateFilterTitle(SceneMenuTitle(), scene_menu_query_,
@@ -456,7 +621,7 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (cursor_list && keyEvent.key().check(FcitxKey_Up)) {
+  if (cursor_list && IsUpKey(keyEvent.key())) {
     cursor_list->prevCandidate();
     scene_menu_ic_->updateUserInterface(
         fcitx::UserInterfaceComponent::InputPanel);
@@ -464,7 +629,7 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (cursor_list && keyEvent.key().check(FcitxKey_Down)) {
+  if (cursor_list && IsDownKey(keyEvent.key())) {
     cursor_list->nextCandidate();
     scene_menu_ic_->updateUserInterface(
         fcitx::UserInterfaceComponent::InputPanel);
@@ -472,17 +637,10 @@ bool VinputEngine::handleSceneMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_Return) ||
-      keyEvent.key().check(FcitxKey_KP_Enter)) {
+  if (IsEnterKey(keyEvent.key())) {
     int index = CurrentSelectionIndex(candidate_list.get());
     if (index < 0) {
-      for (std::size_t i = 0; i < scene_menu_filtered_indices_.size(); ++i) {
-        if (scene_config_.scenes[scene_menu_filtered_indices_[i]].id ==
-            active_scene_id_) {
-          index = static_cast<int>(i);
-          break;
-        }
-      }
+      index = scene_menu_filtered_indices_.empty() ? -1 : 0;
     }
     if (index >= 0 &&
         index < static_cast<int>(scene_menu_filtered_indices_.size())) {
@@ -515,6 +673,9 @@ void VinputEngine::selectScene(std::size_t index, fcitx::InputContext *ic) {
   active_scene_id_ = selected_scene_id;
   scene_config_.activeSceneId = selected_scene_id;
   hideSceneMenu();
+  notifyInfo(vinput::str::FmtStr(_("Switched scene to '%s'."),
+                                 vinput::scene::DisplayLabel(
+                                     scene_config_.scenes[index]).c_str()));
   (void)ic;
 }
 
@@ -546,7 +707,7 @@ void VinputEngine::reloadAsrMenuItems() {
             .model_id = summary.id,
             .display_label = label,
             .search_text = label + " " + summary.id + " " + model_title + " " +
-                           pid + " " + provider_title,
+                           summary.language + " " + pid + " " + provider_title,
             .active = item_active,
         });
       }
@@ -584,18 +745,21 @@ void VinputEngine::rebuildAsrMenu(fcitx::InputContext *ic) {
       fcitx::CursorPositionAfterPaging::ResetToFirst);
 
   int active_index = 0;
+  std::string active_label;
   for (std::size_t i = 0; i < asr_menu_filtered_indices_.size(); ++i) {
     const auto &item = asr_menu_items_[asr_menu_filtered_indices_[i]];
     if (item.active) {
       active_index = static_cast<int>(i);
+      active_label = item.display_label;
     }
     candidate_list->append<AsrCandidateWord>(
-        this, asr_menu_filtered_indices_[i], item.display_label, item.active);
+        this, asr_menu_filtered_indices_[i], item.display_label);
   }
   MoveCursorToIndex(candidate_list.get(), active_index);
 
   SetMenuTitle(ic, AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_,
                candidate_list.get());
+  SetMenuAuxDown(ic, CurrentItemText(active_label));
   ic->inputPanel().setCandidateList(std::move(candidate_list));
   ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
@@ -626,6 +790,7 @@ void VinputEngine::hideAsrMenu() {
   asr_menu_filtered_indices_.clear();
   fcitx::Text empty;
   asr_menu_ic_->inputPanel().setAuxUp(empty);
+  asr_menu_ic_->inputPanel().setAuxDown(empty);
   asr_menu_ic_->inputPanel().setCandidateList({});
   asr_menu_ic_->updateUserInterface(
       fcitx::UserInterfaceComponent::InputPanel);
@@ -640,57 +805,65 @@ bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
   auto candidate_list = asr_menu_ic_->inputPanel().candidateList();
   auto *cursor_list =
       candidate_list ? candidate_list->toCursorMovable() : nullptr;
+  const auto normalized_key = keyEvent.key().normalize();
+
+  const bool printable_filter_input =
+      IsPrintableMenuInput(keyEvent.key(), asr_menu_filter_mode_);
+  const bool handled_key =
+      keyEvent.key().checkKeyList(asr_menu_key_) ||
+      IsPagePrevKey(keyEvent.key()) ||
+      IsPageNextKey(keyEvent.key()) ||
+      keyEvent.key().digitSelection() >= 0 ||
+      IsSlashKey(keyEvent.key()) ||
+      IsBackspaceKey(keyEvent.key()) ||
+      IsCtrlShortcut(keyEvent.key(), FcitxKey_w) ||
+      IsCtrlShortcut(keyEvent.key(), FcitxKey_u) ||
+      IsUpKey(keyEvent.key()) ||
+      IsDownKey(keyEvent.key()) ||
+      IsEnterKey(keyEvent.key()) ||
+      IsEscapeKey(keyEvent.key()) ||
+      IsPureModifierKey(keyEvent.key()) ||
+      printable_filter_input;
 
   if (keyEvent.isRelease()) {
-    if (keyEvent.key().checkKeyList(asr_menu_key_) ||
-        keyEvent.key().checkKeyList(page_prev_keys_) ||
-        keyEvent.key().checkKeyList(page_next_keys_) ||
-        keyEvent.key().digitSelection() >= 0 ||
-        keyEvent.key().check(FcitxKey_slash) ||
-        keyEvent.key().check(FcitxKey_BackSpace) ||
-        keyEvent.key().check(FcitxKey_Up) ||
-        keyEvent.key().check(FcitxKey_Down) ||
-        keyEvent.key().check(FcitxKey_Return) ||
-        keyEvent.key().check(FcitxKey_KP_Enter) ||
-        keyEvent.key().check(FcitxKey_Escape)) {
-      keyEvent.filterAndAccept();
-      return true;
+    if (!handled_key) {
+      return false;
     }
-    if (asr_menu_filter_mode_ &&
-        !fcitx::Key::keySymToUTF8(keyEvent.key().sym()).empty() &&
-        !keyEvent.key().hasModifier()) {
-      keyEvent.filterAndAccept();
-      return true;
-    }
-    return false;
-  }
-
-  if (keyEvent.key().checkKeyList(asr_menu_key_)) {
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_Escape)) {
+  if (!handled_key) {
+    hideAsrMenu();
+    return false;
+  }
+
+  if (keyEvent.key().checkKeyList(asr_menu_key_) ||
+      IsPureModifierKey(keyEvent.key())) {
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (IsEscapeKey(keyEvent.key())) {
     if (asr_menu_filter_mode_ || !asr_menu_query_.empty()) {
       asr_menu_query_.clear();
       asr_menu_filter_mode_ = false;
       rebuildAsrMenu(asr_menu_ic_);
-      keyEvent.filterAndAccept();
-      return true;
+    } else {
+      hideAsrMenu();
     }
-    hideAsrMenu();
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_slash)) {
+  if (IsSlashKey(keyEvent.key())) {
     asr_menu_filter_mode_ = true;
     rebuildAsrMenu(asr_menu_ic_);
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_BackSpace) && asr_menu_filter_mode_) {
+  if (IsBackspaceKey(keyEvent.key()) && asr_menu_filter_mode_) {
     if (!asr_menu_query_.empty()) {
       PopLastUtf8Char(&asr_menu_query_);
     } else {
@@ -701,29 +874,47 @@ bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (asr_menu_filter_mode_) {
-    const std::string utf8 = fcitx::Key::keySymToUTF8(keyEvent.key().sym());
-    if (!utf8.empty() && !keyEvent.key().hasModifier()) {
-      asr_menu_query_.append(utf8);
-      rebuildAsrMenu(asr_menu_ic_);
-      keyEvent.filterAndAccept();
-      return true;
+  if (asr_menu_filter_mode_ && IsCtrlShortcut(keyEvent.key(), FcitxKey_w)) {
+    DeleteLastWord(&asr_menu_query_);
+    if (asr_menu_query_.empty()) {
+      asr_menu_filter_mode_ = false;
     }
+    rebuildAsrMenu(asr_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
   }
 
-  if (keyEvent.key().checkKeyList(page_prev_keys_)) {
+  if (asr_menu_filter_mode_ && IsCtrlShortcut(keyEvent.key(), FcitxKey_u)) {
+    asr_menu_query_.clear();
+    asr_menu_filter_mode_ = false;
+    rebuildAsrMenu(asr_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (printable_filter_input) {
+    const std::string utf8 = fcitx::Key::keySymToUTF8(normalized_key.sym());
+    asr_menu_query_.append(utf8);
+    rebuildAsrMenu(asr_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (IsPagePrevKey(keyEvent.key())) {
     ChangeCandidatePage(
         asr_menu_ic_,
-        DecorateFilterTitle(AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_),
+        DecorateFilterTitle(AsrMenuTitle(), asr_menu_query_,
+                            asr_menu_filter_mode_),
         false);
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (keyEvent.key().checkKeyList(page_next_keys_)) {
+  if (IsPageNextKey(keyEvent.key())) {
     ChangeCandidatePage(
         asr_menu_ic_,
-        DecorateFilterTitle(AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_),
+        DecorateFilterTitle(AsrMenuTitle(), asr_menu_query_,
+                            asr_menu_filter_mode_),
         true);
     keyEvent.filterAndAccept();
     return true;
@@ -732,13 +923,13 @@ bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
   const int digit = keyEvent.key().digitSelection();
   const int digit_index = DigitSelectionIndex(candidate_list.get(), digit);
   if (digit >= 0 &&
-      digit_index < static_cast<int>(asr_menu_items_.size())) {
-    selectAsrItem(static_cast<std::size_t>(digit_index), asr_menu_ic_);
+      digit_index < static_cast<int>(asr_menu_filtered_indices_.size())) {
+    selectAsrItem(asr_menu_filtered_indices_[digit_index], asr_menu_ic_);
     keyEvent.filterAndAccept();
     return true;
   }
 
-  if (cursor_list && keyEvent.key().check(FcitxKey_Up)) {
+  if (cursor_list && IsUpKey(keyEvent.key())) {
     cursor_list->prevCandidate();
     asr_menu_ic_->updateUserInterface(
         fcitx::UserInterfaceComponent::InputPanel);
@@ -746,7 +937,7 @@ bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (cursor_list && keyEvent.key().check(FcitxKey_Down)) {
+  if (cursor_list && IsDownKey(keyEvent.key())) {
     cursor_list->nextCandidate();
     asr_menu_ic_->updateUserInterface(
         fcitx::UserInterfaceComponent::InputPanel);
@@ -754,11 +945,14 @@ bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
     return true;
   }
 
-  if (keyEvent.key().check(FcitxKey_Return) ||
-      keyEvent.key().check(FcitxKey_KP_Enter)) {
+  if (IsEnterKey(keyEvent.key())) {
     int index = CurrentSelectionIndex(candidate_list.get());
-    if (index >= 0 && index < static_cast<int>(asr_menu_items_.size())) {
-      selectAsrItem(static_cast<std::size_t>(index), asr_menu_ic_);
+    if (index < 0) {
+      index = asr_menu_filtered_indices_.empty() ? -1 : 0;
+    }
+    if (index >= 0 &&
+        index < static_cast<int>(asr_menu_filtered_indices_.size())) {
+      selectAsrItem(asr_menu_filtered_indices_[index], asr_menu_ic_);
     } else {
       hideAsrMenu();
     }
@@ -793,7 +987,8 @@ void VinputEngine::selectAsrItem(std::size_t index, fcitx::InputContext *ic) {
     return;
   }
   hideAsrMenu();
-  restartDaemon();
+  notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
+                                 item.display_label.c_str()));
   (void)ic;
 }
 
