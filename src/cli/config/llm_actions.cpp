@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <nlohmann/json.hpp>
+#include <curl/curl.h>
 
 #include "cli/utils/cli_helpers.h"
 #include "cli/utils/resource_utils.h"
@@ -9,6 +10,7 @@
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/llm/adapter_manager.h"
+#include "common/llm/defaults.h"
 #include "common/registry/registry_i18n.h"
 #include "common/registry/registry_scripts.h"
 #include "common/utils/string_utils.h"
@@ -323,5 +325,118 @@ int RunLlmConfigEdit(const std::string &id, const std::string &baseUrl,
     return 1;
   }
   fmt.PrintSuccess(vinput::str::FmtStr(_("LLM provider '%s' updated."), id));
+  return 0;
+}
+
+namespace {
+
+size_t CurlWriteCallback(char *ptr, size_t size, size_t nmemb, void *userdata) {
+  const size_t total = size * nmemb;
+  if (!userdata || !ptr || total == 0) return 0;
+  auto *buf = static_cast<std::string *>(userdata);
+  if (buf->size() + total > 1 * 1024 * 1024) return 0;
+  buf->append(ptr, total);
+  return total;
+}
+
+}  // namespace
+
+int RunLlmConfigTest(const std::string &id, Formatter &fmt,
+                     const CliContext &ctx) {
+  CoreConfig config = LoadCoreConfig();
+  const auto *provider = ResolveLlmProvider(config, id);
+  if (!provider) {
+    fmt.PrintError(vinput::str::FmtStr(_("LLM provider '%s' not found."), id));
+    return 1;
+  }
+
+  if (provider->base_url.empty()) {
+    fmt.PrintError(_("Provider base_url is empty."));
+    return 1;
+  }
+
+  std::string url = provider->base_url;
+  while (!url.empty() && url.back() == '/') url.pop_back();
+  url += vinput::llm::kOpenAiModelsPath;
+
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    fmt.PrintError(_("Failed to initialize libcurl."));
+    return 1;
+  }
+
+  struct curl_slist *headers = nullptr;
+  if (!provider->api_key.empty()) {
+    std::string auth = std::string(vinput::llm::kAuthorizationHeader) + ": " +
+                       vinput::llm::kBearerPrefix + provider->api_key;
+    headers = curl_slist_append(headers, auth.c_str());
+  }
+
+  std::string response_body;
+  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, vinput::llm::kHttpUserAgent);
+
+  CURLcode code = curl_easy_perform(curl);
+  long status_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status_code);
+
+  if (headers) curl_slist_free_all(headers);
+  curl_easy_cleanup(curl);
+
+  if (code != CURLE_OK) {
+    fmt.PrintError(vinput::str::FmtStr(_("Connection failed: %s"),
+                                       curl_easy_strerror(code)));
+    return 1;
+  }
+
+  if (status_code < 200 || status_code >= 300) {
+    fmt.PrintError(vinput::str::FmtStr(_("HTTP %ld: %s"),
+                                       status_code, response_body));
+    return 1;
+  }
+
+  nlohmann::json response;
+  try {
+    response = nlohmann::json::parse(response_body);
+  } catch (const std::exception &e) {
+    fmt.PrintError(vinput::str::FmtStr(_("Invalid JSON response: %s"), e.what()));
+    return 1;
+  }
+
+  std::vector<std::string> models;
+  if (response.contains("data") && response["data"].is_array()) {
+    for (const auto &item : response["data"]) {
+      if (item.contains("id") && item["id"].is_string()) {
+        models.push_back(item["id"].get<std::string>());
+      }
+    }
+  }
+
+  if (ctx.json_output) {
+    nlohmann::json result = {
+        {"status", "ok"},
+        {"provider", id},
+        {"models", models},
+    };
+    fmt.PrintJson(result);
+    return 0;
+  }
+
+  fmt.PrintSuccess(vinput::str::FmtStr(
+      _("Connected to '%s'. Found %d model(s)."), id, (int)models.size()));
+  if (!models.empty()) {
+    std::sort(models.begin(), models.end());
+    std::vector<std::string> headers_row = {_("MODEL")};
+    std::vector<std::vector<std::string>> rows;
+    for (const auto &m : models) {
+      rows.push_back({m});
+    }
+    fmt.PrintTable(headers_row, rows);
+  }
   return 0;
 }

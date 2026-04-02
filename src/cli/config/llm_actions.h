@@ -22,3 +22,5 @@ int RunLlmConfigRemove(const std::string &id, Formatter &fmt,
 int RunLlmConfigEdit(const std::string &id, const std::string &baseUrl,
                      const std::string &apiKey, bool hasBaseUrl, bool hasApiKey,
                      Formatter &fmt, const CliContext &ctx);
+int RunLlmConfigTest(const std::string &id, Formatter &fmt,
+                     const CliContext &ctx);

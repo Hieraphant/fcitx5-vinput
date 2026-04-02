@@ -5,10 +5,17 @@
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTextEdit>
@@ -20,6 +27,7 @@
 #include "gui/utils/config_manager.h"
 #include "gui/utils/i18n_cache.h"
 #include "cli/runtime/dbus_client.h"
+#include "common/llm/defaults.h"
 #include "common/scene/postprocess_scene.h"
 #include "common/llm/adapter_manager.h"
 #include "common/registry/registry_i18n.h"
@@ -78,9 +86,11 @@ LlmPage::LlmPage(QWidget *parent) : QWidget(parent) {
   btnLlmAdd_ = new QPushButton(tr("Add"));
   btnLlmEdit_ = new QPushButton(tr("Edit"));
   btnLlmRemove_ = new QPushButton(tr("Remove"));
+  btnLlmTest_ = new QPushButton(tr("Test"));
   btnLayout->addWidget(btnLlmAdd_);
   btnLayout->addWidget(btnLlmEdit_);
   btnLayout->addWidget(btnLlmRemove_);
+  btnLayout->addWidget(btnLlmTest_);
   btnLayout->addStretch();
   listLayout->addLayout(btnLayout);
   layout->addLayout(listLayout);
@@ -132,6 +142,7 @@ LlmPage::LlmPage(QWidget *parent) : QWidget(parent) {
   connect(btnLlmAdd_, &QPushButton::clicked, this, &LlmPage::onLlmAdd);
   connect(btnLlmEdit_, &QPushButton::clicked, this, &LlmPage::onLlmEdit);
   connect(btnLlmRemove_, &QPushButton::clicked, this, &LlmPage::onLlmRemove);
+  connect(btnLlmTest_, &QPushButton::clicked, this, &LlmPage::onLlmTest);
   connect(btnAdapterEdit_, &QPushButton::clicked, this,
           &LlmPage::onAdapterEdit);
   connect(btnAdapterStart_, &QPushButton::clicked, this,
@@ -357,6 +368,87 @@ void LlmPage::onLlmRemove() {
 
   refreshLlmList();
   emit configChanged();
+}
+
+void LlmPage::onLlmTest() {
+  auto *item = listProviders_->currentItem();
+  if (!item)
+    return;
+
+  QString provider_id = item->data(Qt::UserRole).toString();
+  CoreConfig config = ConfigManager::Get().Load();
+  const LlmProvider *provider = ResolveLlmProvider(config, provider_id.toStdString());
+  if (!provider) {
+    QMessageBox::warning(this, tr("Error"),
+                         tr("Provider '%1' not found.").arg(provider_id));
+    return;
+  }
+
+  QString url = QString::fromStdString(provider->base_url);
+  if (url.isEmpty()) {
+    QMessageBox::warning(this, tr("Error"), tr("Provider base_url is empty."));
+    return;
+  }
+  if (!url.endsWith('/')) url += '/';
+  url += vinput::llm::kOpenAiModelsPath;
+
+  btnLlmTest_->setEnabled(false);
+  btnLlmTest_->setText(tr("Testing..."));
+
+  auto *nam = new QNetworkAccessManager(this);
+  QNetworkRequest req{QUrl(url)};
+  req.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
+  if (!provider->api_key.empty()) {
+    QByteArray bearer = QByteArray(vinput::llm::kBearerPrefix) +
+                        QByteArray::fromStdString(provider->api_key);
+    req.setRawHeader(vinput::llm::kAuthorizationHeader, bearer);
+  }
+
+  QNetworkReply *reply = nam->get(req);
+  auto *timeout = new QTimer(reply);
+  timeout->setSingleShot(true);
+  QObject::connect(timeout, &QTimer::timeout, reply, [reply]() {
+    if (!reply->isFinished()) reply->abort();
+  });
+  timeout->start(10000);
+
+  QObject::connect(reply, &QNetworkReply::finished, this,
+      [this, reply, timeout, nam, provider_id]() {
+    timeout->stop();
+    btnLlmTest_->setEnabled(true);
+    btnLlmTest_->setText(tr("Test"));
+
+    if (reply->error() != QNetworkReply::NoError) {
+      QMessageBox::warning(this, tr("Test Failed"),
+                           tr("Connection to '%1' failed:\n%2")
+                               .arg(provider_id, reply->errorString()));
+    } else {
+      QJsonParseError parseError;
+      QJsonDocument doc = QJsonDocument::fromJson(reply->readAll(), &parseError);
+      if (parseError.error != QJsonParseError::NoError || !doc.isObject() ||
+          !doc.object().value("data").isArray()) {
+        QMessageBox::warning(this, tr("Test Failed"),
+                             tr("Invalid response from '%1'.").arg(provider_id));
+      } else {
+        QJsonArray data = doc.object().value("data").toArray();
+        QStringList models;
+        for (const auto &v : data) {
+          QString id = v.toObject().value("id").toString();
+          if (!id.isEmpty()) models.append(id);
+        }
+        models.sort();
+        QString msg = tr("Connected to '%1'.\nFound %2 model(s).")
+                          .arg(provider_id)
+                          .arg(models.size());
+        if (!models.isEmpty()) {
+          msg += "\n\n" + models.join("\n");
+        }
+        QMessageBox::information(this, tr("Test Succeeded"), msg);
+      }
+    }
+    reply->deleteLater();
+    nam->deleteLater();
+  });
 }
 
 void LlmPage::onAdapterEdit() {

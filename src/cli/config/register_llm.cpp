@@ -67,6 +67,15 @@ void RegisterLlmCommands(CLI::App &app, CliAction *action) {
                               editState->hasApiKey, fmt, ctx);
     };
   });
+
+  auto testId = std::make_shared<std::string>();
+  auto *test = llm->add_subcommand("test", _("Test LLM provider connectivity"));
+  test->add_option("id", *testId, _("Provider ID"))->required();
+  test->callback([action, testId]() {
+    *action = [testId](Formatter &fmt, const CliContext &ctx) {
+      return RunLlmConfigTest(*testId, fmt, ctx);
+    };
+  });
 }
 
 void RegisterAdapterCommands(CLI::App &app, CliAction *action) {

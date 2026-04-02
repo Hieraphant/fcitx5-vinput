@@ -24,6 +24,7 @@ private slots:
   void onLlmAdd();
   void onLlmEdit();
   void onLlmRemove();
+  void onLlmTest();
   void onAdapterEdit();
   void onAdapterStart();
   void onAdapterStop();
@@ -37,6 +38,7 @@ private:
   QPushButton *btnLlmAdd_;
   QPushButton *btnLlmEdit_;
   QPushButton *btnLlmRemove_;
+  QPushButton *btnLlmTest_;
 
   QListWidget *listAdapters_;
   QPushButton *btnAdapterEdit_;
