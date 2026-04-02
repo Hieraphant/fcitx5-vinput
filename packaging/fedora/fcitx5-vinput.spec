@@ -1,4 +1,5 @@
 %global sherpa_onnx_ver @SHERPA_ONNX_VERSION@
+%global vosk_ver @VOSK_VERSION@
 %global __provides_exclude_from ^%{_libdir}/fcitx5-vinput/.*$
 %global __requires_exclude_from ^%{_libdir}/fcitx5-vinput/.*$
 %global __requires_exclude ^lib(onnxruntime|sherpa-onnx-c-api|sherpa-onnx-cxx-api)\\.so(\\(.*\\))?$
@@ -11,6 +12,7 @@ License:        GPL-3.0-only
 URL:            https://github.com/xifan2333/fcitx5-vinput
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 Source1:        sherpa-onnx-v%{sherpa_onnx_ver}-linux-x64-shared-no-tts.tar.bz2
+Source2:        vosk-linux-x86_64-%{vosk_ver}.zip
 
 BuildRequires:  cmake >= 3.16
 BuildRequires:  ninja-build
@@ -54,6 +56,7 @@ via any OpenAI-compatible API.
 export CC=clang
 export CXX=clang++
 bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-install %{SOURCE1}
+bash scripts/build-vosk.sh %{vosk_ver} %{_builddir}/sherpa-onnx-install %{SOURCE2}
 %cmake -G Ninja \
     -DCMAKE_PREFIX_PATH=%{_builddir}/sherpa-onnx-install \
     -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \

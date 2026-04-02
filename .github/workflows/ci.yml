@@ -32,6 +32,12 @@ jobs:
           bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
 
+      - name: Install vosk build runtime
+        shell: bash
+        run: |
+          prefix="${RUNNER_TEMP}/sherpa-onnx-install"
+          bash scripts/build-vosk.sh "${VOSK_VERSION:-0.3.45}" "${prefix}"
+
       - uses: actions/cache@v4
         with:
           path: ${{ env.SCCACHE_DIR }}
@@ -79,6 +85,12 @@ jobs:
           source scripts/sherpa-onnx-vars.sh
           bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
+
+      - name: Install vosk build runtime
+        shell: bash
+        run: |
+          prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
+          bash scripts/build-vosk.sh "${VOSK_VERSION:-0.3.45}" "${prefix}"
 
       - uses: actions/cache@v4
         with:

@@ -27,6 +27,16 @@ modules:
       - type: archive
         url: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.34/sherpa-onnx-v1.12.34-linux-x64-shared-no-tts.tar.bz2
         sha256: 1c59ff6dcea5f2b56d16273a929b81e383f2b7c636f689a0bdf04a940982512a
+  - name: vosk
+    buildsystem: simple
+    build-commands:
+      - install -d ${FLATPAK_DEST}/lib ${FLATPAK_DEST}/include
+      - install -m 755 libvosk.so ${FLATPAK_DEST}/lib/
+      - install -m 644 vosk_api.h ${FLATPAK_DEST}/include/
+    sources:
+      - type: archive
+        url: https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-linux-x86_64-0.3.45.zip
+        sha256: bbdc8ed85c43979f6443142889770ea95cbfbc56cffb5c5dcd73afa875c5fbb2
   - name: cli11
     buildsystem: cmake-ninja
     config-opts:

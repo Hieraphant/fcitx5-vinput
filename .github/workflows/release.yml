@@ -88,6 +88,12 @@ jobs:
             "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
 
+      - name: Install vosk build runtime
+        run: |
+          prefix="${RUNNER_TEMP}/sherpa-onnx-install"
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk.sh" \
+            "${VOSK_VERSION:-0.3.45}" "${prefix}"
+
       - uses: actions/cache@v4
         with:
           path: ${{ env.SCCACHE_DIR }}
@@ -151,6 +157,11 @@ jobs:
           sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
           sudo ldconfig
 
+      - name: Install pre-built vosk
+        run: |
+          sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk.sh"
+          sudo ldconfig
+
       - uses: actions/cache@v4
         with:
           path: ${{ env.SCCACHE_DIR }}
@@ -197,6 +208,11 @@ jobs:
         run: |
           tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
           bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
+          ldconfig
+
+      - name: Install pre-built vosk
+        run: |
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk.sh"
           ldconfig
 
       - uses: actions/cache@v4
@@ -248,15 +264,20 @@ jobs:
         run: |
           version="${{ needs.source_archive.outputs.package_version }}"
           source ./scripts/sherpa-onnx-vars.sh
+          source ./scripts/vosk-vars.sh
           mkdir -p "${HOME}/rpmbuild/"{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           cp "dist/${{ needs.source_archive.outputs.source_archive }}" "${HOME}/rpmbuild/SOURCES/"
           curl -fL --retry 3 --retry-delay 2 \
             -o "${HOME}/rpmbuild/SOURCES/${SHERPA_ONNX_ARCHIVE}" \
             "${SHERPA_ONNX_URL}"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o "${HOME}/rpmbuild/SOURCES/${VOSK_ARCHIVE}" \
+            "${VOSK_URL}"
 
           sed \
             -e "s/@VINPUT_VERSION@/${version}/g" \
             -e "s/@SHERPA_ONNX_VERSION@/${SHERPA_ONNX_VERSION}/g" \
+            -e "s/@VOSK_VERSION@/${VOSK_VERSION}/g" \
             packaging/fedora/fcitx5-vinput.spec \
             > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
 

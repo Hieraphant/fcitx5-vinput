@@ -12,6 +12,7 @@ source=('@VINPUT_SOURCE_ARCHIVE@')
 sha256sums=('@VINPUT_SOURCE_SHA256@')
 
 _sherpa_onnx_ver=@SHERPA_ONNX_VERSION@
+_vosk_ver=@VOSK_VERSION@
 
 build() {
     local src_root="${srcdir}/${pkgname}-${pkgver}"
@@ -21,6 +22,10 @@ build() {
     # Install pre-built sherpa-onnx for the package build.
     bash "${src_root}/scripts/build-sherpa-onnx.sh" \
         "${_sherpa_onnx_ver}" "${srcdir}/sherpa-onnx-install"
+
+    # Install pre-built vosk for the package build.
+    bash "${src_root}/scripts/build-vosk.sh" \
+        "${_vosk_ver}" "${srcdir}/sherpa-onnx-install"
 
     cmake -S "${src_root}" -B "${srcdir}/build" \
         -DCMAKE_BUILD_TYPE=None \
