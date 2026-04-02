@@ -925,7 +925,4 @@ msgstr "无效的 JSON 响应：%s"
 
 #, c-format
 msgid "Connected to '%s'. Found %d model(s)."
-msgstr "已连接"%s"。找到 %d 个模型。"
-
-msgid "MODEL"
-msgstr "模型"
+msgstr "已连接'%s'。找到 %d 个模型。"
