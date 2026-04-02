@@ -92,7 +92,7 @@ jobs:
         run: |
           prefix="${RUNNER_TEMP}/sherpa-onnx-install"
           bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk.sh" \
-            "${VOSK_VERSION:-0.3.45}" "${prefix}"
+            "" "${prefix}"
 
       - uses: actions/cache@v4
         with:

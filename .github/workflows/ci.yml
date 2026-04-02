@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           prefix="${RUNNER_TEMP}/sherpa-onnx-install"
-          bash scripts/build-vosk.sh "${VOSK_VERSION:-0.3.45}" "${prefix}"
+          bash scripts/build-vosk.sh "" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -90,7 +90,7 @@ jobs:
         shell: bash
         run: |
           prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
-          bash scripts/build-vosk.sh "${VOSK_VERSION:-0.3.45}" "${prefix}"
+          bash scripts/build-vosk.sh "" "${prefix}"
 
       - uses: actions/cache@v4
         with:
