@@ -314,6 +314,46 @@ Please follow the instructions.</source>
         <source>Failed to save config.</source>
         <translation>保存配置失败。</translation>
     </message>
+    <message>
+        <source>Test</source>
+        <translation>测试</translation>
+    </message>
+    <message>
+        <source>Testing...</source>
+        <translation>测试中...</translation>
+    </message>
+    <message>
+        <source>Provider &apos;%1&apos; not found.</source>
+        <translation>未找到提供商"%1"。</translation>
+    </message>
+    <message>
+        <source>Provider base_url is empty.</source>
+        <translation>提供商 base_url 为空。</translation>
+    </message>
+    <message>
+        <source>Test Failed</source>
+        <translation>测试失败</translation>
+    </message>
+    <message>
+        <source>Connection to &apos;%1&apos; failed:
+%2</source>
+        <translation>连接"%1"失败：
+%2</translation>
+    </message>
+    <message>
+        <source>Invalid response from &apos;%1&apos;.</source>
+        <translation>"%1"返回了无效的响应。</translation>
+    </message>
+    <message>
+        <source>Test Succeeded</source>
+        <translation>测试成功</translation>
+    </message>
+    <message>
+        <source>Connected to &apos;%1&apos;.
+Found %2 model(s).</source>
+        <translation>已连接"%1"。
+找到 %2 个模型。</translation>
+    </message>
 </context>
 <context>
     <name>vinput::gui::ResourcePage</name>

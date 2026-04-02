@@ -901,3 +901,31 @@ msgstr "ASR 已被命令行禁用。"
 
 msgid "No active ASR provider configured."
 msgstr "未配置活跃的 ASR 提供商。"
+
+msgid "Test LLM provider connectivity"
+msgstr "测试 LLM 提供商连通性"
+
+msgid "Provider base_url is empty."
+msgstr "提供商 base_url 为空。"
+
+msgid "Failed to initialize libcurl."
+msgstr "初始化 libcurl 失败。"
+
+#, c-format
+msgid "Connection failed: %s"
+msgstr "连接失败：%s"
+
+#, c-format
+msgid "HTTP %ld: %s"
+msgstr "HTTP %ld：%s"
+
+#, c-format
+msgid "Invalid JSON response: %s"
+msgstr "无效的 JSON 响应：%s"
+
+#, c-format
+msgid "Connected to '%s'. Found %d model(s)."
+msgstr "已连接"%s"。找到 %d 个模型。"
+
+msgid "MODEL"
+msgstr "模型"
