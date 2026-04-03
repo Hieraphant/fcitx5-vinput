@@ -244,10 +244,10 @@ void ResourcePage::applyTableFilter(QTableWidget *table,
 
 void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) {
   const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Active, QPalette::Link);
+  const QColor colorPositive = pal.color(QPalette::Link);
   const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
-  const QColor colorHighlight = pal.color(QPalette::Active, QPalette::Highlight);
-  const QColor colorError = QColor(198, 40, 40);
+  const QColor colorHighlight = pal.color(QPalette::Highlight);
+  const QColor colorError = pal.color(QPalette::LinkVisited);
 
   tableInstalledModels_->setRowCount(0);
 
@@ -293,7 +293,7 @@ void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) 
 
 void ResourcePage::populateRemoteModels(const std::vector<RemoteModelEntry> &models) {
   const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Active, QPalette::Link);
+  const QColor colorPositive = pal.color(QPalette::Link);
   const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
 
   tableAvailableModels_->setRowCount(0);
@@ -345,7 +345,7 @@ void ResourcePage::populateRemoteModels(const std::vector<RemoteModelEntry> &mod
 
 void ResourcePage::populateRemoteProviders(const std::vector<vinput::script::RegistryEntry> &providers) {
   const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Active, QPalette::Link);
+  const QColor colorPositive = pal.color(QPalette::Link);
   const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
 
   tableAvailableProviders_->setRowCount(0);
@@ -386,7 +386,7 @@ void ResourcePage::populateRemoteProviders(const std::vector<vinput::script::Reg
 
 void ResourcePage::populateRemoteAdapters(const std::vector<vinput::script::RegistryEntry> &adapters) {
   const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Active, QPalette::Link);
+  const QColor colorPositive = pal.color(QPalette::Link);
   const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
 
   tableAvailableAdapters_->setRowCount(0);

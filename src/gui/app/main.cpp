@@ -60,6 +60,8 @@ int main(int argc, char *argv[]) {
   setenv("QT_IM_MODULE", "fcitx", 0);
   setenv("XMODIFIERS", "@im=fcitx", 0);
 
+  // Defer widget styling to the active Qt platform theme and system palette.
+  QApplication::setDesktopSettingsAware(true);
   QApplication app(argc, argv);
 
   QTranslator translator;
