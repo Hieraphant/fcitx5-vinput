@@ -24,6 +24,22 @@
 
 namespace vinput::gui {
 
+namespace {
+
+bool ReloadAsrBackend(std::string *error = nullptr) {
+  vinput::cli::DbusClient dbus;
+  std::string daemon_error;
+  if (!dbus.IsDaemonRunning(&daemon_error)) {
+    if (error) {
+      *error = daemon_error;
+    }
+    return daemon_error.empty();
+  }
+  return dbus.ReloadAsrBackend(error);
+}
+
+}  // namespace
+
 ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
   auto *layout = new QVBoxLayout(this);
 
@@ -257,6 +273,11 @@ void ControlPage::onAsrEdit() {
      QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
      return;
   }
+  if (!ReloadAsrBackend(&err)) {
+     QMessageBox::warning(this, tr("Warning"),
+                          tr("Config saved, but failed to reload ASR backend: %1")
+                              .arg(QString::fromStdString(err)));
+  }
   
   refreshAsrList();
   emit configChanged();
@@ -289,6 +310,13 @@ void ControlPage::onAsrRemove() {
           QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
           return;
       }
+      std::string err;
+      if (!ReloadAsrBackend(&err)) {
+          QMessageBox::warning(
+              this, tr("Warning"),
+              tr("Config saved, but failed to reload ASR backend: %1")
+                  .arg(QString::fromStdString(err)));
+      }
       refreshAsrList();
       emit configChanged();
   }
@@ -305,6 +333,12 @@ void ControlPage::onAsrSetActive() {
   if (!ConfigManager::Get().Save(config)) {
       QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
       return;
+  }
+  std::string err;
+  if (!ReloadAsrBackend(&err)) {
+      QMessageBox::warning(this, tr("Warning"),
+                           tr("Config saved, but failed to reload ASR backend: %1")
+                               .arg(QString::fromStdString(err)));
   }
   
   refreshAsrList();

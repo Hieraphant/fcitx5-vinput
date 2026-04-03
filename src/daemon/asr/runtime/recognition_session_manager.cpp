@@ -99,6 +99,20 @@ bool RecognitionSessionManager::Initialize(const CoreConfig &settings,
   return true;
 }
 
+bool RecognitionSessionManager::SynchronizeBackend(const CoreConfig &settings,
+                                                   std::string *error) {
+  std::string disabled_reason;
+  if (ShouldDisableAsr(settings, disable_asr_by_flag_, &disabled_reason)) {
+    ResetBackend();
+    if (error) {
+      error->clear();
+    }
+    return true;
+  }
+
+  return Initialize(settings, error);
+}
+
 std::unique_ptr<RecognitionSession> RecognitionSessionManager::CreateSession(
     const CoreConfig &settings, BackendDescriptor *descriptor,
     std::string *error) {

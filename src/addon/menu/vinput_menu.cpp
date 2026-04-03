@@ -993,6 +993,11 @@ void VinputEngine::selectAsrItem(std::size_t index, fcitx::InputContext *ic) {
     hideAsrMenu();
     return;
   }
+  if (!queryDaemonStatus().empty() && !callReloadAsrBackend()) {
+    notifyError(_("Failed to reload ASR backend."));
+    hideAsrMenu();
+    return;
+  }
   hideAsrMenu();
   notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
                                  item.display_label.c_str()));

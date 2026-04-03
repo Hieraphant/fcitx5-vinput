@@ -50,6 +50,7 @@ public:
   void SetStopHandler(
       std::function<MethodResult(const std::string &scene_id)> handler);
   void SetStatusHandler(std::function<std::string()> handler);
+  void SetReloadAsrBackendHandler(std::function<MethodResult()> handler);
   void SetStartAdapterHandler(
       std::function<MethodResult(const std::string &adapter_id)> handler);
   void SetStopAdapterHandler(
@@ -63,6 +64,8 @@ public:
                                  sd_bus_error *error);
   static int handleGetStatus(sd_bus_message *m, void *userdata,
                              sd_bus_error *error);
+  static int handleReloadAsrBackend(sd_bus_message *m, void *userdata,
+                                    sd_bus_error *error);
   static int handleStartAdapter(sd_bus_message *m, void *userdata,
                                 sd_bus_error *error);
   static int handleStopAdapter(sd_bus_message *m, void *userdata,
@@ -86,6 +89,7 @@ private:
   std::function<MethodResult(const std::string &)> start_command_handler_;
   std::function<MethodResult(const std::string &scene_id)> stop_handler_;
   std::function<std::string()> status_handler_;
+  std::function<MethodResult()> reload_asr_backend_handler_;
   std::function<MethodResult(const std::string &adapter_id)>
       start_adapter_handler_;
   std::function<MethodResult(const std::string &adapter_id)>

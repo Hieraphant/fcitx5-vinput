@@ -69,6 +69,7 @@ private:
   bool callStartRecording();
   bool callStartCommandRecording(const std::string &selected_text);
   bool callStopRecording(const std::string &scene_id);
+  bool callReloadAsrBackend();
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onRecognitionPartial(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);

@@ -23,6 +23,7 @@ public:
   ~RecognitionSessionManager();
 
   bool Initialize(const CoreConfig &settings, std::string *disabled_reason);
+  bool SynchronizeBackend(const CoreConfig &settings, std::string *error);
   std::unique_ptr<RecognitionSession>
   CreateSession(const CoreConfig &settings, BackendDescriptor *descriptor,
                 std::string *error);

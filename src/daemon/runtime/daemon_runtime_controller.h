@@ -31,6 +31,7 @@ public:
   DbusService::MethodResult StartCommandRecording(
       const std::string &selected_text);
   DbusService::MethodResult StopRecording(const std::string &scene_id);
+  DbusService::MethodResult ReloadAsrBackend();
   std::string GetStatus() const;
 
   void StartWorker();

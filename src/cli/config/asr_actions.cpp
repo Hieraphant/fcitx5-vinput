@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
+#include "cli/runtime/dbus_client.h"
 #include "cli/utils/cli_helpers.h"
 #include "cli/utils/editor_utils.h"
 #include "cli/utils/resource_utils.h"
@@ -24,6 +25,27 @@ namespace {
 
 bool IsCommandProvider(const AsrProvider &provider) {
   return std::holds_alternative<CommandAsrProvider>(provider);
+}
+
+bool SaveAsrConfigAndReload(const CoreConfig &config, Formatter &fmt) {
+  if (!SaveConfigOrFail(config, fmt)) {
+    return false;
+  }
+
+  vinput::cli::DbusClient dbus;
+  std::string error;
+  if (!dbus.IsDaemonRunning(&error)) {
+    if (!error.empty()) {
+      fmt.PrintWarning(vinput::str::FmtStr(
+          _("Config saved, but ASR backend reload was skipped: %s"), error));
+    }
+    return true;
+  }
+  if (!dbus.ReloadAsrBackend(&error)) {
+    fmt.PrintWarning(vinput::str::FmtStr(
+        _("Config saved, but failed to reload ASR backend: %s"), error));
+  }
+  return true;
 }
 
 const LocalAsrProvider *PreferredLocalProvider(const CoreConfig &config) {
@@ -209,7 +231,7 @@ int RunAsrConfigRemove(const std::string &id, Formatter &fmt,
     config.asr.activeProvider.clear();
   }
 
-  if (!SaveConfigOrFail(config, fmt)) {
+  if (!SaveAsrConfigAndReload(config, fmt)) {
     return 1;
   }
   fmt.PrintSuccess(vinput::str::FmtStr(_("ASR provider '%s' removed."), id));
@@ -229,7 +251,7 @@ int RunAsrConfigUse(const std::string &id, Formatter &fmt,
   }
 
   config.asr.activeProvider = resolved_id;
-  if (!SaveConfigOrFail(config, fmt)) {
+  if (!SaveAsrConfigAndReload(config, fmt)) {
     return 1;
   }
   fmt.PrintSuccess(vinput::str::FmtStr(_("Active ASR provider set to '%s'."), id));
@@ -354,7 +376,7 @@ int RunAsrConfigInstallProvider(const std::string &selector, Formatter &fmt,
     return 1;
   }
   NormalizeCoreConfig(&config);
-  if (!SaveConfigOrFail(config, fmt)) {
+  if (!SaveAsrConfigAndReload(config, fmt)) {
     return 1;
   }
 
@@ -611,7 +633,7 @@ int RunAsrConfigRemoveModel(const std::string &selector, Formatter &fmt,
   if (activeModel == id) {
     if (!SetPreferredLocalModel(&config, "", &error)) {
       fmt.PrintWarning(error);
-    } else if (!SaveConfigOrFail(config, fmt)) {
+    } else if (!SaveAsrConfigAndReload(config, fmt)) {
       return 1;
     }
   }
@@ -643,7 +665,7 @@ int RunAsrConfigUseModel(const std::string &selector, Formatter &fmt,
     fmt.PrintError(error);
     return 1;
   }
-  if (!SaveConfigOrFail(config, fmt)) {
+  if (!SaveAsrConfigAndReload(config, fmt)) {
     return 1;
   }
 
@@ -744,7 +766,7 @@ int RunAsrConfigSetHotword(const std::string &path, Formatter &fmt,
     return 1;
   }
   provider->hotwordsFile = path;
-  if (!SaveConfigOrFail(config, fmt)) {
+  if (!SaveAsrConfigAndReload(config, fmt)) {
     return 1;
   }
   fmt.PrintSuccess(_("Hotwords file path saved."));
@@ -760,7 +782,7 @@ int RunAsrConfigClearHotword(Formatter &fmt, const CliContext &ctx) {
     return 1;
   }
   provider->hotwordsFile.clear();
-  if (!SaveConfigOrFail(config, fmt)) {
+  if (!SaveAsrConfigAndReload(config, fmt)) {
     return 1;
   }
   fmt.PrintSuccess(_("Hotwords file path cleared."));

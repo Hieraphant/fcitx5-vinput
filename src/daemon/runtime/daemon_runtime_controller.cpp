@@ -86,6 +86,28 @@ DbusService::MethodResult DaemonRuntimeController::StartCommandRecording(
   return StartRecordingInternal(true, selected_text);
 }
 
+DbusService::MethodResult DaemonRuntimeController::ReloadAsrBackend() {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  if (phase_ != vinput::dbus::Status::Idle) {
+    return DbusService::MethodResult::Failure("Daemon is busy.");
+  }
+
+  auto runtime_settings = LoadCoreConfig();
+  NormalizeCoreConfig(&runtime_settings);
+
+  std::string error;
+  if (!recognition_manager_->SynchronizeBackend(runtime_settings, &error)) {
+    std::string message = "Failed to reload ASR backend.";
+    if (!error.empty()) {
+      message += " " + error;
+    }
+    fprintf(stderr, "vinput-daemon: %s\n", message.c_str());
+    return DbusService::MethodResult::Failure(message);
+  }
+
+  return DbusService::MethodResult::Success();
+}
+
 DbusService::MethodResult DaemonRuntimeController::StartRecordingInternal(
     bool is_command, const std::string &selected_text) {
   std::lock_guard<std::mutex> lock(state_mutex_);

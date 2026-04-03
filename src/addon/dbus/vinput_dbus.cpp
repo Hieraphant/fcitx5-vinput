@@ -450,6 +450,17 @@ std::string VinputEngine::queryDaemonStatus() const {
   return status;
 }
 
+bool VinputEngine::callReloadAsrBackend() {
+  if (!bus_) {
+    return false;
+  }
+
+  auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
+                                    kMethodReloadAsrBackend);
+  auto reply = msg.call(kDaemonCallTimeoutUsec);
+  return reply && !reply.isError();
+}
+
 void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic,
                                                 bool prefer_command_mode) {
   const std::string status = queryDaemonStatus();

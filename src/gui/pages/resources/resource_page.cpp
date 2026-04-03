@@ -19,6 +19,7 @@
 #include "gui/utils/config_manager.h"
 #include "gui/utils/i18n_cache.h"
 #include "gui/utils/download_worker.h"
+#include "cli/runtime/dbus_client.h"
 #include "cli/runtime/systemd_client.h"
 #include "common/utils/download_progress.h"
 #include "common/utils/string_utils.h"
@@ -44,6 +45,18 @@ QLineEdit *CreateFilterEdit(const QString &placeholder, QWidget *parent) {
   edit->setClearButtonEnabled(true);
   edit->setPlaceholderText(placeholder);
   return edit;
+}
+
+bool ReloadAsrBackend(std::string *error = nullptr) {
+  vinput::cli::DbusClient dbus;
+  std::string daemon_error;
+  if (!dbus.IsDaemonRunning(&daemon_error)) {
+    if (error) {
+      *error = daemon_error;
+    }
+    return daemon_error.empty();
+  }
+  return dbus.ReloadAsrBackend(error);
 }
 
 }  // namespace
@@ -508,6 +521,11 @@ void ResourcePage::onUseModelClicked() {
       QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
       return;
   }
+  if (!ReloadAsrBackend(&err)) {
+      QMessageBox::warning(this, tr("Warning"),
+                           tr("Config saved, but failed to reload ASR backend: %1")
+                               .arg(QString::fromStdString(err)));
+  }
 
   QMessageBox::information(
       this, tr("Local Model Updated"),
@@ -536,7 +554,15 @@ void ResourcePage::onRemoveModelClicked() {
     // Check if was preferred
     if (ResolvePreferredLocalModel(config) == model_name.toStdString()) {
         SetPreferredLocalModel(&config, "", &err);
-        ConfigManager::Get().Save(config);
+        if (!ConfigManager::Get().Save(config)) {
+            QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
+            return;
+        }
+        if (!ReloadAsrBackend(&err)) {
+            QMessageBox::warning(this, tr("Error"),
+                                 tr("Config saved, but failed to reload ASR backend: %1")
+                                     .arg(QString::fromStdString(err)));
+        }
     }
     textLog_->append(tr("Removed %1.").arg(model_name));
     refreshAll();

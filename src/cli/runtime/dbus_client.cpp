@@ -178,6 +178,36 @@ bool DbusClient::StopRecording(const std::string& scene_id, std::string* error) 
     return true;
 }
 
+bool DbusClient::ReloadAsrBackend(std::string* error) {
+    if (!bus_) {
+        if (error) *error = "D-Bus not connected";
+        return false;
+    }
+
+    sd_bus_error err = SD_BUS_ERROR_NULL;
+    sd_bus_message* reply = nullptr;
+
+    int r = sd_bus_call_method(bus_,
+        vinput::dbus::kBusName,
+        vinput::dbus::kObjectPath,
+        vinput::dbus::kInterface,
+        vinput::dbus::kMethodReloadAsrBackend,
+        &err, &reply, "");
+
+    if (r < 0) {
+        if (error) {
+            *error = err.message ? err.message : "D-Bus call failed";
+        }
+        sd_bus_error_free(&err);
+        if (reply) sd_bus_message_unref(reply);
+        return false;
+    }
+
+    if (reply) sd_bus_message_unref(reply);
+    sd_bus_error_free(&err);
+    return true;
+}
+
 bool DbusClient::StartAdapter(const std::string& adapter_id, std::string* error) {
     if (!bus_) {
         if (error) *error = "D-Bus not connected";

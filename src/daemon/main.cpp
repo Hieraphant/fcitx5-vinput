@@ -538,6 +538,9 @@ int main(int argc, char *argv[]) {
   });
 
   dbus.SetStatusHandler([&]() -> std::string { return runtime_controller.GetStatus(); });
+  dbus.SetReloadAsrBackendHandler([&]() {
+    return runtime_controller.ReloadAsrBackend();
+  });
 
   dbus.SetStartAdapterHandler(
       [&](const std::string &adapter_id) -> DbusService::MethodResult {
