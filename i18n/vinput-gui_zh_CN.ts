@@ -133,6 +133,14 @@ Please follow the instructions.</source>
         <translation>保存配置失败。</translation>
     </message>
     <message>
+        <source>Warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <source>Config saved, but failed to reload ASR backend: %1</source>
+        <translation>配置已保存，但重新加载 ASR 后端失败：%1</translation>
+    </message>
+    <message>
         <source>The local ASR provider cannot be removed.</source>
         <translation>内置的本地语音识别不可移除。</translation>
     </message>
@@ -532,6 +540,14 @@ Found %2 model(s).</source>
     <message>
         <source>Failed to save config.</source>
         <translation>保存配置失败。</translation>
+    </message>
+    <message>
+        <source>Warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <source>Config saved, but failed to reload ASR backend: %1</source>
+        <translation>配置已保存，但重新加载 ASR 后端失败：%1</translation>
     </message>
     <message>
         <source>Removed %1.</source>

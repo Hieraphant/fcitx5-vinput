@@ -269,6 +269,7 @@ void ControlPage::onAsrEdit() {
      config.asr.providers.push_back(p);
   }
   
+  std::string err;
   if (!ConfigManager::Get().Save(config)) {
      QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
      return;

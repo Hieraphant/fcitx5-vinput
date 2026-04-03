@@ -151,6 +151,9 @@ msgstr "开始录音失败。"
 msgid "Failed to start command recording."
 msgstr "开始命令录音失败。"
 
+msgid "Failed to reload ASR backend."
+msgstr "重新加载 ASR 后端失败。"
+
 msgid "ASR provider failed to start."
 msgstr "ASR 提供商启动失败。"
 
@@ -225,6 +228,14 @@ msgstr "已切换场景到 '%s'。"
 #, c-format
 msgid "Switched ASR to '%s'."
 msgstr "已切换 ASR 到 '%s'。"
+
+#, c-format
+msgid "Config saved, but ASR backend reload was skipped: %s"
+msgstr "配置已保存，但 ASR 后端重载已跳过：%s"
+
+#, c-format
+msgid "Config saved, but failed to reload ASR backend: %s"
+msgstr "配置已保存，但重新加载 ASR 后端失败：%s"
 
 #, c-format
 msgid "Choose Result (%zu)"
