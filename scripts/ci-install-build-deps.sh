@@ -13,40 +13,22 @@ if [[ ${EUID} -ne 0 ]]; then
 fi
 
 install_qt_apt() {
-    if apt-cache show qt6-base-dev >/dev/null 2>&1; then
-        "${sudo_cmd[@]}" apt-get install -y \
-            qt6-base-dev \
-            qt6-tools-dev \
-            qt6-tools-dev-tools
-    else
-        "${sudo_cmd[@]}" apt-get install -y \
-            qtbase5-dev \
-            qttools5-dev
-    fi
+    "${sudo_cmd[@]}" apt-get install -y \
+        qt6-base-dev \
+        qt6-tools-dev \
+        qt6-tools-dev-tools
 }
 
 install_qt_dnf() {
-    if dnf info qt6-qtbase-devel >/dev/null 2>&1; then
-        "${sudo_cmd[@]}" dnf install -y \
-            qt6-qtbase-devel \
-            qt6-qttools-devel
-    else
-        "${sudo_cmd[@]}" dnf install -y \
-            qt5-qtbase-devel \
-            qt5-qttools-devel
-    fi
+    "${sudo_cmd[@]}" dnf install -y \
+        qt6-qtbase-devel \
+        qt6-qttools-devel
 }
 
 install_qt_pacman() {
-    if pacman -Si qt6-base >/dev/null 2>&1; then
-        pacman -S --noconfirm --needed \
-            qt6-base \
-            qt6-tools
-    else
-        pacman -S --noconfirm --needed \
-            qt5-base \
-            qt5-tools
-    fi
+    pacman -S --noconfirm --needed \
+        qt6-base \
+        qt6-tools
 }
 
 case "${target}" in

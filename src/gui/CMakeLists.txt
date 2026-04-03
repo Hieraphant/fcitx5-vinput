@@ -1,16 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
-find_package(Qt6 COMPONENTS Core Gui Widgets Network QUIET)
-if(Qt6_FOUND)
-    set(QT_MAJOR 6)
-    find_package(Qt6LinguistTools QUIET)
-    set(QT_LINGUIST_FOUND ${Qt6LinguistTools_FOUND})
-else()
-    find_package(Qt5 COMPONENTS Core Gui Widgets Network REQUIRED)
-    set(QT_MAJOR 5)
-    find_package(Qt5LinguistTools QUIET)
-    set(QT_LINGUIST_FOUND ${Qt5LinguistTools_FOUND})
-endif()
+find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
+find_package(Qt6LinguistTools QUIET)
+set(QT_LINGUIST_FOUND ${Qt6LinguistTools_FOUND})
 
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 
@@ -65,14 +57,10 @@ set(VINPUT_GUI_TS
 )
 
 if(QT_LINGUIST_FOUND)
-    if(QT_MAJOR EQUAL 6)
-        qt_add_translation(VINPUT_GUI_QM ${VINPUT_GUI_TS})
-    else()
-        qt5_add_translation(VINPUT_GUI_QM ${VINPUT_GUI_TS})
-    endif()
+    qt_add_translation(VINPUT_GUI_QM ${VINPUT_GUI_TS})
 else()
     find_program(VINPUT_LRELEASE_EXECUTABLE
-        NAMES lrelease-qt6 lrelease lrelease-qt5
+        NAMES lrelease-qt6 lrelease
     )
     if(VINPUT_LRELEASE_EXECUTABLE)
         set(VINPUT_GUI_QM
@@ -102,10 +90,10 @@ target_include_directories(vinput-gui PRIVATE
 
 target_link_libraries(vinput-gui
     PRIVATE
-    Qt${QT_MAJOR}::Core
-    Qt${QT_MAJOR}::Gui
-    Qt${QT_MAJOR}::Widgets
-    Qt${QT_MAJOR}::Network
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Network
     vinput-common
     ${PIPEWIRE_LIBRARIES}
     ${SDBUS_LIBRARIES}
