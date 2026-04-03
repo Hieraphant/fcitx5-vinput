@@ -20,6 +20,7 @@ compile_commands.json
 __pycache__/
 *.pyc
 .vscode/
+.codex
 .codex/
 .kiro/
 repo/
