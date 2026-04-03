@@ -40,6 +40,8 @@ public:
 private:
   DbusService::MethodResult StartRecordingInternal(bool is_command,
                                                    const std::string &selected_text);
+  bool SynchronizeAsrBackend(std::string *error = nullptr);
+  void MaybeApplyPendingAsrBackendReload();
   void HandleIncomingAudio(std::span<const int16_t> pcm);
   void EmitStreamingEvents(
       vinput::daemon::asr::RecognitionSession *session,
@@ -70,6 +72,7 @@ private:
   std::optional<std::chrono::steady_clock::time_point> recording_started_at_;
   std::optional<std::chrono::steady_clock::time_point> first_non_silent_at_;
   bool first_partial_logged_ = false;
+  bool pending_asr_backend_reload_ = false;
   std::atomic<bool> accepting_chunks_{false};
   std::atomic<bool> worker_running_{false};
   std::thread worker_;

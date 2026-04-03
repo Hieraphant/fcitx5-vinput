@@ -86,17 +86,26 @@ DbusService::MethodResult DaemonRuntimeController::StartCommandRecording(
   return StartRecordingInternal(true, selected_text);
 }
 
-DbusService::MethodResult DaemonRuntimeController::ReloadAsrBackend() {
-  std::lock_guard<std::mutex> lock(state_mutex_);
-  if (phase_ != vinput::dbus::Status::Idle) {
-    return DbusService::MethodResult::Failure("Daemon is busy.");
-  }
-
+bool DaemonRuntimeController::SynchronizeAsrBackend(std::string *error) {
   auto runtime_settings = LoadCoreConfig();
   NormalizeCoreConfig(&runtime_settings);
+  return recognition_manager_->SynchronizeBackend(runtime_settings, error);
+}
+
+DbusService::MethodResult DaemonRuntimeController::ReloadAsrBackend() {
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    if (phase_ != vinput::dbus::Status::Idle) {
+      pending_asr_backend_reload_ = true;
+      vinput::debug::Log(
+          "ASR backend reload deferred until idle (phase: %s)\n",
+          vinput::dbus::StatusToString(phase_));
+      return DbusService::MethodResult::Success();
+    }
+  }
 
   std::string error;
-  if (!recognition_manager_->SynchronizeBackend(runtime_settings, &error)) {
+  if (!SynchronizeAsrBackend(&error)) {
     std::string message = "Failed to reload ASR backend.";
     if (!error.empty()) {
       message += " " + error;
@@ -106,6 +115,29 @@ DbusService::MethodResult DaemonRuntimeController::ReloadAsrBackend() {
   }
 
   return DbusService::MethodResult::Success();
+}
+
+void DaemonRuntimeController::MaybeApplyPendingAsrBackendReload() {
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    if (!pending_asr_backend_reload_ || phase_ != vinput::dbus::Status::Idle) {
+      return;
+    }
+    pending_asr_backend_reload_ = false;
+  }
+
+  std::string error;
+  if (!SynchronizeAsrBackend(&error)) {
+    std::string message = "Failed to apply deferred ASR backend reload.";
+    if (!error.empty()) {
+      message += " " + error;
+    }
+    fprintf(stderr, "vinput-daemon: %s\n", message.c_str());
+    dbus_->EmitNotification(vinput::dbus::MakeRawError(message));
+    return;
+  }
+
+  vinput::debug::Log("deferred ASR backend reload applied while idle\n");
 }
 
 DbusService::MethodResult DaemonRuntimeController::StartRecordingInternal(
@@ -311,6 +343,7 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
     dbus_->EmitStatusChanged(
         vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
     vinput::debug::Log("phase -> idle\n");
+    MaybeApplyPendingAsrBackendReload();
     return DbusService::MethodResult::Success();
   }
 
@@ -347,6 +380,7 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
         dbus_->EmitStatusChanged(
             vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
         vinput::debug::Log("phase -> idle\n");
+        MaybeApplyPendingAsrBackendReload();
         return DbusService::MethodResult::Success();
       }
       current_sample_count_ += tail_samples;
@@ -370,6 +404,7 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
     dbus_->EmitStatusChanged(
         vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
     vinput::debug::Log("phase -> idle\n");
+    MaybeApplyPendingAsrBackendReload();
     return DbusService::MethodResult::Success();
   }
 
@@ -466,6 +501,7 @@ void DaemonRuntimeController::ResetToIdle() {
   dbus_->EmitStatusChanged(
       vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
   vinput::debug::Log("phase -> idle\n");
+  MaybeApplyPendingAsrBackendReload();
 }
 
 void DaemonRuntimeController::WorkerMain() {
