@@ -381,8 +381,15 @@ void LlmPage::onLlmRemove() {
   CoreConfig config = ConfigManager::Get().Load();
   auto &providers = config.llm.providers;
   auto it = std::find_if(providers.begin(), providers.end(), [&](const LlmProvider &p) { return p.id == provider_name.toStdString(); });
+  int cleared_scene_refs = 0;
   if (it != providers.end()) {
       providers.erase(it);
+      vinput::scene::Config sc = ToSceneConfig(config.scenes);
+      cleared_scene_refs =
+          vinput::scene::ClearProviderReferences(&sc, provider_name.toStdString());
+      if (cleared_scene_refs > 0) {
+        FromSceneConfig(config.scenes, sc);
+      }
       if (!ConfigManager::Get().Save(config)) {
           QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
           return;
@@ -390,7 +397,15 @@ void LlmPage::onLlmRemove() {
   }
 
   refreshLlmList();
+  refreshSceneList();
   emit configChanged();
+  if (cleared_scene_refs > 0) {
+    QMessageBox::information(
+        this, tr("Scenes Updated"),
+        tr("Removed provider '%1' and cleared it from %2 scene(s).")
+            .arg(provider_name)
+            .arg(cleared_scene_refs));
+  }
 }
 
 void LlmPage::onLlmTest() {

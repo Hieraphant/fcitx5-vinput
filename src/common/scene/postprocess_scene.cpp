@@ -212,4 +212,21 @@ bool SetActiveScene(Config *config, const std::string &id, std::string *error) {
   return true;
 }
 
+int ClearProviderReferences(Config *config, std::string_view provider_id) {
+  if (!config || provider_id.empty()) {
+    return 0;
+  }
+
+  int updated = 0;
+  for (auto &scene : config->scenes) {
+    if (scene.provider_id != provider_id) {
+      continue;
+    }
+    scene.provider_id.clear();
+    scene.model.clear();
+    ++updated;
+  }
+  return updated;
+}
+
 } // namespace vinput::scene

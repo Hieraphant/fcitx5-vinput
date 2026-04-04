@@ -48,5 +48,6 @@ bool UpdateScene(Config *config, const std::string &id, const Definition &def,
 bool RemoveScene(Config *config, const std::string &id, bool force,
                  std::string *error);
 bool SetActiveScene(Config *config, const std::string &id, std::string *error);
+int ClearProviderReferences(Config *config, std::string_view provider_id);
 
 } // namespace vinput::scene
