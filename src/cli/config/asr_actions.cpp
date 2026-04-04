@@ -12,8 +12,9 @@
 #include "cli/utils/editor_utils.h"
 #include "cli/utils/resource_utils.h"
 #include "common/config/core_config.h"
-#include "common/i18n.h"
 #include "common/asr/model_manager.h"
+#include "common/dbus/asr_backend_state_utils.h"
+#include "common/i18n.h"
 #include "common/registry/registry_i18n.h"
 #include "common/registry/registry_models.h"
 #include "common/registry/registry_scripts.h"
@@ -25,6 +26,42 @@ namespace {
 
 bool IsCommandProvider(const AsrProvider &provider) {
   return std::holds_alternative<CommandAsrProvider>(provider);
+}
+
+void ReportAsrRuntimeReloadStatus(const CoreConfig &config, Formatter &fmt,
+                                  vinput::cli::DbusClient &dbus) {
+  vinput::dbus::AsrBackendState state;
+  std::string error;
+  if (!dbus.GetAsrBackendState(&state, &error)) {
+    if (!error.empty()) {
+      fmt.PrintWarning(vinput::str::FmtStr(
+          _("Config saved, but failed to confirm ASR runtime state: %s"),
+          error));
+    }
+    return;
+  }
+
+  switch (vinput::dbus::ClassifyRequestedAsrBackend(
+      state, config.asr.activeProvider, ResolvePreferredLocalModel(config))) {
+  case vinput::dbus::RequestedAsrBackendStatus::kReloadInProgress:
+    fmt.PrintInfo(_("Config saved and ASR backend reload is in progress."));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kApplied:
+    fmt.PrintInfo(_("Config saved and ASR runtime applied the requested backend."));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kFailedStillUsingPrevious:
+    fmt.PrintWarning(
+        _("Config saved, but ASR runtime is still using the previous backend."));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kFailedNoUsableBackend:
+    fmt.PrintWarning(
+        _("Config saved, but no usable ASR backend is active."));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kConfigSaved:
+  case vinput::dbus::RequestedAsrBackendStatus::kUnknown:
+    fmt.PrintInfo(_("Config saved. ASR runtime state is updating."));
+    break;
+  }
 }
 
 bool SaveAsrConfigAndReload(const CoreConfig &config, Formatter &fmt) {
@@ -44,7 +81,9 @@ bool SaveAsrConfigAndReload(const CoreConfig &config, Formatter &fmt) {
   if (!dbus.ReloadAsrBackend(&error)) {
     fmt.PrintWarning(vinput::str::FmtStr(
         _("Config saved, but failed to reload ASR backend: %s"), error));
+    return true;
   }
+  ReportAsrRuntimeReloadStatus(config, fmt, dbus);
   return true;
 }
 
@@ -254,7 +293,8 @@ int RunAsrConfigUse(const std::string &id, Formatter &fmt,
   if (!SaveAsrConfigAndReload(config, fmt)) {
     return 1;
   }
-  fmt.PrintSuccess(vinput::str::FmtStr(_("Active ASR provider set to '%s'."), id));
+  fmt.PrintSuccess(
+      vinput::str::FmtStr(_("Configured ASR provider set to '%s'."), id));
   return 0;
 }
 
@@ -670,7 +710,7 @@ int RunAsrConfigUseModel(const std::string &selector, Formatter &fmt,
   }
 
   fmt.PrintSuccess(
-      vinput::str::FmtStr(_("Active local model set to '%s'."), selector));
+      vinput::str::FmtStr(_("Preferred local model set to '%s'."), selector));
   return 0;
 }
 

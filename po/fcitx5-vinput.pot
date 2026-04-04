@@ -257,6 +257,16 @@ msgid "ASR switch requested for '%s'."
 msgstr ""
 
 #, c-format
+msgid ""
+"Saved ASR selection '%s', but the runtime is still using the previous "
+"backend."
+msgstr ""
+
+#, c-format
+msgid "Saved ASR selection '%s', but no usable ASR backend is active."
+msgstr ""
+
+#, c-format
 msgid "Choose Result (%zu)"
 msgstr ""
 
@@ -318,7 +328,26 @@ msgid "ASR provider '%s' removed."
 msgstr ""
 
 #, c-format
-msgid "Active ASR provider set to '%s'."
+msgid "Config saved, but failed to confirm ASR runtime state: %s"
+msgstr ""
+
+#, c-format
+msgid "Configured ASR provider set to '%s'."
+msgstr ""
+
+msgid "Config saved and ASR backend reload is in progress."
+msgstr ""
+
+msgid "Config saved and ASR runtime applied the requested backend."
+msgstr ""
+
+msgid "Config saved, but ASR runtime is still using the previous backend."
+msgstr ""
+
+msgid "Config saved, but no usable ASR backend is active."
+msgstr ""
+
+msgid "Config saved. ASR runtime state is updating."
 msgstr ""
 
 msgid ""
@@ -407,7 +436,7 @@ msgid "Model '%s' is not valid: %s"
 msgstr ""
 
 #, c-format
-msgid "Active local model set to '%s'."
+msgid "Preferred local model set to '%s'."
 msgstr ""
 
 msgid "FIELD"

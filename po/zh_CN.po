@@ -259,12 +259,39 @@ msgid "ASR switch requested for '%s'."
 msgstr "已请求切换 ASR 到 '%s'。"
 
 #, c-format
+msgid "Saved ASR selection '%s', but the runtime is still using the previous backend."
+msgstr "已保存 ASR 选择 '%s'，但运行时仍在使用之前的后端。"
+
+#, c-format
+msgid "Saved ASR selection '%s', but no usable ASR backend is active."
+msgstr "已保存 ASR 选择 '%s'，但当前没有可用的 ASR 后端处于活动状态。"
+
+#, c-format
 msgid "Config saved, but ASR backend reload was skipped: %s"
 msgstr "配置已保存，但 ASR 后端重载已跳过：%s"
 
 #, c-format
 msgid "Config saved, but failed to reload ASR backend: %s"
 msgstr "配置已保存，但重新加载 ASR 后端失败：%s"
+
+#, c-format
+msgid "Config saved, but failed to confirm ASR runtime state: %s"
+msgstr "配置已保存，但确认 ASR 运行时状态失败：%s"
+
+msgid "Config saved and ASR backend reload is in progress."
+msgstr "配置已保存，ASR 后端正在重新加载。"
+
+msgid "Config saved and ASR runtime applied the requested backend."
+msgstr "配置已保存，ASR 运行时已应用请求的后端。"
+
+msgid "Config saved, but ASR runtime is still using the previous backend."
+msgstr "配置已保存，但 ASR 运行时仍在使用之前的后端。"
+
+msgid "Config saved, but no usable ASR backend is active."
+msgstr "配置已保存，但当前没有可用的 ASR 后端处于活动状态。"
+
+msgid "Config saved. ASR runtime state is updating."
+msgstr "配置已保存。ASR 运行时状态正在更新。"
 
 #, c-format
 msgid "Choose Result (%zu)"
@@ -328,8 +355,8 @@ msgid "ASR provider '%s' removed."
 msgstr "ASR 提供商 '%s' 已移除。"
 
 #, c-format
-msgid "Active ASR provider set to '%s'."
-msgstr "当前 ASR 提供商已设为 '%s'。"
+msgid "Configured ASR provider set to '%s'."
+msgstr "配置中的 ASR 提供商已设为 '%s'。"
 
 msgid ""
 "No ASR provider registry base URLs configured. Edit config.json and set "
@@ -420,8 +447,8 @@ msgid "Model '%s' is not valid: %s"
 msgstr "模型 '%s' 无效：%s"
 
 #, c-format
-msgid "Active local model set to '%s'."
-msgstr "当前本地模型已设为 '%s'。"
+msgid "Preferred local model set to '%s'."
+msgstr "首选本地模型已设为 '%s'。"
 
 msgid "FIELD"
 msgstr "字段"

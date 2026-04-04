@@ -4,6 +4,7 @@
 #include "common/asr/model_manager.h"
 #include "common/i18n.h"
 #include "common/registry/registry_i18n.h"
+#include "common/dbus/asr_backend_state_utils.h"
 #include "common/scene/postprocess_scene.h"
 #include "common/utils/string_utils.h"
 #include <fcitx/candidatelist.h>
@@ -1026,19 +1027,38 @@ void VinputEngine::selectAsrItem(std::size_t index, fcitx::InputContext *ic) {
   hideAsrMenu();
   vinput::dbus::AsrBackendState backend_state;
   const bool have_backend_state = queryAsrBackendState(&backend_state);
-  if (have_backend_state && backend_state.reload_in_progress &&
-      backend_state.target_provider_id == item.provider_id &&
-      backend_state.target_model_id == item.model_id) {
-    notifyInfo(vinput::str::FmtStr(_("Switching ASR to '%s'."),
-                                   item.display_label.c_str()));
-  } else if (have_backend_state &&
-             backend_state.effective_provider_id == item.provider_id &&
-             backend_state.effective_model_id == item.model_id) {
-    notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
-                                   item.display_label.c_str()));
-  } else {
+  if (!have_backend_state) {
     notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
                                    item.display_label.c_str()));
+    (void)ic;
+    return;
+  }
+
+  switch (vinput::dbus::ClassifyRequestedAsrBackend(
+      backend_state, item.provider_id, item.model_id)) {
+  case vinput::dbus::RequestedAsrBackendStatus::kReloadInProgress:
+    notifyInfo(vinput::str::FmtStr(_("Switching ASR to '%s'."),
+                                   item.display_label.c_str()));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kApplied:
+    notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
+                                   item.display_label.c_str()));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kFailedStillUsingPrevious:
+    notifyWarning(vinput::str::FmtStr(
+        _("Saved ASR selection '%s', but the runtime is still using the previous backend."),
+        item.display_label.c_str()));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kFailedNoUsableBackend:
+    notifyWarning(vinput::str::FmtStr(
+        _("Saved ASR selection '%s', but no usable ASR backend is active."),
+        item.display_label.c_str()));
+    break;
+  case vinput::dbus::RequestedAsrBackendStatus::kConfigSaved:
+  case vinput::dbus::RequestedAsrBackendStatus::kUnknown:
+    notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
+                                   item.display_label.c_str()));
+    break;
   }
   (void)ic;
 }
