@@ -119,6 +119,14 @@
         <translation>运行中：%1</translation>
     </message>
     <message>
+        <source>Running: %1 (loading backend)</source>
+        <translation>运行中：%1（后端加载中）</translation>
+    </message>
+    <message>
+        <source>Running: %1 (backend error)</source>
+        <translation>运行中：%1（后端错误）</translation>
+    </message>
+    <message>
         <source>Additional Install Required</source>
         <translation>需要额外配置</translation>
     </message>
@@ -273,6 +281,14 @@ Please follow the instructions.</source>
     <message>
         <source>Adapter &apos;%1&apos; started.</source>
         <translation>适配器&quot;%1&quot;已启动。</translation>
+    </message>
+    <message>
+        <source>Scenes Updated</source>
+        <translation>场景已更新</translation>
+    </message>
+    <message>
+        <source>Removed provider &apos;%1&apos; and cleared it from %2 scene(s).</source>
+        <translation>已移除提供商&quot;%1&quot;，并从 %2 个场景中清除了它的引用。</translation>
     </message>
     <message>
         <source>Add Scene</source>
