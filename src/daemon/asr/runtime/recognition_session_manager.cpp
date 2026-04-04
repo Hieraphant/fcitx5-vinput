@@ -12,6 +12,50 @@ namespace vinput::daemon::asr {
 
 namespace {
 
+class BackendKeepingSession : public RecognitionSession {
+public:
+  BackendKeepingSession(std::shared_ptr<AsrBackend> backend,
+                        std::unique_ptr<RecognitionSession> session)
+      : backend_(std::move(backend)), session_(std::move(session)) {}
+
+  bool PushAudio(std::span<const int16_t> pcm, std::string *error) override {
+    if (!session_) {
+      if (error) {
+        *error = "Recognition session is not initialized.";
+      }
+      return false;
+    }
+    return session_->PushAudio(pcm, error);
+  }
+
+  bool Finish(std::string *error) override {
+    if (!session_) {
+      if (error) {
+        *error = "Recognition session is not initialized.";
+      }
+      return false;
+    }
+    return session_->Finish(error);
+  }
+
+  void Cancel() override {
+    if (session_) {
+      session_->Cancel();
+    }
+  }
+
+  std::vector<RecognitionEvent> PollEvents() override {
+    if (!session_) {
+      return {};
+    }
+    return session_->PollEvents();
+  }
+
+private:
+  std::shared_ptr<AsrBackend> backend_;
+  std::unique_ptr<RecognitionSession> session_;
+};
+
 bool ShouldDisableAsr(const CoreConfig &config, bool disable_asr_by_flag,
                       std::string *reason) {
   if (disable_asr_by_flag) {
@@ -324,7 +368,8 @@ bool RecognitionSessionManager::CreatePreparedBackend(
   LogActiveBackend(settings);
   const auto prepare_started_at = std::chrono::steady_clock::now();
   std::string create_error;
-  auto backend = CreateBackend(settings, &create_error);
+  auto backend =
+      std::shared_ptr<AsrBackend>(CreateBackend(settings, &create_error).release());
   if (!backend) {
     if (error) {
       *error = std::move(create_error);
@@ -415,26 +460,48 @@ bool RecognitionSessionManager::CreateSessionFromEffectiveBackend(
     return false;
   }
 
-  std::lock_guard<std::mutex> lock(state_mutex_);
-  if (!effective_backend_) {
-    if (error) {
-      if (!last_reload_error_.empty()) {
-        *error = last_reload_error_;
-      } else if (reload_in_progress_) {
-        *error = "ASR backend is still loading.";
-      } else {
+  std::shared_ptr<AsrBackend> backend;
+  BackendDescriptor local_descriptor;
+  bool have_descriptor = false;
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    if (!effective_backend_) {
+      if (error) {
+        if (!last_reload_error_.empty()) {
+          *error = last_reload_error_;
+        } else if (reload_in_progress_) {
+          *error = "ASR backend is still loading.";
+        } else {
+          *error = "ASR backend is not ready.";
+        }
+      }
+      return false;
+    }
+
+    if (descriptor && has_effective_descriptor_) {
+      local_descriptor = effective_descriptor_;
+      have_descriptor = true;
+    }
+    backend = effective_backend_;
+    if (!backend) {
+      if (error) {
         *error = "ASR backend is not ready.";
       }
+      return false;
     }
+  }
+
+  if (descriptor && have_descriptor) {
+    *descriptor = std::move(local_descriptor);
+  }
+
+  auto backend_session = backend->CreateSession(error);
+  if (!backend_session) {
     return false;
   }
-
-  if (descriptor && has_effective_descriptor_) {
-    *descriptor = effective_descriptor_;
-  }
-
-  *session = effective_backend_->CreateSession(error);
-  return static_cast<bool>(*session);
+  *session = std::make_unique<BackendKeepingSession>(std::move(backend),
+                                                     std::move(backend_session));
+  return true;
 }
 
 void RecognitionSessionManager::EnsureReloadWorkerStarted() {

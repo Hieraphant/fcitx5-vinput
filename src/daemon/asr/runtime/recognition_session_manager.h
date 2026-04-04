@@ -55,7 +55,7 @@ public:
 
 private:
   struct PreparedBackend {
-    std::unique_ptr<AsrBackend> backend;
+    std::shared_ptr<AsrBackend> backend;
     BackendDescriptor descriptor;
     std::string provider_id;
     std::string model_id;
@@ -90,7 +90,7 @@ private:
   std::string target_provider_id_;
   std::string target_model_id_;
   std::string target_backend_signature_;
-  std::unique_ptr<AsrBackend> effective_backend_;
+  std::shared_ptr<AsrBackend> effective_backend_;
   BackendDescriptor effective_descriptor_;
   bool has_effective_descriptor_ = false;
   std::string effective_provider_id_;
