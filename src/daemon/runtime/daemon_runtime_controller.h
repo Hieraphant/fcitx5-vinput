@@ -33,6 +33,7 @@ public:
   DbusService::MethodResult StopRecording(const std::string &scene_id);
   DbusService::MethodResult ReloadAsrBackend();
   std::string GetStatus() const;
+  vinput::dbus::AsrBackendState GetAsrBackendState() const;
 
   void StartWorker();
   void Shutdown();

@@ -538,6 +538,10 @@ int main(int argc, char *argv[]) {
   });
 
   dbus.SetStatusHandler([&]() -> std::string { return runtime_controller.GetStatus(); });
+  dbus.SetAsrBackendStateHandler(
+      [&]() -> vinput::dbus::AsrBackendState {
+        return runtime_controller.GetAsrBackendState();
+      });
   dbus.SetReloadAsrBackendHandler([&]() {
     return runtime_controller.ReloadAsrBackend();
   });

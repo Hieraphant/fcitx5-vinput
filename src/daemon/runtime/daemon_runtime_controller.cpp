@@ -467,6 +467,20 @@ std::string DaemonRuntimeController::GetStatus() const {
   return vinput::dbus::StatusToString(phase_);
 }
 
+vinput::dbus::AsrBackendState DaemonRuntimeController::GetAsrBackendState()
+    const {
+  const auto snapshot = recognition_manager_->GetReloadSnapshot();
+  return vinput::dbus::AsrBackendState{
+      .target_provider_id = snapshot.target_provider_id,
+      .target_model_id = snapshot.target_model_id,
+      .effective_provider_id = snapshot.effective_provider_id,
+      .effective_model_id = snapshot.effective_model_id,
+      .last_error = snapshot.last_error,
+      .reload_in_progress = snapshot.reload_in_progress,
+      .has_effective_backend = snapshot.has_effective_backend,
+  };
+}
+
 void DaemonRuntimeController::StartWorker() {
   if (worker_running_) {
     return;

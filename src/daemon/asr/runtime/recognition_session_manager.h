@@ -24,6 +24,10 @@ struct RecognitionRunResult {
 class RecognitionSessionManager {
 public:
   struct ReloadSnapshot {
+    std::string target_provider_id;
+    std::string target_model_id;
+    std::string effective_provider_id;
+    std::string effective_model_id;
     std::string target_signature;
     std::string effective_signature;
     std::string last_error;
@@ -53,6 +57,8 @@ private:
   struct PreparedBackend {
     std::unique_ptr<AsrBackend> backend;
     BackendDescriptor descriptor;
+    std::string provider_id;
+    std::string model_id;
     std::string signature;
   };
 
@@ -81,10 +87,14 @@ private:
   bool reload_requested_ = false;
   bool reload_in_progress_ = false;
   CoreConfig pending_settings_;
+  std::string target_provider_id_;
+  std::string target_model_id_;
   std::string target_backend_signature_;
   std::unique_ptr<AsrBackend> effective_backend_;
   BackendDescriptor effective_descriptor_;
   bool has_effective_descriptor_ = false;
+  std::string effective_provider_id_;
+  std::string effective_model_id_;
   std::string effective_backend_signature_;
   std::string last_reload_error_;
   std::thread reload_worker_;

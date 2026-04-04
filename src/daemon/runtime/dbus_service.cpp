@@ -51,6 +51,9 @@ static const sd_bus_vtable vtable[] = {
                   SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD(kMethodGetStatus, "", "s", &DbusService::handleGetStatus,
                   SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD(kMethodGetAsrBackendState, "", "sssssbb",
+                  &DbusService::handleGetAsrBackendState,
+                  SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD(kMethodReloadAsrBackend, "", "",
                   &DbusService::handleReloadAsrBackend,
                   SD_BUS_VTABLE_UNPRIVILEGED),
@@ -205,6 +208,11 @@ void DbusService::SetStatusHandler(std::function<std::string()> handler) {
   status_handler_ = std::move(handler);
 }
 
+void DbusService::SetAsrBackendStateHandler(
+    std::function<vinput::dbus::AsrBackendState()> handler) {
+  asr_backend_state_handler_ = std::move(handler);
+}
+
 void DbusService::SetReloadAsrBackendHandler(
     std::function<MethodResult()> handler) {
   reload_asr_backend_handler_ = std::move(handler);
@@ -275,6 +283,21 @@ int DbusService::handleGetStatus(sd_bus_message *m, void *userdata,
     status = self->status_handler_();
   }
   return sd_bus_reply_method_return(m, "s", status.c_str());
+}
+
+int DbusService::handleGetAsrBackendState(sd_bus_message *m, void *userdata,
+                                          sd_bus_error *error) {
+  (void)error;
+  auto *self = static_cast<DbusService *>(userdata);
+  vinput::dbus::AsrBackendState state;
+  if (self->asr_backend_state_handler_) {
+    state = self->asr_backend_state_handler_();
+  }
+  return sd_bus_reply_method_return(
+      m, "sssssbb", state.target_provider_id.c_str(),
+      state.target_model_id.c_str(), state.effective_provider_id.c_str(),
+      state.effective_model_id.c_str(), state.last_error.c_str(),
+      state.reload_in_progress ? 1 : 0, state.has_effective_backend ? 1 : 0);
 }
 
 int DbusService::handleReloadAsrBackend(sd_bus_message *m, void *userdata,

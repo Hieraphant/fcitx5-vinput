@@ -126,6 +126,9 @@ bool RecognitionSessionManager::SynchronizeBackend(const CoreConfig &settings,
     std::lock_guard<std::mutex> lock(state_mutex_);
     if (effective_backend_ && effective_backend_signature_ == signature &&
         !reload_in_progress_) {
+      const AsrProvider *provider = ResolveActiveAsrProvider(settings);
+      target_provider_id_ = provider ? AsrProviderId(*provider) : std::string{};
+      target_model_id_ = ResolvePreferredLocalModel(settings);
       target_backend_signature_ = signature;
       last_reload_error_.clear();
       if (error) {
@@ -135,6 +138,9 @@ bool RecognitionSessionManager::SynchronizeBackend(const CoreConfig &settings,
     }
 
     pending_settings_ = settings;
+    const AsrProvider *provider = ResolveActiveAsrProvider(settings);
+    target_provider_id_ = provider ? AsrProviderId(*provider) : std::string{};
+    target_model_id_ = ResolvePreferredLocalModel(settings);
     target_backend_signature_ = signature;
     reload_requested_ = true;
     last_reload_error_.clear();
@@ -238,6 +244,10 @@ RecognitionSessionManager::ReloadSnapshot
 RecognitionSessionManager::GetReloadSnapshot() const {
   std::lock_guard<std::mutex> lock(state_mutex_);
   return ReloadSnapshot{
+      .target_provider_id = target_provider_id_,
+      .target_model_id = target_model_id_,
+      .effective_provider_id = effective_provider_id_,
+      .effective_model_id = effective_model_id_,
       .target_signature = target_backend_signature_,
       .effective_signature = effective_backend_signature_,
       .last_error = last_reload_error_,
@@ -265,6 +275,8 @@ void RecognitionSessionManager::Shutdown() {
 
   std::lock_guard<std::mutex> lock(state_mutex_);
   ResetEffectiveBackendLocked();
+  target_provider_id_.clear();
+  target_model_id_.clear();
   target_backend_signature_.clear();
   last_reload_error_.clear();
 }
@@ -304,6 +316,8 @@ bool RecognitionSessionManager::CreatePreparedBackend(
 
   prepared->backend = std::move(backend);
   prepared->descriptor = descriptor;
+  prepared->provider_id = descriptor.provider_id;
+  prepared->model_id = ResolvePreferredLocalModel(settings);
   prepared->signature = BuildRuntimeSignature(settings);
   if (error) {
     error->clear();
@@ -325,7 +339,11 @@ bool RecognitionSessionManager::ActivatePreparedBackend(
     effective_backend_ = std::move(prepared.backend);
     effective_descriptor_ = std::move(prepared.descriptor);
     has_effective_descriptor_ = true;
+    effective_provider_id_ = std::move(prepared.provider_id);
+    effective_model_id_ = std::move(prepared.model_id);
     effective_backend_signature_ = std::move(prepared.signature);
+    target_provider_id_ = effective_provider_id_;
+    target_model_id_ = effective_model_id_;
     target_backend_signature_ = effective_backend_signature_;
     last_reload_error_.clear();
   }
@@ -417,6 +435,8 @@ void RecognitionSessionManager::ReloadWorkerMain() {
         effective_backend_ = std::move(prepared.backend);
         effective_descriptor_ = std::move(prepared.descriptor);
         has_effective_descriptor_ = true;
+        effective_provider_id_ = std::move(prepared.provider_id);
+        effective_model_id_ = std::move(prepared.model_id);
         effective_backend_signature_ = std::move(prepared.signature);
         last_reload_error_.clear();
         reload_in_progress_ = false;
@@ -441,11 +461,15 @@ void RecognitionSessionManager::ResetEffectiveBackendLocked() {
   effective_backend_.reset();
   has_effective_descriptor_ = false;
   effective_descriptor_ = {};
+  effective_provider_id_.clear();
+  effective_model_id_.clear();
   effective_backend_signature_.clear();
 }
 
 void RecognitionSessionManager::ApplyDisabledStateLocked() {
   pending_settings_ = {};
+  target_provider_id_.clear();
+  target_model_id_.clear();
   target_backend_signature_.clear();
   last_reload_error_.clear();
   reload_requested_ = false;

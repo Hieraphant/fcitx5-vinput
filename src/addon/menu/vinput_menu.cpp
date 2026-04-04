@@ -689,8 +689,18 @@ void VinputEngine::selectScene(std::size_t index, fcitx::InputContext *ic) {
 void VinputEngine::reloadAsrMenuItems() {
   asr_menu_items_.clear();
   auto core_config = LoadCoreConfig();
-  const std::string &active_provider = core_config.asr.activeProvider;
-  const std::string active_model = ResolvePreferredLocalModel(core_config);
+  const std::string configured_provider = core_config.asr.activeProvider;
+  const std::string configured_model = ResolvePreferredLocalModel(core_config);
+  vinput::dbus::AsrBackendState backend_state;
+  const bool have_backend_state = queryAsrBackendState(&backend_state);
+  const std::string active_provider =
+      have_backend_state && !backend_state.effective_provider_id.empty()
+          ? backend_state.effective_provider_id
+          : configured_provider;
+  const std::string active_model =
+      have_backend_state && !backend_state.effective_model_id.empty()
+          ? backend_state.effective_model_id
+          : configured_model;
   const auto i18n_map = vinput::registry::FetchMergedI18nMap(
       core_config, vinput::registry::DetectPreferredLocale(), nullptr);
 
@@ -709,6 +719,12 @@ void VinputEngine::reloadAsrMenuItems() {
         const std::string model_title = vinput::registry::LookupI18n(
             i18n_map, summary.id + ".title", summary.id);
         std::string label = model_title + " [local]";
+        if (have_backend_state && backend_state.reload_in_progress &&
+            pid == backend_state.target_provider_id &&
+            summary.id == backend_state.target_model_id &&
+            ((pid != active_provider) || (summary.id != active_model))) {
+          label += " (loading)";
+        }
         asr_menu_items_.push_back(AsrMenuItem{
             .provider_id = pid,
             .model_id = summary.id,
@@ -722,6 +738,11 @@ void VinputEngine::reloadAsrMenuItems() {
       // Command provider — one row
       const bool item_active = (pid == active_provider);
       std::string label = provider_title + " [command]";
+      if (have_backend_state && backend_state.reload_in_progress &&
+          pid == backend_state.target_provider_id &&
+          ((pid != active_provider) || !backend_state.target_model_id.empty())) {
+        label += " (loading)";
+      }
       asr_menu_items_.push_back(AsrMenuItem{
           .provider_id = pid,
           .model_id = {},
@@ -993,14 +1014,32 @@ void VinputEngine::selectAsrItem(std::size_t index, fcitx::InputContext *ic) {
     hideAsrMenu();
     return;
   }
-  if (!queryDaemonStatus().empty() && !callReloadAsrBackend()) {
-    notifyError(_("Failed to reload ASR backend."));
-    hideAsrMenu();
-    return;
+  if (!queryDaemonStatus().empty()) {
+    std::string reload_error;
+    if (!callReloadAsrBackend(&reload_error)) {
+      notifyError(reload_error.empty() ? _("Failed to reload ASR backend.")
+                                       : reload_error);
+      hideAsrMenu();
+      return;
+    }
   }
   hideAsrMenu();
-  notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
-                                 item.display_label.c_str()));
+  vinput::dbus::AsrBackendState backend_state;
+  const bool have_backend_state = queryAsrBackendState(&backend_state);
+  if (have_backend_state && backend_state.reload_in_progress &&
+      backend_state.target_provider_id == item.provider_id &&
+      backend_state.target_model_id == item.model_id) {
+    notifyInfo(vinput::str::FmtStr(_("Switching ASR to '%s'."),
+                                   item.display_label.c_str()));
+  } else if (have_backend_state &&
+             backend_state.effective_provider_id == item.provider_id &&
+             backend_state.effective_model_id == item.model_id) {
+    notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
+                                   item.display_label.c_str()));
+  } else {
+    notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
+                                   item.display_label.c_str()));
+  }
   (void)ic;
 }
 

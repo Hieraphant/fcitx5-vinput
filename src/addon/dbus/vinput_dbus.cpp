@@ -450,15 +450,79 @@ std::string VinputEngine::queryDaemonStatus() const {
   return status;
 }
 
-bool VinputEngine::callReloadAsrBackend() {
+bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
+                                        std::string *error) const {
   if (!bus_) {
+    if (error) {
+      *error = "D-Bus is unavailable.";
+    }
+    return false;
+  }
+
+  auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
+                                    kMethodGetAsrBackendState);
+  auto reply = msg.call(kDaemonCallTimeoutUsec);
+  if (!reply || reply.isError()) {
+    if (error) {
+      *error = reply ? reply.errorMessage() : _("Failed to contact vinput-daemon.");
+      if (error->empty()) {
+        *error = _("Failed to query ASR backend state.");
+      }
+    }
+    return false;
+  }
+
+  std::tuple<std::string, std::string, std::string, std::string, std::string,
+             bool, bool>
+      payload;
+  reply >> payload;
+  if (state) {
+    state->target_provider_id = std::move(std::get<0>(payload));
+    state->target_model_id = std::move(std::get<1>(payload));
+    state->effective_provider_id = std::move(std::get<2>(payload));
+    state->effective_model_id = std::move(std::get<3>(payload));
+    state->last_error = std::move(std::get<4>(payload));
+    state->reload_in_progress = std::get<5>(payload);
+    state->has_effective_backend = std::get<6>(payload);
+  }
+  if (error) {
+    error->clear();
+  }
+  return true;
+}
+
+bool VinputEngine::callReloadAsrBackend(std::string *error) {
+  if (!bus_) {
+    if (error) {
+      *error = "D-Bus is unavailable.";
+    }
     return false;
   }
 
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodReloadAsrBackend);
   auto reply = msg.call(kDaemonCallTimeoutUsec);
-  return reply && !reply.isError();
+  if (!reply) {
+    if (error) {
+      *error = _("Failed to contact vinput-daemon.");
+    }
+    return false;
+  }
+
+  if (reply.isError()) {
+    if (error) {
+      *error = reply.errorMessage();
+      if (error->empty()) {
+        *error = _("Failed to reload ASR backend.");
+      }
+    }
+    return false;
+  }
+
+  if (error) {
+    error->clear();
+  }
+  return true;
 }
 
 void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic,

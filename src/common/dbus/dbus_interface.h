@@ -17,6 +17,7 @@ constexpr const char *kMethodStartRecording = "StartRecording";
 constexpr const char *kMethodStartCommandRecording = "StartCommandRecording";
 constexpr const char *kMethodStopRecording = "StopRecording";
 constexpr const char *kMethodGetStatus = "GetStatus";
+constexpr const char *kMethodGetAsrBackendState = "GetAsrBackendState";
 constexpr const char *kMethodReloadAsrBackend = "ReloadAsrBackend";
 constexpr const char *kMethodStartAdapter = "StartAdapter";
 constexpr const char *kMethodStopAdapter = "StopAdapter";
@@ -36,6 +37,16 @@ constexpr const char *kStatusPostprocessing = "postprocessing";
 constexpr const char *kStatusError = "error";
 
 enum class Status { Idle, Recording, Inferring, Postprocessing, Error };
+
+struct AsrBackendState {
+  std::string target_provider_id;
+  std::string target_model_id;
+  std::string effective_provider_id;
+  std::string effective_model_id;
+  std::string last_error;
+  bool reload_in_progress = false;
+  bool has_effective_backend = false;
+};
 
 inline const char *StatusToString(Status s) {
   switch (s) {

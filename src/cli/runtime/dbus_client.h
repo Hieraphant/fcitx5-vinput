@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/dbus/dbus_interface.h"
 #include "common/dbus/error_info.h"
 
 #include <string>
@@ -18,6 +19,8 @@ public:
 
     bool IsDaemonRunning(std::string* error = nullptr);
     bool GetDaemonStatus(std::string* status, std::string* error = nullptr);
+    bool GetAsrBackendState(vinput::dbus::AsrBackendState* state,
+                            std::string* error = nullptr);
 
     bool StartRecording(std::string* error = nullptr);
     bool StartCommandRecording(const std::string& selected_text, std::string* error = nullptr);

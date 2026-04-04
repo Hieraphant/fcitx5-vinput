@@ -17,6 +17,7 @@
 #include "common/asr/model_manager.h"
 #include "common/asr/recognition_result.h"
 #include "common/config/vinput_config.h"
+#include "common/dbus/dbus_interface.h"
 #include "common/dbus/error_info.h"
 
 class VinputNotifierDBusObject;
@@ -69,7 +70,7 @@ private:
   bool callStartRecording();
   bool callStartCommandRecording(const std::string &selected_text);
   bool callStopRecording(const std::string &scene_id);
-  bool callReloadAsrBackend();
+  bool callReloadAsrBackend(std::string *error = nullptr);
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onRecognitionPartial(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
@@ -79,6 +80,8 @@ private:
   void notifyError(const std::string &message);
   void notifyInfo(const std::string &message);
   std::string queryDaemonStatus() const;
+  bool queryAsrBackendState(vinput::dbus::AsrBackendState *state,
+                            std::string *error = nullptr) const;
   void ensureStatusSync();
   void stopStatusSyncIfIdle();
   void enterRecordingState(fcitx::InputContext *ic, const fcitx::Key &trigger,

@@ -360,7 +360,22 @@ void ControlPage::refreshDaemonStatus() {
   if (!dbus.GetDaemonStatus(&status, &err)) {
       lblDaemonStatus_->setText(tr("Running (Status Error: %1)").arg(QString::fromStdString(err)));
   } else {
-      lblDaemonStatus_->setText(tr("Running: %1").arg(QString::fromStdString(status)));
+      vinput::dbus::AsrBackendState backend_state;
+      std::string state_error;
+      const bool have_backend_state =
+          dbus.GetAsrBackendState(&backend_state, &state_error);
+      if (have_backend_state && backend_state.reload_in_progress) {
+          lblDaemonStatus_->setText(
+              tr("Running: %1 (loading backend)")
+                  .arg(QString::fromStdString(status)));
+      } else if (have_backend_state && !backend_state.last_error.empty()) {
+          lblDaemonStatus_->setText(
+              tr("Running: %1 (backend error)")
+                  .arg(QString::fromStdString(status)));
+      } else {
+          lblDaemonStatus_->setText(
+              tr("Running: %1").arg(QString::fromStdString(status)));
+      }
   }
   btnDaemonStart_->setEnabled(false);
   btnDaemonStop_->setEnabled(true);

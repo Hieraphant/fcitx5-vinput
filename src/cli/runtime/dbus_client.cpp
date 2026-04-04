@@ -88,6 +88,60 @@ bool DbusClient::GetDaemonStatus(std::string* status, std::string* error) {
     return true;
 }
 
+bool DbusClient::GetAsrBackendState(vinput::dbus::AsrBackendState* state,
+                                    std::string* error) {
+    if (!bus_) {
+        if (error) *error = "D-Bus not connected";
+        return false;
+    }
+
+    sd_bus_error err = SD_BUS_ERROR_NULL;
+    sd_bus_message* reply = nullptr;
+
+    int r = sd_bus_call_method(bus_,
+        vinput::dbus::kBusName,
+        vinput::dbus::kObjectPath,
+        vinput::dbus::kInterface,
+        vinput::dbus::kMethodGetAsrBackendState,
+        &err, &reply, "");
+
+    if (r < 0) {
+        if (error) {
+            *error = err.message ? err.message : "D-Bus call failed";
+        }
+        sd_bus_error_free(&err);
+        if (reply) sd_bus_message_unref(reply);
+        return false;
+    }
+
+    const char* target_provider = "";
+    const char* target_model = "";
+    const char* effective_provider = "";
+    const char* effective_model = "";
+    const char* last_error = "";
+    int reload_in_progress = 0;
+    int has_effective_backend = 0;
+    sd_bus_message_read(reply, "sssssbb", &target_provider, &target_model,
+                        &effective_provider, &effective_model, &last_error,
+                        &reload_in_progress, &has_effective_backend);
+    if (state) {
+        state->target_provider_id = target_provider ? target_provider : "";
+        state->target_model_id = target_model ? target_model : "";
+        state->effective_provider_id = effective_provider ? effective_provider : "";
+        state->effective_model_id = effective_model ? effective_model : "";
+        state->last_error = last_error ? last_error : "";
+        state->reload_in_progress = reload_in_progress != 0;
+        state->has_effective_backend = has_effective_backend != 0;
+    }
+
+    sd_bus_message_unref(reply);
+    sd_bus_error_free(&err);
+    if (error) {
+        error->clear();
+    }
+    return true;
+}
+
 bool DbusClient::StartRecording(std::string* error) {
     if (!bus_) {
         if (error) *error = "D-Bus not connected";
