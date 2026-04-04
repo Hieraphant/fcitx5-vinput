@@ -40,6 +40,19 @@ bool ReloadAsrBackend(std::string *error = nullptr) {
   return dbus.ReloadAsrBackend(error);
 }
 
+bool GetAsrBackendState(vinput::dbus::AsrBackendState *state,
+                        std::string *error = nullptr) {
+  vinput::cli::DbusClient dbus;
+  std::string daemon_error;
+  if (!dbus.IsDaemonRunning(&daemon_error)) {
+    if (error) {
+      *error = daemon_error;
+    }
+    return false;
+  }
+  return dbus.GetAsrBackendState(state, error);
+}
+
 template <typename Callback>
 void RunReloadAsrBackendAsync(ControlPage *page, Callback callback) {
   QPointer<ControlPage> self(page);
@@ -53,6 +66,24 @@ void RunReloadAsrBackendAsync(ControlPage *page, Callback callback) {
       callback(ok, err);
     });
   });
+}
+
+template <typename Callback>
+void RunGetAsrBackendStateAsync(ControlPage *page, Callback callback) {
+  QPointer<ControlPage> self(page);
+  QThreadPool::globalInstance()->start(
+      [self, callback = std::move(callback)]() mutable {
+        vinput::dbus::AsrBackendState state;
+        std::string err;
+        const bool ok = GetAsrBackendState(&state, &err);
+        QMetaObject::invokeMethod(
+            self, [self, callback = std::move(callback), ok, state, err]() mutable {
+              if (!self) {
+                return;
+              }
+              callback(ok, state, err);
+            });
+      });
 }
 
 }  // namespace
@@ -182,38 +213,87 @@ QString ControlPage::currentDevice() const {
 }
 
 void ControlPage::refreshAsrList() {
-  listAsrProviders_->clear();
   CoreConfig config = ConfigManager::Get().Load();
-  
+  populateAsrList(config, nullptr);
+  RunGetAsrBackendStateAsync(
+      this, [this](bool ok, const vinput::dbus::AsrBackendState &state,
+                   const std::string &) {
+        if (!ok) {
+          return;
+        }
+        populateAsrList(ConfigManager::Get().Load(), &state);
+      });
+}
+
+void ControlPage::populateAsrList(
+    const CoreConfig &config, const vinput::dbus::AsrBackendState *backend_state) {
+  const QString selected_id =
+      QString::fromStdString(config.asr.activeProvider);
+  const QString effective_id = backend_state
+                                   ? QString::fromStdString(
+                                         backend_state->effective_provider_id)
+                                   : QString{};
+  const QString target_id = backend_state
+                                ? QString::fromStdString(
+                                      backend_state->target_provider_id)
+                                : QString{};
+  const bool reload_in_progress =
+      backend_state && backend_state->reload_in_progress;
+  const bool reload_failed =
+      backend_state && !backend_state->last_error.empty();
+
+  const QString current_selection =
+      listAsrProviders_->currentItem()
+          ? listAsrProviders_->currentItem()->data(Qt::UserRole).toString()
+          : QString{};
+
+  listAsrProviders_->clear();
   auto i18n_map = I18nCache::Get().GetMap();
 
-  for (const auto& provider : config.asr.providers) {
+  for (const auto &provider : config.asr.providers) {
     QString id = QString::fromStdString(AsrProviderId(provider));
-    QString type = QString::fromStdString(std::string(AsrProviderType(provider)));
-    bool active = (id.toStdString() == config.asr.activeProvider);
-    
+    QString type =
+        QString::fromStdString(std::string(AsrProviderType(provider)));
+
     std::string id_str = id.toStdString();
     QString title = QString::fromStdString(
         vinput::registry::LookupI18n(i18n_map, id_str + ".title", id_str));
 
     QString display = title + " [" + type + "]";
-    if (const auto* local = std::get_if<LocalAsrProvider>(&provider)) {
+    if (const auto *local = std::get_if<LocalAsrProvider>(&provider)) {
       QString model = QString::fromStdString(local->model);
       if (!model.isEmpty()) {
-         model = QString::fromStdString(
-             vinput::registry::LookupI18n(i18n_map, local->model + ".title", local->model));
+        model = QString::fromStdString(vinput::registry::LookupI18n(
+            i18n_map, local->model + ".title", local->model));
       }
       display += " · " + (model.isEmpty() ? GuiTranslate("(not set)") : model);
-    } else if (const auto* command = std::get_if<CommandAsrProvider>(&provider)) {
+    } else if (const auto *command = std::get_if<CommandAsrProvider>(&provider)) {
       display += " · " + QString::fromStdString(command->command);
     }
-    if (active) {
-      display += GuiTranslate(" *");
+
+    QStringList markers;
+    if (id == selected_id) {
+      markers << tr("configured");
+    }
+    if (id == effective_id) {
+      markers << tr("effective");
+    }
+    if (reload_in_progress && id == target_id && id != effective_id) {
+      markers << tr("loading");
+    }
+    if (reload_failed && id == target_id) {
+      markers << tr("reload failed");
+    }
+    if (!markers.isEmpty()) {
+      display += " · " + markers.join(", ");
     }
 
     auto *item = new QListWidgetItem(display, listAsrProviders_);
     item->setData(Qt::UserRole, id);
     item->setData(Qt::UserRole + 1, type);
+    if (id == current_selection) {
+      listAsrProviders_->setCurrentItem(item);
+    }
   }
 }
 

@@ -512,11 +512,11 @@ void ResourcePage::onUseModelClicked() {
               this, tr("Warning"),
               tr("Config saved, but failed to reload ASR backend: %1")
                   .arg(QString::fromStdString(err)));
+          return;
         }
-        QMessageBox::information(
-            this, tr("Local Model Updated"),
-            tr("Selected model '%1' has been assigned to the preferred local "
-               "ASR provider.")
+        textLog_->append(
+            tr("Selected model '%1' saved as the preferred local ASR model. "
+               "Backend reload is in progress.")
                 .arg(model_name));
       });
 }

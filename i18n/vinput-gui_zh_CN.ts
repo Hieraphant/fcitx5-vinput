@@ -149,6 +149,22 @@ Please follow the instructions.</source>
         <translation>配置已保存，但重新加载 ASR 后端失败：%1</translation>
     </message>
     <message>
+        <source>configured</source>
+        <translation>已配置</translation>
+    </message>
+    <message>
+        <source>effective</source>
+        <translation>已生效</translation>
+    </message>
+    <message>
+        <source>loading</source>
+        <translation>加载中</translation>
+    </message>
+    <message>
+        <source>reload failed</source>
+        <translation>重载失败</translation>
+    </message>
+    <message>
         <source>The local ASR provider cannot be removed.</source>
         <translation>内置的本地语音识别不可移除。</translation>
     </message>
@@ -524,6 +540,10 @@ Found %2 model(s).</source>
     <message>
         <source>Selected model &apos;%1&apos; has been assigned to the preferred local ASR provider.</source>
         <translation>已将所选模型&quot;%1&quot;分配给首选的本地 ASR 提供商。</translation>
+    </message>
+    <message>
+        <source>Selected model &apos;%1&apos; saved as the preferred local ASR model. Backend reload is in progress.</source>
+        <translation>已将所选模型&quot;%1&quot;保存为首选本地 ASR 模型。后端正在重新加载。</translation>
     </message>
     <message>
         <source>Confirm</source>

@@ -7,6 +7,9 @@
 #include <QTimer>
 #include <QWidget>
 
+#include "common/config/core_config.h"
+#include "common/dbus/dbus_interface.h"
+
 namespace vinput::gui {
 
 class ControlPage : public QWidget {
@@ -39,6 +42,9 @@ private slots:
   void checkSandboxPermissions();
 
 private:
+  void populateAsrList(const CoreConfig &config,
+                       const vinput::dbus::AsrBackendState *backend_state);
+
   QComboBox *comboDevice_;
   QListWidget *listAsrProviders_;
   QPushButton *btnAsrEdit_;
