@@ -41,6 +41,18 @@ std::string InferringPreeditText() { return _("... Recognizing ..."); }
 
 std::string PostprocessingPreeditText() { return _("... Postprocessing ..."); }
 
+std::string DaemonUnavailablePreeditText() {
+  return _("Voice input daemon is unavailable.");
+}
+
+std::string DaemonNotRespondingPreeditText() {
+  return _("Voice input daemon is not responding.");
+}
+
+std::string DaemonThrottledPreeditText() {
+  return _("Voice input daemon is temporarily unavailable.");
+}
+
 std::string ComposeLivePreedit(bool command_mode, bool recording,
                                const std::string &partial_text,
                                const std::string &fallback_text) {
@@ -245,6 +257,32 @@ bool IsErrorLikeNotification(const vinput::dbus::ErrorInfo &notification) {
          !notification.subject.empty() || !notification.detail.empty();
 }
 
+std::string RenderMethodCallFailure(std::string_view error_name,
+                                    std::string_view error_message,
+                                    std::string fallback) {
+  if (error_name == "org.freedesktop.DBus.Error.ServiceUnknown" ||
+      error_name == "org.freedesktop.DBus.Error.NameHasNoOwner") {
+    return DaemonUnavailablePreeditText();
+  }
+  if (error_name == "org.freedesktop.DBus.Error.NoReply" ||
+      error_name == "org.freedesktop.DBus.Error.Timeout") {
+    return DaemonNotRespondingPreeditText();
+  }
+
+  auto classified = vinput::dbus::ClassifyErrorText(error_message);
+  if (!classified.empty()) {
+    const std::string rendered = RenderErrorMessage(classified);
+    if (!rendered.empty() && rendered != error_message) {
+      return rendered;
+    }
+  }
+
+  if (!error_message.empty()) {
+    return std::string(error_message);
+  }
+  return fallback;
+}
+
 } // namespace
 
 void VinputEngine::setupDBusWatcher() {
@@ -302,10 +340,11 @@ bool VinputEngine::callStartRecording() {
           auto *ic = resolveFrontendInputContext();
           finishFrontendSession(ic);
           if (ic) {
-            updatePreedit(
-                ic, reply && !reply.errorMessage().empty()
-                        ? reply.errorMessage()
-                        : _("Voice input daemon is temporarily unavailable."));
+            updatePreedit(ic, reply ? RenderMethodCallFailure(
+                                          reply.errorName(),
+                                          reply.errorMessage(),
+                                          DaemonUnavailablePreeditText())
+                                    : DaemonUnavailablePreeditText());
           }
           return true;
         }
@@ -336,10 +375,11 @@ bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
           auto *ic = resolveFrontendInputContext();
           finishFrontendSession(ic);
           if (ic) {
-            updatePreedit(
-                ic, reply && !reply.errorMessage().empty()
-                        ? reply.errorMessage()
-                        : _("Voice input daemon is temporarily unavailable."));
+            updatePreedit(ic, reply ? RenderMethodCallFailure(
+                                          reply.errorName(),
+                                          reply.errorMessage(),
+                                          DaemonUnavailablePreeditText())
+                                    : DaemonUnavailablePreeditText());
           }
           return true;
         }
@@ -370,10 +410,11 @@ bool VinputEngine::callStopRecording(const std::string &scene_id) {
           auto *ic = resolveFrontendInputContext();
           finishFrontendSession(ic);
           if (ic) {
-            updatePreedit(
-                ic, reply && !reply.errorMessage().empty()
-                        ? reply.errorMessage()
-                        : _("Voice input daemon is temporarily unavailable."));
+            updatePreedit(ic, reply ? RenderMethodCallFailure(
+                                          reply.errorName(),
+                                          reply.errorMessage(),
+                                          DaemonUnavailablePreeditText())
+                                    : DaemonUnavailablePreeditText());
           }
           return true;
         }

@@ -26,6 +26,9 @@ std::string CommandNoProviderPreeditText() { return _("No LLM provider configure
 std::string DaemonUnavailablePreeditText() {
   return _("Voice input daemon is temporarily unavailable.");
 }
+std::string DaemonNotRespondingPreeditText() {
+  return _("Voice input daemon is not responding.");
+}
 
 } // namespace
 
@@ -172,8 +175,10 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
       if (!callStartCommandRecording(selected_text)) {
         finishFrontendSession(ic);
-        if (!daemonSyncAllowed()) {
+        if (!bus_) {
           updatePreedit(ic, DaemonUnavailablePreeditText());
+        } else if (!daemonSyncAllowed()) {
+          updatePreedit(ic, DaemonNotRespondingPreeditText());
         }
       }
     } else {
@@ -181,8 +186,10 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       FCITX_LOG(Info) << "vinput: trigger key pressed";
       if (!callStartRecording()) {
         finishFrontendSession(ic);
-        if (!daemonSyncAllowed()) {
+        if (!bus_) {
           updatePreedit(ic, DaemonUnavailablePreeditText());
+        } else if (!daemonSyncAllowed()) {
+          updatePreedit(ic, DaemonNotRespondingPreeditText());
         }
       }
     }
