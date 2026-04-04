@@ -1,6 +1,7 @@
 #include "cli/runtime/dbus_client.h"
 
 #include "common/dbus/dbus_interface.h"
+#include "common/runtime/runtime_defaults.h"
 
 #include <systemd/sd-bus.h>
 
@@ -10,7 +11,10 @@ DbusClient::DbusClient() {
     int r = sd_bus_open_user(&bus_);
     if (r < 0) {
         bus_ = nullptr;
+        return;
     }
+    sd_bus_set_method_call_timeout(
+        bus_, static_cast<uint64_t>(vinput::runtime::kDbusCallTimeoutUsec));
 }
 
 DbusClient::~DbusClient() {

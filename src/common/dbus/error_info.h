@@ -22,6 +22,10 @@ constexpr char kErrorInfoSignature[] = "ssss";
 constexpr const char *kErrorCodeUnknown = "unknown";
 constexpr const char *kErrorCodeDaemonStartFailed = "daemon_start_failed";
 constexpr const char *kErrorCodeDaemonRestartFailed = "daemon_restart_failed";
+constexpr const char *kErrorCodeDaemonBusy = "daemon_busy";
+constexpr const char *kErrorCodeAsrBackendLoading = "asr_backend_loading";
+constexpr const char *kErrorCodeAsrBackendReloadFailed =
+    "asr_backend_reload_failed";
 constexpr const char *kErrorCodeLocalAsrModelCheckFailed =
     "local_asr_model_check_failed";
 constexpr const char *kErrorCodeLocalAsrProviderInitFailed =

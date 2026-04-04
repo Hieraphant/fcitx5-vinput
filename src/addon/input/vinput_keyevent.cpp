@@ -3,6 +3,7 @@
 #include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"
 #include "common/scene/postprocess_scene.h"
+#include "common/utils/debug_log.h"
 
 #include "clipboard_public.h"
 #include <fcitx-utils/key.h>
@@ -167,6 +168,8 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
         } else {
           clearPreedit(ic);
         }
+        vinput::debug::Log(
+            "command trigger ignored because no selection text is available\n");
         updatePreedit(ic, NoSelectionPreeditText());
         keyEvent.filterAndAccept();
         return;
@@ -176,8 +179,12 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       if (!callStartCommandRecording(selected_text)) {
         finishFrontendSession(ic);
         if (!bus_) {
+          vinput::debug::Log(
+              "command trigger fallback: daemon bus unavailable\n");
           updatePreedit(ic, DaemonUnavailablePreeditText());
         } else if (!daemonSyncAllowed()) {
+          vinput::debug::Log(
+              "command trigger fallback: daemon sync throttled after timeout/failure\n");
           updatePreedit(ic, DaemonNotRespondingPreeditText());
         }
       }
@@ -187,8 +194,11 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       if (!callStartRecording()) {
         finishFrontendSession(ic);
         if (!bus_) {
+          vinput::debug::Log("record trigger fallback: daemon bus unavailable\n");
           updatePreedit(ic, DaemonUnavailablePreeditText());
         } else if (!daemonSyncAllowed()) {
+          vinput::debug::Log(
+              "record trigger fallback: daemon sync throttled after timeout/failure\n");
           updatePreedit(ic, DaemonNotRespondingPreeditText());
         }
       }

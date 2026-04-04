@@ -197,6 +197,15 @@ msgstr "启动守护进程失败。"
 msgid "Failed to restart the daemon."
 msgstr "重启守护进程失败。"
 
+msgid "Voice input daemon is busy. Please wait for the current request to finish."
+msgstr "语音输入守护进程正忙。请等待当前请求完成。"
+
+msgid "ASR backend is still loading. Please try again in a moment."
+msgstr "ASR 后端仍在加载中。请稍后再试。"
+
+msgid "ASR backend reload failed. The previous backend may still be active."
+msgstr "ASR 后端重新加载失败。此前的后端可能仍在使用中。"
+
 msgid "Unknown error."
 msgstr "未知错误。"
 

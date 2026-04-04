@@ -3,9 +3,11 @@
 #include "common/dbus/error_info.h"
 #include "common/i18n.h"
 #include "common/asr/recognition_result.h"
+#include "common/runtime/runtime_defaults.h"
 #include "common/utils/path_utils.h"
 #include "common/utils/path_utils.h"
 #include "common/utils/string_utils.h"
+#include "common/utils/debug_log.h"
 
 #include "notifications_public.h"
 #include <dbus_public.h>
@@ -27,11 +29,8 @@ constexpr const char *kSystemdPath = "/org/freedesktop/systemd1";
 constexpr const char *kSystemdManagerInterface =
     "org.freedesktop.systemd1.Manager";
 constexpr const char *kSystemdRestartUnit = "RestartUnit";
-constexpr uint64_t kSystemdCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr const char *kReplaceMode = "replace";
-constexpr uint64_t kDaemonCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr uint64_t kStatusSyncIntervalUsec = 200 * 1000;
-constexpr auto kDaemonFailureCooldown = std::chrono::milliseconds(1500);
 std::string StartingPreeditText() { return _("... Starting ..."); }
 std::string RecordingPreeditText() { return _("... Recording ..."); }
 
@@ -242,6 +241,16 @@ std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
   if (error.code == kErrorCodeDaemonRestartFailed) {
     return _("Failed to restart the daemon.");
   }
+  if (error.code == kErrorCodeDaemonBusy) {
+    return _("Voice input daemon is busy. Please wait for the current request to finish.");
+  }
+  if (error.code == kErrorCodeAsrBackendLoading) {
+    return _("ASR backend is still loading. Please try again in a moment.");
+  }
+  if (error.code == kErrorCodeAsrBackendReloadFailed) {
+    return AppendDetail(_("ASR backend reload failed. The previous backend may still be active."),
+                        error.detail);
+  }
 
   if (!error.raw_message.empty()) {
     return error.raw_message;
@@ -332,7 +341,8 @@ bool VinputEngine::callStartRecording() {
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStartRecording);
   pending_start_call_slot_ = msg.callAsync(
-      kDaemonCallTimeoutUsec, [this](fcitx::dbus::Message &reply) {
+      vinput::runtime::kDbusCallTimeoutUsec,
+      [this](fcitx::dbus::Message &reply) {
         pending_start_call_slot_.reset();
         if (!reply || reply.isError()) {
           noteDaemonSyncFailure();
@@ -367,7 +377,8 @@ bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
                                     kMethodStartCommandRecording);
   msg << selected_text;
   pending_start_call_slot_ = msg.callAsync(
-      kDaemonCallTimeoutUsec, [this](fcitx::dbus::Message &reply) {
+      vinput::runtime::kDbusCallTimeoutUsec,
+      [this](fcitx::dbus::Message &reply) {
         pending_start_call_slot_.reset();
         if (!reply || reply.isError()) {
           noteDaemonSyncFailure();
@@ -402,7 +413,8 @@ bool VinputEngine::callStopRecording(const std::string &scene_id) {
                                     kMethodStopRecording);
   msg << scene_id;
   pending_stop_call_slot_ = msg.callAsync(
-      kDaemonCallTimeoutUsec, [this](fcitx::dbus::Message &reply) {
+      vinput::runtime::kDbusCallTimeoutUsec,
+      [this](fcitx::dbus::Message &reply) {
         pending_stop_call_slot_.reset();
         if (!reply || reply.isError()) {
           noteDaemonSyncFailure();
@@ -560,8 +572,11 @@ std::string VinputEngine::queryDaemonStatus() const {
 
   auto msg =
       bus_->createMethodCall(kBusName, kObjectPath, kInterface, kMethodGetStatus);
-  auto reply = msg.call(kDaemonCallTimeoutUsec);
+  auto reply = msg.call(vinput::runtime::kDbusCallTimeoutUsec);
   if (!reply || reply.isError()) {
+    vinput::debug::Log("daemon status query failed reply=%s error=%s\n",
+                       reply ? reply.errorName().c_str() : "(null)",
+                       reply ? reply.errorMessage().c_str() : "(no reply)");
     const_cast<VinputEngine *>(this)->noteDaemonSyncFailure();
     return {};
   }
@@ -585,8 +600,11 @@ bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
 
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodGetAsrBackendState);
-  auto reply = msg.call(kDaemonCallTimeoutUsec);
+  auto reply = msg.call(vinput::runtime::kDbusCallTimeoutUsec);
   if (!reply || reply.isError()) {
+    vinput::debug::Log("ASR backend state query failed reply=%s error=%s\n",
+                       reply ? reply.errorName().c_str() : "(null)",
+                       reply ? reply.errorMessage().c_str() : "(no reply)");
     const_cast<VinputEngine *>(this)->noteDaemonSyncFailure();
     if (error) {
       *error = reply ? reply.errorMessage() : _("Failed to contact vinput-daemon.");
@@ -629,8 +647,9 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
 
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodReloadAsrBackend);
-  auto reply = msg.call(kDaemonCallTimeoutUsec);
+  auto reply = msg.call(vinput::runtime::kDbusCallTimeoutUsec);
   if (!reply) {
+    vinput::debug::Log("ASR backend reload RPC failed: no reply\n");
     noteDaemonSyncFailure();
     if (error) {
       *error = _("Failed to contact vinput-daemon.");
@@ -639,6 +658,8 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
   }
 
   if (reply.isError()) {
+    vinput::debug::Log("ASR backend reload RPC failed reply=%s error=%s\n",
+                       reply.errorName().c_str(), reply.errorMessage().c_str());
     noteDaemonSyncFailure();
     if (error) {
       *error = reply.errorMessage();
@@ -661,8 +682,13 @@ bool VinputEngine::daemonSyncAllowed() const {
 }
 
 void VinputEngine::noteDaemonSyncFailure() {
-  daemon_sync_blocked_until_ =
-      std::chrono::steady_clock::now() + kDaemonFailureCooldown;
+  daemon_sync_blocked_until_ = std::chrono::steady_clock::now() +
+                               vinput::runtime::kDaemonFailureCooldown;
+  vinput::debug::Log("daemon sync temporarily throttled for %lld ms\n",
+                     static_cast<long long>(
+                         std::chrono::duration_cast<std::chrono::milliseconds>(
+                             vinput::runtime::kDaemonFailureCooldown)
+                             .count()));
 }
 
 void VinputEngine::clearDaemonSyncFailure() {
@@ -722,7 +748,7 @@ void VinputEngine::restartDaemon() {
                              kSystemdManagerInterface, kSystemdRestartUnit);
   msg << std::string(vinput::path::DaemonServiceUnitName()) << kReplaceMode;
 
-  auto reply = msg.call(kSystemdCallTimeoutUsec);
+  auto reply = msg.call(vinput::runtime::kDbusCallTimeoutUsec);
   if (!reply) {
     fprintf(stderr,
             "vinput: failed to restart vinput-daemon via systemd user bus\n");
@@ -851,7 +877,8 @@ void VinputEngine::showDaemonNotification(
   std::string message = RenderErrorMessage(notification);
   const bool error_like = IsErrorLikeNotification(notification);
   const char *icon = error_like ? "dialog-error" : "dialog-information";
-  const int timeout = error_like ? 5000 : 3000;
+  const int timeout = error_like ? vinput::runtime::kErrorNotificationTimeoutMs
+                                 : vinput::runtime::kInfoNotificationTimeoutMs;
 
   auto *notifications =
       instance_->addonManager().addon("notifications", true);
@@ -878,9 +905,10 @@ void VinputEngine::notifyError(const vinput::dbus::ErrorInfo &error) {
       instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
-        "fcitx5-vinput", 0, "dialog-error",
-        title, message, std::vector<std::string>{},
-        5000, fcitx::NotificationActionCallback{},
+        "fcitx5-vinput", 0, "dialog-error", title, message,
+        std::vector<std::string>{},
+        vinput::runtime::kErrorNotificationTimeoutMs,
+        fcitx::NotificationActionCallback{},
         fcitx::NotificationClosedCallback{});
   } else {
     fprintf(stderr, "vinput: %s: %s\n", title.c_str(), message.c_str());
@@ -902,7 +930,7 @@ void VinputEngine::notifyInfo(const std::string &message) {
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
         "fcitx5-vinput", 0, "dialog-information", title, message,
-        std::vector<std::string>{}, 3000,
+        std::vector<std::string>{}, vinput::runtime::kInfoNotificationTimeoutMs,
         fcitx::NotificationActionCallback{},
         fcitx::NotificationClosedCallback{});
   } else {

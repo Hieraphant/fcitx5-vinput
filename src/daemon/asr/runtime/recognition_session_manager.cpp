@@ -4,6 +4,7 @@
 #include "common/utils/debug_log.h"
 #include "daemon/asr/runtime/backend_factory.h"
 
+#include <chrono>
 #include <cstdio>
 #include <utility>
 
@@ -169,6 +170,11 @@ bool RecognitionSessionManager::SynchronizeBackend(const CoreConfig &settings,
     target_backend_signature_ = signature;
     reload_requested_ = true;
     last_reload_error_.clear();
+    vinput::debug::Log(
+        "queue ASR backend reload provider=%s model=%s signature=%s\n",
+        target_provider_id_.empty() ? "(none)" : target_provider_id_.c_str(),
+        target_model_id_.empty() ? "(none)" : target_model_id_.c_str(),
+        target_backend_signature_.c_str());
   }
 
   reload_cv_.notify_one();
@@ -316,6 +322,7 @@ bool RecognitionSessionManager::CreatePreparedBackend(
   }
 
   LogActiveBackend(settings);
+  const auto prepare_started_at = std::chrono::steady_clock::now();
   std::string create_error;
   auto backend = CreateBackend(settings, &create_error);
   if (!backend) {
@@ -341,6 +348,12 @@ bool RecognitionSessionManager::CreatePreparedBackend(
     return false;
   }
   warmup_session->Cancel();
+  const auto prepare_elapsed_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - prepare_started_at)
+          .count();
+  vinput::debug::Log("ASR backend prepared and warmed up in %lld ms\n",
+                     static_cast<long long>(prepare_elapsed_ms));
 
   prepared->backend = std::move(backend);
   prepared->descriptor = descriptor;
@@ -454,8 +467,14 @@ void RecognitionSessionManager::ReloadWorkerMain() {
 
     PreparedBackend prepared;
     std::string error;
+    const auto reload_started_at = std::chrono::steady_clock::now();
+    vinput::debug::Log("ASR backend reload worker started\n");
     const bool ok =
         CreatePreparedBackendForReload(settings, signature, &prepared, &error);
+    const auto reload_elapsed_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - reload_started_at)
+            .count();
 
     if (ok) {
       {
@@ -469,7 +488,9 @@ void RecognitionSessionManager::ReloadWorkerMain() {
         last_reload_error_.clear();
         reload_in_progress_ = false;
       }
-      vinput::debug::Log("ASR backend reload applied asynchronously\n");
+      vinput::debug::Log(
+          "ASR backend reload applied asynchronously in %lld ms\n",
+          static_cast<long long>(reload_elapsed_ms));
       NotifyReloadResult(true, {});
       continue;
     }
@@ -479,8 +500,9 @@ void RecognitionSessionManager::ReloadWorkerMain() {
       last_reload_error_ = error;
       reload_in_progress_ = false;
     }
-    fprintf(stderr, "vinput-daemon: async ASR backend reload failed: %s\n",
-            error.c_str());
+    fprintf(stderr,
+            "vinput-daemon: async ASR backend reload failed after %lld ms: %s\n",
+            static_cast<long long>(reload_elapsed_ms), error.c_str());
     NotifyReloadResult(false, error);
   }
 }

@@ -154,6 +154,24 @@ ErrorInfo ClassifyKnownDetail(std::string_view text) {
     return MakeErrorInfo(kErrorCodeStartCommandRecordingFailed, {}, {}, original);
   }
 
+  if (text == "Daemon is busy.") {
+    return MakeErrorInfo(kErrorCodeDaemonBusy, {}, {}, original);
+  }
+
+  if (text == "ASR backend is still loading.") {
+    return MakeErrorInfo(kErrorCodeAsrBackendLoading, {}, {}, original);
+  }
+
+  if (ConsumePrefix(&text, "Failed to apply ASR backend reload.")) {
+    const std::string detail = TrimAsciiWhitespace(text);
+    return MakeErrorInfo(kErrorCodeAsrBackendReloadFailed, {}, detail, original);
+  }
+
+  if (ConsumePrefix(&text, "Failed to reload ASR backend.")) {
+    const std::string detail = TrimAsciiWhitespace(text);
+    return MakeErrorInfo(kErrorCodeAsrBackendReloadFailed, {}, detail, original);
+  }
+
   if (ConsumePrefix(&text, "missing 'vinput-model.json' in ")) {
     return MakeErrorInfo(kErrorCodeLocalAsrModelConfigMissing, {},
                          TrimAsciiWhitespace(text), original);

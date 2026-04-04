@@ -50,7 +50,7 @@ void FromSceneConfig(CoreConfig::Scenes& sc, const vinput::scene::Config& c) {
   sc.definitions = c.scenes;
 }
 
-constexpr int kDefaultTimeoutMs = 30000;
+constexpr int kDefaultTimeoutMs = vinput::scene::kDefaultTimeoutMs;
 constexpr int kDefaultCandidateCount = 3;
 constexpr int kMinCandidateCount = 1;
 constexpr int kMaxCandidateCount = 10;

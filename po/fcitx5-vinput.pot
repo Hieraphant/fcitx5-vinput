@@ -195,6 +195,15 @@ msgstr ""
 msgid "Failed to restart the daemon."
 msgstr ""
 
+msgid "Voice input daemon is busy. Please wait for the current request to finish."
+msgstr ""
+
+msgid "ASR backend is still loading. Please try again in a moment."
+msgstr ""
+
+msgid "ASR backend reload failed. The previous backend may still be active."
+msgstr ""
+
 msgid "Unknown error."
 msgstr ""
 
