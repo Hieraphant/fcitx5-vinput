@@ -82,6 +82,9 @@ private:
   std::string queryDaemonStatus() const;
   bool queryAsrBackendState(vinput::dbus::AsrBackendState *state,
                             std::string *error = nullptr) const;
+  bool daemonSyncAllowed() const;
+  void noteDaemonSyncFailure();
+  void clearDaemonSyncFailure();
   void ensureStatusSync();
   void stopStatusSyncIfIdle();
   void enterRecordingState(fcitx::InputContext *ic, const fcitx::Key &trigger,
@@ -148,6 +151,7 @@ private:
   std::vector<vinput::result::Candidate> result_candidates_;
   bool result_is_command_ = false;
   std::chrono::steady_clock::time_point last_trigger_time_;
+  std::chrono::steady_clock::time_point daemon_sync_blocked_until_{};
   std::unique_ptr<fcitx::EventSourceTime> pending_stop_event_;
   std::unique_ptr<fcitx::EventSourceTime> status_sync_event_;
   VinputSettings settings_;

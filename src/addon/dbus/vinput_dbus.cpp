@@ -31,6 +31,7 @@ constexpr uint64_t kSystemdCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr const char *kReplaceMode = "replace";
 constexpr uint64_t kDaemonCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr uint64_t kStatusSyncIntervalUsec = 200 * 1000;
+constexpr auto kDaemonFailureCooldown = std::chrono::milliseconds(1500);
 std::string RecordingPreeditText() { return _("... Recording ..."); }
 
 std::string CommandingPreeditText() { return _("... Commanding ..."); }
@@ -286,22 +287,24 @@ void VinputEngine::setupDBusWatcher() {
 
 bool VinputEngine::callStartRecording() {
   if (!bus_) {
+    noteDaemonSyncFailure();
     return false;
   }
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStartRecording);
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
+    noteDaemonSyncFailure();
     fprintf(stderr, "vinput: StartRecording rejected by daemon\n");
-    syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
-                                 false);
     return false;
   }
+  clearDaemonSyncFailure();
   return true;
 }
 
 bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
   if (!bus_) {
+    noteDaemonSyncFailure();
     return false;
   }
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
@@ -309,16 +312,17 @@ bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
   msg << selected_text;
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
+    noteDaemonSyncFailure();
     fprintf(stderr, "vinput: StartCommandRecording rejected by daemon\n");
-    syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
-                                 true);
     return false;
   }
+  clearDaemonSyncFailure();
   return true;
 }
 
 bool VinputEngine::callStopRecording(const std::string &scene_id) {
   if (!bus_) {
+    noteDaemonSyncFailure();
     return false;
   }
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
@@ -326,11 +330,11 @@ bool VinputEngine::callStopRecording(const std::string &scene_id) {
   msg << scene_id;
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
+    noteDaemonSyncFailure();
     fprintf(stderr, "vinput: StopRecording rejected by daemon\n");
-    syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
-                                 session_ ? session_->command_mode : false);
     return false;
   }
+  clearDaemonSyncFailure();
   return true;
 }
 
@@ -434,7 +438,7 @@ void VinputEngine::finishFrontendSession(fcitx::InputContext *fallback_ic) {
 }
 
 std::string VinputEngine::queryDaemonStatus() const {
-  if (!bus_) {
+  if (!bus_ || !daemonSyncAllowed()) {
     return {};
   }
 
@@ -442,8 +446,10 @@ std::string VinputEngine::queryDaemonStatus() const {
       bus_->createMethodCall(kBusName, kObjectPath, kInterface, kMethodGetStatus);
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
+    const_cast<VinputEngine *>(this)->noteDaemonSyncFailure();
     return {};
   }
+  const_cast<VinputEngine *>(this)->clearDaemonSyncFailure();
 
   std::string status;
   reply >> status;
@@ -452,9 +458,10 @@ std::string VinputEngine::queryDaemonStatus() const {
 
 bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
                                         std::string *error) const {
-  if (!bus_) {
+  if (!bus_ || !daemonSyncAllowed()) {
     if (error) {
-      *error = "D-Bus is unavailable.";
+      *error = bus_ ? _("Daemon access is temporarily throttled.")
+                    : "D-Bus is unavailable.";
     }
     return false;
   }
@@ -463,6 +470,7 @@ bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
                                     kMethodGetAsrBackendState);
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
+    const_cast<VinputEngine *>(this)->noteDaemonSyncFailure();
     if (error) {
       *error = reply ? reply.errorMessage() : _("Failed to contact vinput-daemon.");
       if (error->empty()) {
@@ -471,6 +479,7 @@ bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
     }
     return false;
   }
+  const_cast<VinputEngine *>(this)->clearDaemonSyncFailure();
 
   std::tuple<std::string, std::string, std::string, std::string, std::string,
              bool, bool>
@@ -496,6 +505,7 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
     if (error) {
       *error = "D-Bus is unavailable.";
     }
+    noteDaemonSyncFailure();
     return false;
   }
 
@@ -503,6 +513,7 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
                                     kMethodReloadAsrBackend);
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply) {
+    noteDaemonSyncFailure();
     if (error) {
       *error = _("Failed to contact vinput-daemon.");
     }
@@ -510,6 +521,7 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
   }
 
   if (reply.isError()) {
+    noteDaemonSyncFailure();
     if (error) {
       *error = reply.errorMessage();
       if (error->empty()) {
@@ -518,11 +530,25 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
     }
     return false;
   }
+  clearDaemonSyncFailure();
 
   if (error) {
     error->clear();
   }
   return true;
+}
+
+bool VinputEngine::daemonSyncAllowed() const {
+  return std::chrono::steady_clock::now() >= daemon_sync_blocked_until_;
+}
+
+void VinputEngine::noteDaemonSyncFailure() {
+  daemon_sync_blocked_until_ =
+      std::chrono::steady_clock::now() + kDaemonFailureCooldown;
+}
+
+void VinputEngine::clearDaemonSyncFailure() {
+  daemon_sync_blocked_until_ = std::chrono::steady_clock::time_point{};
 }
 
 void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic,
