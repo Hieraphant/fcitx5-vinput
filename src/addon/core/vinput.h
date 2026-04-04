@@ -78,6 +78,7 @@ private:
   void showDaemonNotification(const vinput::dbus::ErrorInfo &notification);
   void notifyError(const vinput::dbus::ErrorInfo &error);
   void notifyError(const std::string &message);
+  void notifyWarning(const std::string &message);
   void notifyInfo(const std::string &message);
   std::string queryDaemonStatus() const;
   bool queryAsrBackendState(vinput::dbus::AsrBackendState *state,

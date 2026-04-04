@@ -48,10 +48,6 @@ std::string DaemonNotRespondingPreeditText() {
   return _("Voice input daemon is not responding.");
 }
 
-std::string DaemonThrottledPreeditText() {
-  return _("Voice input daemon is temporarily unavailable.");
-}
-
 std::string ComposeLivePreedit(bool command_mode, bool recording,
                                const std::string &partial_text,
                                const std::string &fallback_text) {
@@ -917,6 +913,26 @@ void VinputEngine::notifyError(const vinput::dbus::ErrorInfo &error) {
 
 void VinputEngine::notifyError(const std::string &message) {
   notifyError(vinput::dbus::MakeRawError(message));
+}
+
+void VinputEngine::notifyWarning(const std::string &message) {
+  if (message.empty()) {
+    return;
+  }
+
+  std::string title = _("Voice Input");
+  auto *notifications =
+      instance_->addonManager().addon("notifications", true);
+  if (notifications) {
+    notifications->call<fcitx::INotifications::sendNotification>(
+        "fcitx5-vinput", 0, "dialog-warning", title, message,
+        std::vector<std::string>{},
+        vinput::runtime::kErrorNotificationTimeoutMs,
+        fcitx::NotificationActionCallback{},
+        fcitx::NotificationClosedCallback{});
+  } else {
+    fprintf(stderr, "vinput: %s: %s\n", title.c_str(), message.c_str());
+  }
 }
 
 void VinputEngine::notifyInfo(const std::string &message) {
