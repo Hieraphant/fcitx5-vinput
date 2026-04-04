@@ -203,6 +203,15 @@ msgstr "未知错误。"
 msgid "Voice Input"
 msgstr "语音输入"
 
+msgid "Voice input daemon is unavailable."
+msgstr "语音输入守护进程不可用。"
+
+msgid "Voice input daemon is not responding."
+msgstr "语音输入守护进程无响应。"
+
+msgid "Voice input daemon is temporarily unavailable."
+msgstr "语音输入守护进程暂时不可用。"
+
 msgid "Please select text first."
 msgstr "请先选中文本。"
 

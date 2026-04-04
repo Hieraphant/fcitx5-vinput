@@ -201,6 +201,15 @@ msgstr ""
 msgid "Voice Input"
 msgstr ""
 
+msgid "Voice input daemon is unavailable."
+msgstr ""
+
+msgid "Voice input daemon is not responding."
+msgstr ""
+
+msgid "Voice input daemon is temporarily unavailable."
+msgstr ""
+
 msgid "Please select text first."
 msgstr ""
 
