@@ -59,7 +59,6 @@ assert_common_install() {
 case "${target}" in
     ppa-ubuntu24.04)
         export DEBIAN_FRONTEND=noninteractive
-        expected_version="${version}-1ppa1~noble1"
 
         apt-get update
         apt-get install -y --no-install-recommends software-properties-common
@@ -68,6 +67,10 @@ case "${target}" in
         apt-cache policy fcitx5-vinput
         if ! apt-cache show fcitx5-vinput >/dev/null 2>&1; then
             fail_verify "ppa:xifan233/ppa does not currently publish fcitx5-vinput for noble"
+        fi
+        expected_version=$(apt-cache policy fcitx5-vinput | sed -n 's/  Candidate: //p')
+        if [[ ! "${expected_version}" =~ ^${version}-1ppa[0-9]+~noble1$ ]]; then
+            fail_verify "ppa candidate ${expected_version} does not match expected ${version}-1ppaN~noble1 pattern"
         fi
         apt-get install -y --no-install-recommends "fcitx5-vinput=${expected_version}"
         installed_version=$(dpkg-query -W -f='${Version}\n' fcitx5-vinput)
