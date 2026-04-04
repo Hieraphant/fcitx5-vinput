@@ -53,6 +53,7 @@ case "${target}" in
             libfcitx5config-dev \
             libfcitx5utils-dev \
             fcitx5-modules-dev \
+            libcli11-dev \
             nlohmann-json3-dev
         install_qt_apt
         ;;
@@ -80,6 +81,7 @@ case "${target}" in
             libfcitx5config-dev \
             libfcitx5utils-dev \
             fcitx5-modules-dev \
+            libcli11-dev \
             nlohmann-json3-dev
         install_qt_apt
         ;;
