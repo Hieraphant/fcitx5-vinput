@@ -37,6 +37,8 @@ std::vector<RegistryEntry> FetchRegistry(const CoreConfig &config, Kind kind,
                                          std::string *error,
                                          std::string *resolved_registry_url = nullptr);
 std::filesystem::path RelativePathForId(std::string_view id);
+std::string IdFromRelativePath(std::string_view type,
+                               const std::filesystem::path &relative_path);
 std::filesystem::path DefaultLocalScriptPath(Kind kind, std::string_view id);
 bool DownloadScript(const RegistryEntry &entry, Kind kind,
                     std::filesystem::path *local_path, std::string *error,

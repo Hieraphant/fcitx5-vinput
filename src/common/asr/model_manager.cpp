@@ -18,7 +18,13 @@ using json = nlohmann::json;
 namespace {
 
 std::vector<std::string> SplitModelId(std::string_view model_id) {
-  std::vector<std::string> segments;
+  if (model_id.empty() || model_id == "." || model_id == ".." ||
+      model_id.find('/') != std::string_view::npos ||
+      model_id.find('\\') != std::string_view::npos) {
+    return {};
+  }
+
+  std::vector<std::string> raw_segments;
   std::size_t start = 0;
   while (start <= model_id.size()) {
     const std::size_t dot = model_id.find('.', start);
@@ -28,26 +34,33 @@ std::vector<std::string> SplitModelId(std::string_view model_id) {
       return {};
     }
     std::string segment(model_id.substr(start, end - start));
-    if (segment.empty() || segment == "." || segment == ".." ||
-        segment.find('/') != std::string::npos ||
-        segment.find('\\') != std::string::npos) {
+    if (segment.empty() || segment == "." || segment == "..") {
       return {};
     }
-    segments.push_back(std::move(segment));
+    raw_segments.push_back(std::move(segment));
     if (dot == std::string_view::npos) {
       break;
     }
     start = dot + 1;
   }
-  return segments;
-}
 
-bool HasManagedModelPathDepth(const std::vector<std::string> &segments) {
-  std::size_t start_index = 0;
-  if (!segments.empty() && segments.front() == "model") {
-    start_index = 1;
+  if (raw_segments.size() < 3 || raw_segments.front() != "model") {
+    return {};
   }
-  return segments.size() >= start_index + 2;
+
+  const std::string &source = raw_segments[1];
+  std::string name;
+  for (std::size_t i = 2; i < raw_segments.size(); ++i) {
+    if (!name.empty()) {
+      name += '.';
+    }
+    name += raw_segments[i];
+  }
+  if (source.empty() || name.empty()) {
+    return {};
+  }
+
+  return {"model", source, name};
 }
 
 bool IsPathWithinRoot(const fs::path &path, const fs::path &root) {
@@ -328,20 +341,12 @@ fs::path ModelManager::NormalizeBaseDir(const std::string &raw_path) {
 
 fs::path ModelManager::RelativePathForId(std::string_view model_id) {
   const auto segments = SplitModelId(model_id);
-  if (segments.empty() || !HasManagedModelPathDepth(segments)) {
-    return {};
-  }
-
-  std::size_t start_index = 0;
-  if (segments.size() > 1 && segments.front() == "model") {
-    start_index = 1;
-  }
-  if (start_index >= segments.size()) {
+  if (segments.size() != 3 || segments.front() != "model") {
     return {};
   }
 
   fs::path relative_path;
-  for (std::size_t i = start_index; i < segments.size(); ++i) {
+  for (std::size_t i = 1; i < segments.size(); ++i) {
     relative_path /= segments[i];
   }
   return relative_path;
@@ -357,7 +362,7 @@ ModelManager::IdFromRelativePath(const std::filesystem::path &relative_path) {
     }
     relative_segments.push_back(part);
   }
-  if (!HasManagedModelPathDepth(relative_segments)) {
+  if (relative_segments.size() != 2) {
     return {};
   }
 

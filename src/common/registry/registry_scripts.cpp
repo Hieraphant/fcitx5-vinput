@@ -20,7 +20,13 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 std::vector<std::string> SplitResourceId(std::string_view id) {
-  std::vector<std::string> segments;
+  if (id.empty() || id == "." || id == ".." ||
+      id.find('/') != std::string_view::npos ||
+      id.find('\\') != std::string_view::npos) {
+    return {};
+  }
+
+  std::vector<std::string> raw_segments;
   std::size_t start = 0;
   while (start <= id.size()) {
     const std::size_t dot = id.find('.', start);
@@ -30,18 +36,54 @@ std::vector<std::string> SplitResourceId(std::string_view id) {
       return {};
     }
     std::string segment(id.substr(start, end - start));
-    if (segment.empty() || segment == "." || segment == ".." ||
-        segment.find('/') != std::string::npos ||
-        segment.find('\\') != std::string::npos) {
+    if (segment.empty() || segment == "." || segment == "..") {
       return {};
     }
-    segments.push_back(std::move(segment));
+    raw_segments.push_back(std::move(segment));
     if (dot == std::string_view::npos) {
       break;
     }
     start = dot + 1;
   }
-  return segments;
+
+  if (raw_segments.size() < 3) {
+    return {};
+  }
+
+  const std::string &type = raw_segments[0];
+  const std::string &parent = raw_segments[1];
+  std::string leaf;
+  for (std::size_t i = 2; i < raw_segments.size(); ++i) {
+    if (!leaf.empty()) {
+      leaf += '.';
+    }
+    leaf += raw_segments[i];
+  }
+  if (type.empty() || parent.empty() || leaf.empty()) {
+    return {};
+  }
+
+  return {type, parent, leaf};
+}
+
+std::filesystem::path ManagedBaseDirForType(std::string_view type) {
+  if (type == "provider") {
+    return vinput::path::ManagedAsrProviderDir();
+  }
+  if (type == "adapter") {
+    return vinput::path::ManagedLlmAdapterDir();
+  }
+  return {};
+}
+
+bool TypeMatchesKind(std::string_view type, Kind kind) {
+  switch (kind) {
+  case Kind::kAsrProvider:
+    return type == "provider";
+  case Kind::kLlmAdapter:
+    return type == "adapter";
+  }
+  return false;
 }
 
 std::vector<RegistryEntry> ParseRegistryJson(const std::string &content,
@@ -197,7 +239,7 @@ std::vector<RegistryEntry> FetchRegistry(const CoreConfig &config, Kind kind,
 
 std::filesystem::path RelativePathForId(std::string_view id) {
   const auto segments = SplitResourceId(id);
-  if (segments.size() < 3) {
+  if (segments.size() != 3) {
     return {};
   }
 
@@ -208,14 +250,53 @@ std::filesystem::path RelativePathForId(std::string_view id) {
   return relative_path;
 }
 
-std::filesystem::path DefaultLocalScriptPath(Kind kind, std::string_view id) {
-  (void)kind;
-  const auto segments = SplitResourceId(id);
-  if (segments.size() < 3) {
+std::string IdFromRelativePath(std::string_view type,
+                               const std::filesystem::path &relative_path) {
+  if (type.empty() || type == "." || type == ".." ||
+      type.find('.') != std::string_view::npos ||
+      type.find('/') != std::string_view::npos ||
+      type.find('\\') != std::string_view::npos) {
     return {};
   }
 
-  const fs::path base = vinput::path::ManagedResourceDir(segments.front());
+  std::vector<std::string> segments = {std::string(type)};
+  for (const auto &component : relative_path) {
+    const std::string part = component.string();
+    if (part.empty() || part == "." || part == ".." ||
+        part.find('/') != std::string::npos ||
+        part.find('\\') != std::string::npos) {
+      return {};
+    }
+    segments.push_back(part);
+  }
+  if (segments.size() != 3) {
+    return {};
+  }
+
+  std::string id;
+  for (std::size_t i = 0; i < segments.size(); ++i) {
+    if (i > 0) {
+      id += '.';
+    }
+    id += segments[i];
+  }
+  return id;
+}
+
+std::filesystem::path DefaultLocalScriptPath(Kind kind, std::string_view id) {
+  const auto segments = SplitResourceId(id);
+  if (segments.size() != 3) {
+    return {};
+  }
+
+  if (!TypeMatchesKind(segments.front(), kind)) {
+    return {};
+  }
+
+  const fs::path base = ManagedBaseDirForType(segments.front());
+  if (base.empty()) {
+    return {};
+  }
   const fs::path relative_path = RelativePathForId(id);
   return base / relative_path;
 }
