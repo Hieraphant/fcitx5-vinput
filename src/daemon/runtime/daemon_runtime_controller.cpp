@@ -8,9 +8,13 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <span>
 #include <stdexcept>
 #include <utility>
+
+#include <sys/eventfd.h>
+#include <unistd.h>
 
 namespace vinput::daemon::runtime {
 
@@ -87,9 +91,21 @@ DaemonRuntimeController::DaemonRuntimeController(
               "Failed to apply ASR backend reload. " + message));
         });
   }
+
+  notify_fd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+  if (notify_fd_ < 0) {
+    fprintf(stderr, "vinput-daemon: failed to create runtime notify fd: %s\n",
+            strerror(errno));
+  }
 }
 
-DaemonRuntimeController::~DaemonRuntimeController() { Shutdown(); }
+DaemonRuntimeController::~DaemonRuntimeController() {
+  Shutdown();
+  if (notify_fd_ >= 0) {
+    close(notify_fd_);
+    notify_fd_ = -1;
+  }
+}
 
 DbusService::MethodResult DaemonRuntimeController::StartRecording() {
   return StartRecordingInternal(false, {});
@@ -156,6 +172,10 @@ void DaemonRuntimeController::MaybeApplyPendingAsrBackendReload() {
 
 DbusService::MethodResult DaemonRuntimeController::StartRecordingInternal(
     bool is_command, const std::string &selected_text) {
+  if (pending_capture_stop_.load(std::memory_order_acquire)) {
+    FlushDeferredActions();
+  }
+
   std::lock_guard<std::mutex> lock(state_mutex_);
   if (phase_ != vinput::dbus::Status::Idle) {
     vinput::debug::Log("start rejected (phase: %s)\n",
@@ -261,10 +281,7 @@ void DaemonRuntimeController::HandleIncomingAudio(std::span<const int16_t> pcm) 
         fprintf(stderr, "vinput-daemon: failed to push audio chunk: %s\n",
                 error.c_str());
         accepting_chunks_.store(false, std::memory_order_relaxed);
-        active_session_->Cancel();
-        active_session_.reset();
-        current_recording_pcm_.clear();
-        pending_chunk_pcm_.clear();
+        CancelActiveSession();
         phase_ = vinput::dbus::Status::Error;
         dbus_->EmitStatusChanged(
             vinput::dbus::StatusToString(vinput::dbus::Status::Error));
@@ -272,10 +289,7 @@ void DaemonRuntimeController::HandleIncomingAudio(std::span<const int16_t> pcm) 
           dbus_->EmitNotification(vinput::dbus::MakeRawError(error));
         }
         capture_->EndRecording();
-        capture_->Stop();
-        phase_ = vinput::dbus::Status::Idle;
-        dbus_->EmitStatusChanged(
-            vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
+        ScheduleCaptureStopOnMainThread();
         return;
       }
       current_sample_count_ += kStreamingChunkSamples;
@@ -334,6 +348,14 @@ void DaemonRuntimeController::EmitStreamingEvents(
     case vinput::daemon::asr::RecognitionEventKind::Completed:
       break;
     }
+  }
+}
+
+void DaemonRuntimeController::ScheduleCaptureStopOnMainThread() {
+  pending_capture_stop_.store(true, std::memory_order_release);
+  if (notify_fd_ >= 0) {
+    uint64_t value = 1;
+    (void)write(notify_fd_, &value, sizeof(value));
   }
 }
 
@@ -481,6 +503,23 @@ vinput::dbus::AsrBackendState DaemonRuntimeController::GetAsrBackendState()
   };
 }
 
+int DaemonRuntimeController::GetNotifyFd() const { return notify_fd_; }
+
+void DaemonRuntimeController::FlushDeferredActions() {
+  if (notify_fd_ >= 0) {
+    uint64_t value = 0;
+    while (read(notify_fd_, &value, sizeof(value)) == sizeof(value)) {
+    }
+  }
+
+  if (!pending_capture_stop_.exchange(false, std::memory_order_acq_rel)) {
+    return;
+  }
+
+  capture_->Stop();
+  ResetToIdle();
+}
+
 void DaemonRuntimeController::StartWorker() {
   if (worker_running_) {
     return;
@@ -492,6 +531,8 @@ void DaemonRuntimeController::StartWorker() {
 void DaemonRuntimeController::Shutdown() {
   capture_->SetChunkCallback({});
   accepting_chunks_.store(false, std::memory_order_relaxed);
+  pending_capture_stop_.store(false, std::memory_order_relaxed);
+  capture_->Stop();
   {
     std::lock_guard<std::mutex> lock(state_mutex_);
     CancelActiveSession();

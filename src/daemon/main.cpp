@@ -624,13 +624,15 @@ int main(int argc, char *argv[]) {
 
   int dbus_fd = dbus.GetFd();
   int notify_fd = dbus.GetNotifyFd();
+  int runtime_notify_fd = runtime_controller.GetNotifyFd();
   while (g_running) {
-    pollfd fds[2] = {
+    pollfd fds[3] = {
         {.fd = dbus_fd, .events = POLLIN, .revents = 0},
         {.fd = notify_fd, .events = POLLIN, .revents = 0},
+        {.fd = runtime_notify_fd, .events = POLLIN, .revents = 0},
     };
 
-    int ret = poll(fds, 2, 1000);
+    int ret = poll(fds, 3, 1000);
     if (ret < 0) {
       if (errno == EINTR)
         continue;
@@ -641,6 +643,9 @@ int main(int argc, char *argv[]) {
     if (ret > 0) {
       if (fds[1].revents & POLLIN) {
         dbus.FlushEmitQueue();
+      }
+      if (fds[2].revents & POLLIN) {
+        runtime_controller.FlushDeferredActions();
       }
       if (fds[0].revents & POLLIN) {
         while (dbus.ProcessOnce()) {

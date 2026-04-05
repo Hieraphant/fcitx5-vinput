@@ -34,6 +34,8 @@ public:
   DbusService::MethodResult ReloadAsrBackend();
   std::string GetStatus() const;
   vinput::dbus::AsrBackendState GetAsrBackendState() const;
+  int GetNotifyFd() const;
+  void FlushDeferredActions();
 
   void StartWorker();
   void Shutdown();
@@ -47,6 +49,7 @@ private:
   void EmitStreamingEvents(
       vinput::daemon::asr::RecognitionSession *session,
       std::string *latest_partial_text = nullptr);
+  void ScheduleCaptureStopOnMainThread();
   void CancelActiveSession();
   void SetPhase(vinput::dbus::Status new_phase);
   void ResetToIdle();
@@ -74,6 +77,8 @@ private:
   std::optional<std::chrono::steady_clock::time_point> first_non_silent_at_;
   bool first_partial_logged_ = false;
   bool pending_asr_backend_reload_ = false;
+  int notify_fd_ = -1;
+  std::atomic<bool> pending_capture_stop_{false};
   std::atomic<bool> accepting_chunks_{false};
   std::atomic<bool> worker_running_{false};
   std::thread worker_;
