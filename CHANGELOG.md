@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.23](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.23) — 2026-04-05
+
+### Bug Fixes
+
+- **ppa:** Skip `dh_dwz` and `dh_strip` during Debian packaging so Noble Launchpad builds do not fail on incompatible DWARF and bundled runtime debug processing
+
 ## [2.0.22](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.22) — 2026-04-05
 
 ### Bug Fixes

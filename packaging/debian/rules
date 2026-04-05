@@ -28,3 +28,9 @@ override_dh_dwz:
 	# Noble's dwz cannot process the DWARF sections emitted by our clang/LTO
 	# release binaries, which breaks the package after a successful build.
 	:
+
+override_dh_strip:
+	# Launchpad noble's debugedit/objcopy stack also fails on our clang/LTO
+	# binaries and bundled upstream shared objects, so skip debug symbol
+	# extraction to keep PPA builds publishable.
+	:
