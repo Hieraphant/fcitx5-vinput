@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.24](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.24) — 2026-04-06
+
+### Bug Fixes
+
+- **addon:** Lower per-key addon logs to `Debug` so normal Fcitx log output is not flooded during typing
+
 ## [2.0.23](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.23) — 2026-04-05
 
 ### Bug Fixes
