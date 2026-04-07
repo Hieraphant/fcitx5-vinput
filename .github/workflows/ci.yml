@@ -32,6 +32,9 @@ jobs:
       - name: Check Vosk build script
         run: bash scripts/check-vosk-build-script.sh
 
+      - name: Check Kaldi build flags
+        run: bash scripts/check-kaldi-build-flags.sh
+
       - name: Install sherpa-onnx build runtime
         shell: bash
         run: |
@@ -91,6 +94,9 @@ jobs:
 
       - name: Check Vosk build script
         run: bash scripts/check-vosk-build-script.sh
+
+      - name: Check Kaldi build flags
+        run: bash scripts/check-kaldi-build-flags.sh
 
       - name: Install sherpa-onnx build runtime
         shell: bash

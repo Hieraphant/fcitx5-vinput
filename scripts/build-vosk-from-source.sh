@@ -39,6 +39,7 @@ cmake -S "${kaldi_src}" -B "${kaldi_build}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="${prefix}" \
     -DBUILD_SHARED_LIBS=ON \
+    -DKALDI_BUILD_TEST=OFF \
     -DFETCHCONTENT_SOURCE_DIR_OPENFST:PATH="${openfst_src}" \
     -DCMAKE_C_COMPILER=clang \
     -DCMAKE_CXX_COMPILER=clang++ \
