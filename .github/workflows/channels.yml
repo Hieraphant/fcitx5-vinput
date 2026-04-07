@@ -159,7 +159,7 @@ jobs:
           version="${{ needs.source_archive.outputs.package_version }}"
           ppa_revision="${PPA_REVISION}"
           pkg="fcitx5-vinput_${version}-1ppa${ppa_revision}~noble1"
-          runtime_dir="fcitx5-vinput_${version}.orig-runtime"
+          runtime_dir="${GITHUB_WORKSPACE}/fcitx5-vinput_${version}.orig-runtime"
           orig_tar="fcitx5-vinput_${version}.orig.tar.gz"
           orig_runtime_tar="fcitx5-vinput_${version}.orig-runtime.tar.gz"
           launchpad_files_base="https://launchpad.net/~xifan233/+archive/ubuntu/ppa/+files"
