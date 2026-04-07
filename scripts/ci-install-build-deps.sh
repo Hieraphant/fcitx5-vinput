@@ -38,6 +38,7 @@ case "${target}" in
             bzip2 \
             clang \
             cmake \
+            file \
             git \
             make \
             mold \

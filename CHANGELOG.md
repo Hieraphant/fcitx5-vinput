@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.27](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.27) — 2026-04-08
+
+### Bug Fixes
+
+- **ci:** Install the `file` utility in the Ubuntu 24.04 release container so `cpack -G DEB` can resolve shared-library dependencies and produce the Ubuntu package
+
 ## [2.0.26](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.26) — 2026-04-08
 
 ### Bug Fixes
