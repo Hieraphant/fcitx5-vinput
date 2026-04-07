@@ -1,5 +1,5 @@
---- /nix/store/14mp08xwd123cc2mqfpz36wj3qm529hb-source/CMakeLists.txt	1970-01-01 08:00:01.000000000 +0800
-+++ src/CMakeLists.txt	2026-04-04 10:01:20.161537340 +0700
+--- CMakeLists.txt
++++ CMakeLists.txt
 @@ -221,6 +221,8 @@
  #            NAMES fst
  #            PATHS ${CMAKE_CURRENT_SOURCE_DIR}/tools/openfst/lib
@@ -9,8 +9,8 @@
  #find_path(OpenFST_INCLUDE_DIR
  #            NAMES "fst/fst.h"
  #            PATHS "${CMAKE_CURRENT_SOURCE_DIR}/tools/openfst/include"
---- /nix/store/14mp08xwd123cc2mqfpz36wj3qm529hb-source/cmake/third_party/openfst_lib_target.cmake	1970-01-01 08:00:01.000000000 +0800
-+++ src/cmake/third_party/openfst_lib_target.cmake	2026-04-04 10:01:20.164537429 +0700
+--- cmake/third_party/openfst_lib_target.cmake
++++ cmake/third_party/openfst_lib_target.cmake
 @@ -29,3 +29,19 @@
  unset(fst_source_dir)
  unset(fst_include_dir)

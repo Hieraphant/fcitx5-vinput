@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: ./scripts/ci-install-build-deps.sh ubuntu24.04
 
+      - name: Check Kaldi patch headers
+        run: bash scripts/check-kaldi-openfst-patch.sh
+
       - name: Install sherpa-onnx build runtime
         shell: bash
         run: |
@@ -79,6 +82,9 @@ jobs:
 
       - name: Install dependencies
         run: ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
+
+      - name: Check Kaldi patch headers
+        run: bash scripts/check-kaldi-openfst-patch.sh
 
       - name: Install sherpa-onnx build runtime
         shell: bash
