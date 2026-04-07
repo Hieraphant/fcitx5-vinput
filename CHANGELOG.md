@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.26](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.26) — 2026-04-08
+
+### Bug Fixes
+
+- **ci:** Build Debian package runtimes inside the target distro containers so release packaging matches the final ABI environment
+- **ci:** Validate Kaldi patch headers before applying packaging patches
+- **ci:** Configure Kaldi-based runtime builds from the extracted repo root instead of assuming the caller's working directory
+- **ci:** Disable unsupported Kaldi test targets during source builds so release packaging no longer fails on missing test data
+
 ## [2.0.25](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.25) — 2026-04-07
 
 ### Bug Fixes
