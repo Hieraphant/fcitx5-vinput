@@ -34,7 +34,7 @@ sed "s|@OPENFST_ROOT@|${openfst_src}|g" \
     "${script_dir}/../patches/kaldi-openfst-ngram.patch" > "${patch_file}"
 patch -d "${kaldi_src}" -p0 < "${patch_file}"
 
-cmake -S "${kaldi_src}/src" -B "${kaldi_build}" \
+cmake -S "${kaldi_src}" -B "${kaldi_build}" \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="${prefix}" \

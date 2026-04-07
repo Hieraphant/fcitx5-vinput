@@ -29,6 +29,9 @@ jobs:
       - name: Check Kaldi patch headers
         run: bash scripts/check-kaldi-openfst-patch.sh
 
+      - name: Check Vosk build script
+        run: bash scripts/check-vosk-build-script.sh
+
       - name: Install sherpa-onnx build runtime
         shell: bash
         run: |
@@ -85,6 +88,9 @@ jobs:
 
       - name: Check Kaldi patch headers
         run: bash scripts/check-kaldi-openfst-patch.sh
+
+      - name: Check Vosk build script
+        run: bash scripts/check-vosk-build-script.sh
 
       - name: Install sherpa-onnx build runtime
         shell: bash
