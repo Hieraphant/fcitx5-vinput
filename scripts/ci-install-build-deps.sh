@@ -35,16 +35,24 @@ case "${target}" in
     ubuntu24.04)
         "${sudo_cmd[@]}" apt-get update
         "${sudo_cmd[@]}" apt-get install -y \
+            bzip2 \
             clang \
             cmake \
+            git \
+            make \
             mold \
             ninja-build \
             pkg-config \
             sccache \
             gettext \
             curl \
+            patch \
+            python3 \
             zstd \
+            libblas-dev \
             libcurl4-openssl-dev \
+            liblapack-dev \
+            libopenblas-dev \
             libssl-dev \
             libarchive-dev \
             libpipewire-0.3-dev \
@@ -63,6 +71,7 @@ case "${target}" in
             bzip2 \
             clang \
             cmake \
+            make \
             mold \
             ninja-build \
             pkg-config \
@@ -71,8 +80,13 @@ case "${target}" in
             file \
             git \
             curl \
+            patch \
+            python3 \
             zstd \
+            libblas-dev \
             libcurl4-openssl-dev \
+            liblapack-dev \
+            libopenblas-dev \
             libssl-dev \
             libarchive-dev \
             libpipewire-0.3-dev \

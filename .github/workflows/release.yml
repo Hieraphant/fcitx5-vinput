@@ -139,7 +139,9 @@ jobs:
 
   build-deb-ubuntu:
     needs: source_archive
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v6
 
@@ -151,16 +153,14 @@ jobs:
           name: source-archive
           path: dist
 
-      - name: Install pre-built sherpa-onnx
+      - name: Prepare distro-native runtime prefix
         run: |
+          prefix="${GITHUB_WORKSPACE}/runtime"
           tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
-          sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
-          sudo ldconfig
-
-      - name: Install pre-built vosk
-        run: |
-          sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk.sh"
-          sudo ldconfig
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh" \
+            "" "${prefix}"
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk-from-source.sh" \
+            "" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -174,6 +174,7 @@ jobs:
         run: |
           cd "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}"
           cmake --preset ci-clang-mold \
+            -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/runtime" \
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
@@ -181,6 +182,10 @@ jobs:
 
           cmake --build --preset ci-clang-mold
           cpack --config build/CPackConfig.cmake -G DEB -B "${GITHUB_WORKSPACE}/dist"
+
+          mv \
+            "${GITHUB_WORKSPACE}/dist/fcitx5-vinput_${{ needs.source_archive.outputs.package_version }}-1_amd64.deb" \
+            "${GITHUB_WORKSPACE}/dist/fcitx5-vinput_${{ needs.source_archive.outputs.package_version }}-1_ubuntu24.04_amd64.deb"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -204,16 +209,14 @@ jobs:
           name: source-archive
           path: dist
 
-      - name: Install pre-built sherpa-onnx
+      - name: Prepare distro-native runtime prefix
         run: |
+          prefix="${GITHUB_WORKSPACE}/runtime"
           tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
-          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
-          ldconfig
-
-      - name: Install pre-built vosk
-        run: |
-          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk.sh"
-          ldconfig
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh" \
+            "" "${prefix}"
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-vosk-from-source.sh" \
+            "" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -227,6 +230,7 @@ jobs:
         run: |
           cd "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}"
           cmake --preset ci-clang-mold \
+            -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/runtime" \
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
@@ -234,6 +238,10 @@ jobs:
 
           cmake --build --preset ci-clang-mold
           cpack --config build/CPackConfig.cmake -G DEB -B "${GITHUB_WORKSPACE}/dist"
+
+          mv \
+            "${GITHUB_WORKSPACE}/dist/fcitx5-vinput_${{ needs.source_archive.outputs.package_version }}-1_amd64.deb" \
+            "${GITHUB_WORKSPACE}/dist/fcitx5-vinput_${{ needs.source_archive.outputs.package_version }}-1_debian12_amd64.deb"
 
       - uses: actions/upload-artifact@v6
         with:

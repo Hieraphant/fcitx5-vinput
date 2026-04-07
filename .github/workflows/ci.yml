@@ -17,7 +17,9 @@ env:
 
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v6
 
@@ -27,7 +29,7 @@ jobs:
       - name: Install sherpa-onnx build runtime
         shell: bash
         run: |
-          prefix="${RUNNER_TEMP}/sherpa-onnx-install"
+          prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
           source scripts/sherpa-onnx-vars.sh
           bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
@@ -35,8 +37,8 @@ jobs:
       - name: Install vosk build runtime
         shell: bash
         run: |
-          prefix="${RUNNER_TEMP}/sherpa-onnx-install"
-          bash scripts/build-vosk.sh "" "${prefix}"
+          prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
+          bash scripts/build-vosk-from-source.sh "" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -90,7 +92,11 @@ jobs:
         shell: bash
         run: |
           prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
-          bash scripts/build-vosk.sh "" "${prefix}"
+          if [[ "${{ matrix.target }}" == "debian12" ]]; then
+            bash scripts/build-vosk-from-source.sh "" "${prefix}"
+          else
+            bash scripts/build-vosk.sh "" "${prefix}"
+          fi
 
       - uses: actions/cache@v4
         with:
