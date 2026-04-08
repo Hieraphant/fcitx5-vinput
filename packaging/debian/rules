@@ -15,6 +15,8 @@ override_dh_auto_configure:
 		-DCMAKE_PREFIX_PATH=$(VINPUT_RUNTIME_PREFIX) \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DVINPUT_RUNTIME_MODE=bundled \
+		-DVINPUT_VOSK_RUNTIME_MODE=bundled \
 		-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \
 		-DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold \
 		-DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold
