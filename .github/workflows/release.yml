@@ -108,7 +108,8 @@ jobs:
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}" \
-            -DVINPUT_RUNTIME_MODE=bundled
+            -DVINPUT_RUNTIME_MODE=bundled \
+            -DVINPUT_VOSK_RUNTIME_MODE=bundled
 
       - name: Build
         run: |
@@ -178,7 +179,8 @@ jobs:
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
-            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
+            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}" \
+            -DVINPUT_VOSK_RUNTIME_MODE=bundled
 
           cmake --build --preset ci-clang-mold
           cpack --config build/CPackConfig.cmake -G DEB -B "${GITHUB_WORKSPACE}/dist"
@@ -234,7 +236,8 @@ jobs:
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
-            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
+            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}" \
+            -DVINPUT_VOSK_RUNTIME_MODE=bundled
 
           cmake --build --preset ci-clang-mold
           cpack --config build/CPackConfig.cmake -G DEB -B "${GITHUB_WORKSPACE}/dist"
@@ -272,21 +275,15 @@ jobs:
         run: |
           version="${{ needs.source_archive.outputs.package_version }}"
           source ./scripts/sherpa-onnx-vars.sh
-          source ./scripts/vosk-vars.sh
           mkdir -p "${HOME}/rpmbuild/"{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           cp "dist/${{ needs.source_archive.outputs.source_archive }}" "${HOME}/rpmbuild/SOURCES/"
           curl -fL --retry 3 --retry-delay 2 \
             -o "${HOME}/rpmbuild/SOURCES/${SHERPA_ONNX_ARCHIVE}" \
             "${SHERPA_ONNX_URL}"
-          curl -fL --retry 3 --retry-delay 2 \
-            -o "${HOME}/rpmbuild/SOURCES/${VOSK_ARCHIVE}" \
-            "${VOSK_URL}"
 
           sed \
             -e "s/@VINPUT_VERSION@/${version}/g" \
             -e "s/@SHERPA_ONNX_VERSION@/${SHERPA_ONNX_VERSION}/g" \
-            -e "s/@VOSK_VERSION@/${VOSK_VERSION}/g" \
-            -e "s/@VOSK_PKGREL@/${VOSK_PKGREL}/g" \
             packaging/fedora/fcitx5-vinput.spec \
             > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
 
