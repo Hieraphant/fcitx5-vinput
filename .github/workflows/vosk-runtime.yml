@@ -29,6 +29,15 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
+      - name: Prepare container prerequisites
+        if: ${{ matrix.target == 'opensuse-leap' }}
+        shell: bash
+        run: |
+          zypper --gpg-auto-import-keys --non-interactive refresh
+          zypper --non-interactive install --no-recommends \
+            gzip \
+            tar
+
       - uses: actions/checkout@v6
 
       - name: Install build dependencies
