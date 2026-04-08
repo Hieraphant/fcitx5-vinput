@@ -14,6 +14,8 @@ prefix="${2:-/usr}"
 openfst_rev="${OPENFST_VOSK_REV:-18e94e63870ebcf79ebb42b7035cd3cb626ec090}"
 kaldi_rev="${KALDI_VOSK_REV:-bc5baf14231660bd50b7d05788865b4ac6c34481}"
 jobs="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}"
+cc="${CC:-clang}"
+cxx="${CXX:-clang++}"
 
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
@@ -41,8 +43,8 @@ cmake -S "${kaldi_src}" -B "${kaldi_build}" \
     -DBUILD_SHARED_LIBS=ON \
     -DKALDI_BUILD_TEST=OFF \
     -DFETCHCONTENT_SOURCE_DIR_OPENFST:PATH="${openfst_src}" \
-    -DCMAKE_C_COMPILER=clang \
-    -DCMAKE_CXX_COMPILER=clang++ \
+    -DCMAKE_C_COMPILER="${cc}" \
+    -DCMAKE_CXX_COMPILER="${cxx}" \
     -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \
     -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold \
     -DCMAKE_C_FLAGS="-I${openfst_src}/src/include" \
@@ -61,7 +63,7 @@ make -C "${vosk_src}/src" -j"${jobs}" \
     OPENFST_ROOT="${prefix}" \
     USE_SHARED=1 \
     HAVE_OPENBLAS_CLAPACK=0 \
-    CXX=clang++ \
+    CXX="${cxx}" \
     EXTRA_CFLAGS="-I${prefix}/include/kaldi -I${prefix}/include/openfst" \
     EXTRA_LDFLAGS="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -fuse-ld=mold"
 

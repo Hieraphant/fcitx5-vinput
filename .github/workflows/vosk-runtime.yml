@@ -15,12 +15,18 @@ jobs:
           - name: ubuntu24.04
             image: ubuntu:24.04
             target: ubuntu24.04
+            cc: clang
+            cxx: clang++
           - name: debian12
             image: debian:12
             target: debian12
+            cc: clang
+            cxx: clang++
           - name: opensuse-leap
             image: registry.opensuse.org/opensuse/leap:15.6
             target: opensuse-leap
+            cc: clang-17
+            cxx: clang++-17
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
@@ -50,7 +56,7 @@ jobs:
                 devel-tools-compiler
               zypper --gpg-auto-import-keys --non-interactive refresh
               zypper --non-interactive install --no-recommends \
-                clang \
+                clang17 \
                 cmake \
                 curl \
                 git \
@@ -82,6 +88,9 @@ jobs:
 
       - name: Build Vosk runtime
         shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
         run: |
           prefix="${GITHUB_WORKSPACE}/runtime"
           bash scripts/build-vosk-from-source.sh "" "${prefix}"
