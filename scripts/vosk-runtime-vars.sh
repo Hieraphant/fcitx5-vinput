@@ -15,7 +15,7 @@ vosk_runtime_set_vars() {
     local openfst_short="${OPENFST_VOSK_REV:0:12}"
 
     case "${target}" in
-        ubuntu24.04|debian12)
+        ubuntu24.04|debian12|opensuse-leap)
             ;;
         *)
             echo "unsupported vosk runtime target: ${target}" >&2
@@ -27,4 +27,5 @@ vosk_runtime_set_vars() {
     VOSK_RUNTIME_BASENAME="vosk-runtime-${target}-${VOSK_RUNTIME_ARCH}-v${VOSK_VERSION}-kaldi-${kaldi_short}-openfst-${openfst_short}"
     VOSK_RUNTIME_ARCHIVE="${VOSK_RUNTIME_BASENAME}.tar.gz"
     VOSK_RUNTIME_MANIFEST="${VOSK_RUNTIME_BASENAME}.manifest.json"
+    VOSK_RUNTIME_RELEASE_TAG="vosk-runtime-v${VOSK_VERSION}-kaldi-${kaldi_short}-openfst-${openfst_short}"
 }

@@ -3,6 +3,9 @@ name: vosk-runtime
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -15,15 +18,49 @@ jobs:
           - name: debian12
             image: debian:12
             target: debian12
+          - name: opensuse-leap
+            image: registry.opensuse.org/opensuse/leap:15.6
+            target: opensuse-leap
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
     name: ${{ matrix.name }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v6
 
       - name: Install build dependencies
-        run: ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
+        shell: bash
+        run: |
+          case "${{ matrix.target }}" in
+            opensuse-leap)
+              zypper --non-interactive addrepo --refresh \
+                https://download.opensuse.org/repositories/devel:/tools:/compiler/15.6/devel:tools:compiler.repo \
+                devel-tools-compiler
+              zypper --gpg-auto-import-keys --non-interactive refresh
+              zypper --non-interactive install --no-recommends \
+                clang \
+                cmake \
+                curl \
+                git \
+                lapack-devel \
+                libarchive-devel \
+                libopenssl-devel \
+                make \
+                mold \
+                ninja \
+                patch \
+                pipewire-devel \
+                python3 \
+                systemd-devel \
+                zstd
+              ;;
+            *)
+              ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
+              ;;
+          esac
 
       - name: Check Kaldi patch headers
         run: bash scripts/check-kaldi-openfst-patch.sh
@@ -56,6 +93,7 @@ jobs:
           source scripts/vosk-runtime-vars.sh
           vosk_runtime_set_vars "${{ matrix.target }}"
           echo "basename=${VOSK_RUNTIME_BASENAME}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=${VOSK_RUNTIME_RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -65,3 +103,19 @@ jobs:
             dist/${{ steps.runtime_vars.outputs.basename }}.tar.gz.sha256
             dist/${{ steps.runtime_vars.outputs.basename }}.manifest.json
           if-no-files-found: error
+
+      - name: Publish runtime assets to GitHub Release
+        shell: bash
+        run: |
+          tag="${{ steps.runtime_vars.outputs.release_tag }}"
+          if ! gh release view "${tag}" --repo "${GH_REPO}" >/dev/null 2>&1; then
+            gh release create "${tag}" --repo "${GH_REPO}" \
+              --title "${tag}" \
+              --notes "Reusable Vosk runtime artifacts for supported and compatibility-tested distro targets."
+          fi
+
+          gh release upload "${tag}" --repo "${GH_REPO}" \
+            "dist/${{ steps.runtime_vars.outputs.basename }}.tar.gz" \
+            "dist/${{ steps.runtime_vars.outputs.basename }}.tar.gz.sha256" \
+            "dist/${{ steps.runtime_vars.outputs.basename }}.manifest.json" \
+            --clobber
