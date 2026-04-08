@@ -159,7 +159,7 @@ jobs:
           version="${{ needs.source_archive.outputs.package_version }}"
           ppa_revision="${PPA_REVISION}"
           pkg="fcitx5-vinput_${version}-1ppa${ppa_revision}~noble1"
-          runtime_dir="${GITHUB_WORKSPACE}/fcitx5-vinput_${version}.orig-runtime"
+          runtime_dir="${GITHUB_WORKSPACE}/runtime"
           orig_tar="fcitx5-vinput_${version}.orig.tar.gz"
           orig_runtime_tar="fcitx5-vinput_${version}.orig-runtime.tar.gz"
           launchpad_files_base="https://launchpad.net/~xifan233/+archive/ubuntu/ppa/+files"
@@ -167,7 +167,8 @@ jobs:
           if curl -fsSL -o "${orig_tar}" \
             "${launchpad_files_base}/${orig_tar}" \
             && curl -fsSL -o "${orig_runtime_tar}" \
-            "${launchpad_files_base}/${orig_runtime_tar}"; then
+            "${launchpad_files_base}/${orig_runtime_tar}" \
+            && tar -tzf "${orig_runtime_tar}" | grep -q '^runtime/'; then
             tar -xf "${orig_tar}"
           else
             rm -f "${orig_tar}" "${orig_runtime_tar}"
@@ -185,7 +186,7 @@ jobs:
               "" \
               "${runtime_dir}"
 
-            tar -czf "${orig_runtime_tar}" "${runtime_dir}"
+            tar -C "${GITHUB_WORKSPACE}" -czf "${orig_runtime_tar}" runtime
           fi
 
           cd "fcitx5-vinput-${version}"
