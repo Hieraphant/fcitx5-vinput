@@ -427,7 +427,7 @@ void LlmPage::onLlmTest() {
     QMessageBox::warning(this, tr("Error"), tr("Provider base_url is empty."));
     return;
   }
-  while (!url.empty() && url.back() == '/') url.pop_back();
+  while (!url.isEmpty() && url.endsWith(u'/')) url.chop(1);
   url += vinput::llm::kOpenAiModelsPath;
 
   btnLlmTest_->setEnabled(false);
