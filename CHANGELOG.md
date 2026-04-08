@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.29](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.29) — 2026-04-09
+
+### Bug Fixes
+
+- **gui:** Normalize URL trimming in the LLM test flow with `QString` handling so endpoint edits no longer produce malformed requests
+
+### Build System
+
+- **cmake:** Add explicit Vosk runtime mode switches so distro packaging selects system vs bundled behavior in configuration instead of hiding policy in workflows
+
+### Packaging
+
+- **packaging:** Switch Fedora and Arch packaging to distro-native system Vosk dependencies
+- **ci:** Make distro-specific Vosk dependency modes explicit in CI jobs
+- **release:** Align release packaging modes with the distro support policy
+- **channels:** Align channel publishing flows with the same Vosk policy and verify that Ubuntu PPA publication reaches a real installable binary before succeeding
+
 ## [2.0.28](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.28) — 2026-04-08
 
 ### Bug Fixes
