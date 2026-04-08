@@ -2,11 +2,6 @@ name: vosk-runtime
 
 on:
   workflow_dispatch:
-    inputs:
-      target:
-        description: Runtime target to build
-        required: false
-        default: all
 
 jobs:
   build:
@@ -20,7 +15,6 @@ jobs:
           - name: debian12
             image: debian:12
             target: debian12
-    if: ${{ inputs.target == 'all' || inputs.target == matrix.target }}
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
