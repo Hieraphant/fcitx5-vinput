@@ -17,6 +17,28 @@ jobs="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}"
 cc="${CC:-clang}"
 cxx="${CXX:-clang++}"
 
+# Kaldi's CMake expects BLAS_LIBRARIES/LAPACK_LIBRARIES to be populated but
+# does not call find_package(BLAS) in the non-CONDA OpenBLAS path.  Detect
+# them here so the linker flags are never empty.
+if [ -z "${BLAS_LIBRARIES:-}" ]; then
+    for _candidate in /usr/lib64/libopenblas.so /usr/lib/x86_64-linux-gnu/libopenblas.so /usr/lib/libopenblas.so; do
+        if [ -f "${_candidate}" ]; then
+            BLAS_LIBRARIES="${_candidate}"
+            break
+        fi
+    done
+    : "${BLAS_LIBRARIES:=-lopenblas}"
+fi
+if [ -z "${LAPACK_LIBRARIES:-}" ]; then
+    for _candidate in /usr/lib64/liblapack.so /usr/lib/x86_64-linux-gnu/liblapack.so /usr/lib/liblapack.so; do
+        if [ -f "${_candidate}" ]; then
+            LAPACK_LIBRARIES="${_candidate}"
+            break
+        fi
+    done
+    : "${LAPACK_LIBRARIES:=-llapack}"
+fi
+
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
 
@@ -45,6 +67,8 @@ cmake -S "${kaldi_src}" -B "${kaldi_build}" \
     -DFETCHCONTENT_SOURCE_DIR_OPENFST:PATH="${openfst_src}" \
     -DCMAKE_C_COMPILER="${cc}" \
     -DCMAKE_CXX_COMPILER="${cxx}" \
+    -DBLAS_LIBRARIES="${BLAS_LIBRARIES}" \
+    -DLAPACK_LIBRARIES="${LAPACK_LIBRARIES}" \
     -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \
     -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold \
     -DCMAKE_C_FLAGS="-I${openfst_src}/src/include" \
