@@ -2,8 +2,27 @@ find_library(SHERPA_ONNX_CXX_LIB sherpa-onnx-cxx-api REQUIRED)
 find_library(SHERPA_ONNX_C_LIB sherpa-onnx-c-api REQUIRED)
 find_library(ONNXRUNTIME_LIB onnxruntime REQUIRED)
 find_path(SHERPA_ONNX_INCLUDE_DIR sherpa-onnx/c-api/c-api.h REQUIRED)
-find_library(VOSK_LIB vosk)
-find_path(VOSK_INCLUDE_DIR vosk_api.h)
+set(VINPUT_ENABLE_VOSK FALSE)
+unset(VOSK_LIB CACHE)
+unset(VOSK_INCLUDE_DIR CACHE)
+
+if(VINPUT_VOSK_RUNTIME_MODE STREQUAL "disabled")
+    message(STATUS "Vosk runtime disabled by VINPUT_VOSK_RUNTIME_MODE")
+elseif(VINPUT_VOSK_RUNTIME_MODE STREQUAL "system")
+    find_library(VOSK_LIB vosk REQUIRED)
+    find_path(VOSK_INCLUDE_DIR vosk_api.h REQUIRED)
+    set(VINPUT_ENABLE_VOSK TRUE)
+elseif(VINPUT_VOSK_RUNTIME_MODE STREQUAL "bundled")
+    find_library(VOSK_LIB vosk REQUIRED)
+    find_path(VOSK_INCLUDE_DIR vosk_api.h REQUIRED)
+    set(VINPUT_ENABLE_VOSK TRUE)
+else()
+    find_library(VOSK_LIB vosk)
+    find_path(VOSK_INCLUDE_DIR vosk_api.h)
+    if(VOSK_LIB AND VOSK_INCLUDE_DIR)
+        set(VINPUT_ENABLE_VOSK TRUE)
+    endif()
+endif()
 
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 set(VINPUT_SYSTEMD_SERVICE_FILE
@@ -39,7 +58,7 @@ add_executable(vinput-daemon
     postprocess/post_processor.cpp
 )
 
-if(VOSK_LIB AND VOSK_INCLUDE_DIR)
+if(VINPUT_ENABLE_VOSK)
     target_sources(vinput-daemon PRIVATE
         asr/backends/vosk_offline_backend.cpp
         asr/backends/vosk_streaming_backend.cpp
@@ -68,7 +87,7 @@ target_include_directories(vinput-daemon PRIVATE
     ${SHERPA_ONNX_INCLUDE_DIR}
 )
 
-if(VOSK_INCLUDE_DIR)
+if(VINPUT_ENABLE_VOSK)
     target_include_directories(vinput-daemon PRIVATE
         ${VOSK_INCLUDE_DIR}
     )
@@ -84,7 +103,7 @@ target_link_libraries(vinput-daemon PRIVATE
     pthread
 )
 
-if(VOSK_LIB)
+if(VINPUT_ENABLE_VOSK)
     target_link_libraries(vinput-daemon PRIVATE
         ${VOSK_LIB}
     )
@@ -122,7 +141,7 @@ if(VINPUT_RUNTIME_MODE STREQUAL "bundled")
         "${ONNXRUNTIME_LIB}"
         DESTINATION "${VINPUT_RUNTIME_LIBDIR}"
     )
-    if(VOSK_LIB)
+    if(VINPUT_VOSK_RUNTIME_MODE STREQUAL "bundled")
         install(FILES
             "${VOSK_LIB}"
             DESTINATION "${VINPUT_RUNTIME_LIBDIR}"

@@ -68,6 +68,22 @@ if(NOT VINPUT_RUNTIME_MODE STREQUAL "system" AND
     message(FATAL_ERROR
         "VINPUT_RUNTIME_MODE must be either 'system' or 'bundled'")
 endif()
+set(VINPUT_VOSK_RUNTIME_MODE "auto"
+    CACHE STRING "Vosk dependency mode: auto, disabled, system, or bundled")
+set_property(CACHE VINPUT_VOSK_RUNTIME_MODE PROPERTY STRINGS
+    auto disabled system bundled)
+if(NOT VINPUT_VOSK_RUNTIME_MODE STREQUAL "auto" AND
+   NOT VINPUT_VOSK_RUNTIME_MODE STREQUAL "disabled" AND
+   NOT VINPUT_VOSK_RUNTIME_MODE STREQUAL "system" AND
+   NOT VINPUT_VOSK_RUNTIME_MODE STREQUAL "bundled")
+    message(FATAL_ERROR
+        "VINPUT_VOSK_RUNTIME_MODE must be one of: auto, disabled, system, bundled")
+endif()
+if(VINPUT_VOSK_RUNTIME_MODE STREQUAL "bundled" AND
+   NOT VINPUT_RUNTIME_MODE STREQUAL "bundled")
+    message(FATAL_ERROR
+        "VINPUT_VOSK_RUNTIME_MODE=bundled requires VINPUT_RUNTIME_MODE=bundled")
+endif()
 set(VINPUT_DAEMON_EXECUTABLE
     "${CMAKE_INSTALL_FULL_BINDIR}/vinput-daemon")
 
