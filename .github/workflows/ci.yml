@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
+    env:
+      VINPUT_VOSK_RUNTIME_MODE: bundled
     steps:
       - uses: actions/checkout@v6
 
@@ -60,7 +62,7 @@ jobs:
         run: python3 scripts/check-i18n.py
 
       - name: Configure
-        run: cmake --preset ci-clang-mold
+        run: cmake --preset ci-clang-mold -DVINPUT_VOSK_RUNTIME_MODE="${VINPUT_VOSK_RUNTIME_MODE}"
 
       - name: Build
         run: cmake --build --preset ci-clang-mold
@@ -73,12 +75,18 @@ jobs:
           - name: debian-12
             image: debian:12
             target: debian12
+            vosk_mode: bundled
+            prepare_vosk: source
           - name: fedora-43
             image: fedora:43
             target: fedora43
+            vosk_mode: system
+            prepare_vosk: system
           - name: archlinux
             image: archlinux:base-devel
             target: archlinux
+            vosk_mode: system
+            prepare_vosk: system
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
@@ -107,14 +115,11 @@ jobs:
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
 
       - name: Install vosk build runtime
+        if: ${{ matrix.prepare_vosk == 'source' }}
         shell: bash
         run: |
           prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
-          if [[ "${{ matrix.target }}" == "debian12" ]]; then
-            bash scripts/build-vosk-from-source.sh "" "${prefix}"
-          else
-            bash scripts/build-vosk.sh "" "${prefix}"
-          fi
+          bash scripts/build-vosk-from-source.sh "" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -124,7 +129,7 @@ jobs:
             sccache-ci-${{ matrix.target }}-
 
       - name: Configure
-        run: cmake --preset ci-clang-mold
+        run: cmake --preset ci-clang-mold -DVINPUT_VOSK_RUNTIME_MODE="${{ matrix.vosk_mode }}"
 
       - name: Build
         run: cmake --build --preset ci-clang-mold
