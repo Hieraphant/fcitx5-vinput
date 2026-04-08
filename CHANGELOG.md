@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.28](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.28) — 2026-04-08
+
+### Bug Fixes
+
+- **channels:** Default the PPA revision input to `1` for new manual channel publishes
+- **ppa:** Align the Ubuntu channel runtime build with the Ubuntu release packaging flow by building Vosk from source in the target Ubuntu 24.04 environment
+- **ppa:** Use an absolute runtime build path during channel packaging so Vosk source builds can resolve Kaldi headers correctly
+- **ppa:** Package the Launchpad runtime component as `runtime/` and rebuild invalid cached runtime tarballs instead of reusing incompatible `orig-runtime` archives
+
 ## [2.0.27](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.27) — 2026-04-08
 
 ### Bug Fixes
