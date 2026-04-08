@@ -31,6 +31,13 @@ set(VINPUT_DBUS_SERVICE_FILE
     "${CMAKE_CURRENT_BINARY_DIR}/org.fcitx.Vinput.service")
 
 get_filename_component(SHERPA_ONNX_RUNTIME_DIR "${SHERPA_ONNX_CXX_LIB}" DIRECTORY)
+if(VINPUT_VOSK_RUNTIME_MODE STREQUAL "bundled" AND VOSK_LIB)
+    get_filename_component(VOSK_RUNTIME_DIR "${VOSK_LIB}" DIRECTORY)
+    file(GLOB VINPUT_BUNDLED_VOSK_PRIVATE_LIBS
+        "${VOSK_RUNTIME_DIR}/libkaldi*.so*"
+        "${VOSK_RUNTIME_DIR}/libfst*.so*"
+    )
+endif()
 if(VINPUT_RUNTIME_MODE STREQUAL "bundled")
     if(IS_ABSOLUTE "${VINPUT_RUNTIME_LIBDIR}")
         set(VINPUT_DAEMON_INSTALL_RPATH "${VINPUT_RUNTIME_LIBDIR}")
@@ -107,6 +114,12 @@ if(VINPUT_ENABLE_VOSK)
     target_link_libraries(vinput-daemon PRIVATE
         ${VOSK_LIB}
     )
+    if(VINPUT_VOSK_RUNTIME_MODE STREQUAL "bundled" AND
+       VINPUT_BUNDLED_VOSK_PRIVATE_LIBS)
+        target_link_libraries(vinput-daemon PRIVATE
+            ${VINPUT_BUNDLED_VOSK_PRIVATE_LIBS}
+        )
+    endif()
 endif()
 
 set_target_properties(vinput-daemon PROPERTIES
@@ -146,6 +159,12 @@ if(VINPUT_RUNTIME_MODE STREQUAL "bundled")
             "${VOSK_LIB}"
             DESTINATION "${VINPUT_RUNTIME_LIBDIR}"
         )
+        if(VINPUT_BUNDLED_VOSK_PRIVATE_LIBS)
+            install(FILES
+                ${VINPUT_BUNDLED_VOSK_PRIVATE_LIBS}
+                DESTINATION "${VINPUT_RUNTIME_LIBDIR}"
+            )
+        endif()
     endif()
 endif()
 # VAD model (optional — daemon gracefully degrades if missing)

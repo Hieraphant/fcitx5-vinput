@@ -1,0 +1,73 @@
+name: vosk-runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Runtime target to build
+        required: false
+        default: all
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu24.04
+            image: ubuntu:24.04
+            target: ubuntu24.04
+          - name: debian12
+            image: debian:12
+            target: debian12
+    if: ${{ inputs.target == 'all' || inputs.target == matrix.target }}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
+
+      - name: Check Kaldi patch headers
+        run: bash scripts/check-kaldi-openfst-patch.sh
+
+      - name: Check Vosk build script
+        run: bash scripts/check-vosk-build-script.sh
+
+      - name: Check Kaldi build flags
+        run: bash scripts/check-kaldi-build-flags.sh
+
+      - name: Build Vosk runtime
+        shell: bash
+        run: |
+          prefix="${GITHUB_WORKSPACE}/runtime"
+          bash scripts/build-vosk-from-source.sh "" "${prefix}"
+
+      - name: Package Vosk runtime
+        shell: bash
+        run: |
+          mkdir -p dist
+          bash scripts/package-vosk-runtime.sh \
+            "${{ matrix.target }}" \
+            "${GITHUB_WORKSPACE}/runtime" \
+            "${GITHUB_WORKSPACE}/dist"
+
+      - name: Resolve artifact names
+        id: runtime_vars
+        shell: bash
+        run: |
+          source scripts/vosk-runtime-vars.sh
+          vosk_runtime_set_vars "${{ matrix.target }}"
+          echo "basename=${VOSK_RUNTIME_BASENAME}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.runtime_vars.outputs.basename }}
+          path: |
+            dist/${{ steps.runtime_vars.outputs.basename }}.tar.gz
+            dist/${{ steps.runtime_vars.outputs.basename }}.tar.gz.sha256
+            dist/${{ steps.runtime_vars.outputs.basename }}.manifest.json
+          if-no-files-found: error
