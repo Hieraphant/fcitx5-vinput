@@ -59,6 +59,7 @@ jobs:
                 clang17 \
                 cmake \
                 curl \
+                gcc-c++ \
                 git \
                 lapack-devel \
                 libarchive-devel \
