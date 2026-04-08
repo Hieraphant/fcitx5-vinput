@@ -67,6 +67,7 @@ jobs:
                 make \
                 mold \
                 ninja \
+                openblas-devel \
                 patch \
                 pipewire-devel \
                 python3 \
