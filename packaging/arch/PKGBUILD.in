@@ -6,7 +6,7 @@ arch=('x86_64')
 url='@VINPUT_PKGURL@'
 license=('GPL3')
 options=(!debug)
-depends=('curl' 'fcitx5' 'libarchive' 'openssl' 'pipewire' 'qt6-base' 'systemd-libs' 'vosk-api')
+depends=('curl' 'fcitx5' 'libarchive' 'openssl' 'pipewire' 'qt6-base' 'systemd-libs')
 makedepends=('clang' 'cli11' 'cmake' 'mold' 'ninja' 'nlohmann-json' 'pkgconf' 'qt6-tools' 'systemd')
 source=('@VINPUT_SOURCE_ARCHIVE@')
 sha256sums=('@VINPUT_SOURCE_SHA256@')
@@ -31,8 +31,7 @@ build() {
         -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold \
         -DVINPUT_PROJECT_VERSION="${pkgver}" \
         -DVINPUT_PACKAGE_RELEASE="${pkgrel}" \
-        -DVINPUT_PACKAGE_HOMEPAGE_URL="${url}" \
-        -DVINPUT_VOSK_RUNTIME_MODE=system
+        -DVINPUT_PACKAGE_HOMEPAGE_URL="${url}"
     cmake --build "${srcdir}/build"
 }
 

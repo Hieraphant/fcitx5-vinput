@@ -5,10 +5,6 @@
 #include "daemon/asr/backends/command_streaming_backend.h"
 #include "daemon/asr/backends/sherpa_offline_backend.h"
 #include "daemon/asr/backends/sherpa_streaming_backend.h"
-#ifdef VINPUT_HAVE_VOSK
-#include "daemon/asr/backends/vosk_offline_backend.h"
-#include "daemon/asr/backends/vosk_streaming_backend.h"
-#endif
 
 namespace vinput::daemon::asr {
 
@@ -63,16 +59,6 @@ std::unique_ptr<AsrBackend> CreateLocalBackend(const CoreConfig &config,
   if (backend_id == "sherpa-streaming") {
     return CreateSherpaStreamingBackend(config, provider, error);
   }
-
-#ifdef VINPUT_HAVE_VOSK
-  if (backend_id == "vosk-offline") {
-    return CreateVoskOfflineBackend(config, provider, error);
-  }
-
-  if (backend_id == "vosk-streaming") {
-    return CreateVoskStreamingBackend(config, provider, error);
-  }
-#endif
 
   if (error) {
     *error = "Unsupported local ASR backend '" + backend_id +

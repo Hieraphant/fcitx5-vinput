@@ -32,14 +32,12 @@ BuildRequires:  pkgconfig(libarchive)
 BuildRequires:  pkgconfig(libpipewire-0.3)
 BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  cli11-devel
-BuildRequires:  vosk-api-devel
 
 Requires:       fcitx5
 Requires:       pipewire
 Requires:       curl
 Requires:       systemd
 Requires:       qt6-qtbase
-Requires:       vosk-api
 
 # Bundled sherpa-onnx/onnxruntime shared libraries are private runtime
 # dependencies installed under %{_libdir}/fcitx5-vinput/. They should not
@@ -65,8 +63,7 @@ bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-in
     -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold \
     -DVINPUT_PROJECT_VERSION=%{version} \
     -DVINPUT_PACKAGE_RELEASE=%{release} \
-    -DVINPUT_PACKAGE_HOMEPAGE_URL=%{url} \
-    -DVINPUT_VOSK_RUNTIME_MODE=system
+    -DVINPUT_PACKAGE_HOMEPAGE_URL=%{url}
 %cmake_build
 
 %install

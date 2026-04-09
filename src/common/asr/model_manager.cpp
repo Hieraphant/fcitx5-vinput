@@ -290,10 +290,6 @@ bool HasModelFiles(const ModelInfo &info) {
   return false;
 }
 
-bool IsDirectoryModelBackend(const ModelInfo &info) {
-  return info.backend == "vosk-streaming" || info.backend == "vosk-offline";
-}
-
 } // namespace
 
 std::string ModelInfo::RuntimeLanguageHint() const {
@@ -426,29 +422,19 @@ bool ModelManager::EnsureModels(std::string *error) {
     return false;
   }
 
-  if (!IsDirectoryModelBackend(info)) {
-    if (!HasRequiredTextAsset(info)) {
-      if (error) {
-        *error = RequiredTextAssetPathKey(info) +
-                 " file not found for model '" + model_id_ + "'";
-      }
-      return false;
+  if (!HasRequiredTextAsset(info)) {
+    if (error) {
+      *error = RequiredTextAssetPathKey(info) +
+               " file not found for model '" + model_id_ + "'";
     }
+    return false;
+  }
 
-    if (!HasModelFiles(info)) {
-      if (error) {
-        *error = "no model files found for model '" + model_id_ + "'";
-      }
-      return false;
+  if (!HasModelFiles(info)) {
+    if (error) {
+      *error = "no model files found for model '" + model_id_ + "'";
     }
-  } else {
-    const std::string model_path = info.File("model");
-    if (model_path.empty() || !fs::exists(model_path) || !fs::is_directory(model_path)) {
-      if (error) {
-        *error = "vosk model directory not found for model '" + model_id_ + "'";
-      }
-      return false;
-    }
+    return false;
   }
 
   return true;
@@ -603,32 +589,20 @@ bool ModelManager::Validate(const std::string &model_id,
   }
 
   if (!HasRequiredTextAsset(info)) {
-    if (!IsDirectoryModelBackend(info)) {
-      const auto path_key = RequiredTextAssetPathKey(info);
-      auto asset_path = info.File(path_key);
-      if (asset_path.empty()) {
-        if (error)
-          *error =
-              "vinput-model.json missing required field: " +
-              RequiredTextAssetField(info);
-      } else {
-        if (error) *error = path_key + " file not found: " + asset_path;
-      }
-      return false;
+    const auto path_key = RequiredTextAssetPathKey(info);
+    auto asset_path = info.File(path_key);
+    if (asset_path.empty()) {
+      if (error)
+        *error =
+            "vinput-model.json missing required field: " +
+            RequiredTextAssetField(info);
+    } else {
+      if (error) *error = path_key + " file not found: " + asset_path;
     }
-
-    const std::string model_path = info.File("model");
-    if (model_path.empty()) {
-      if (error) *error = "vinput-model.json missing required field: model.vosk.model";
-      return false;
-    }
-    if (!fs::exists(model_path) || !fs::is_directory(model_path)) {
-      if (error) *error = "vosk model directory not found: " + model_path;
-      return false;
-    }
+    return false;
   }
 
-  if (!IsDirectoryModelBackend(info) && !HasModelFiles(info)) {
+  if (!HasModelFiles(info)) {
     if (error) *error = "no model/encoder files found in model directory";
     return false;
   }

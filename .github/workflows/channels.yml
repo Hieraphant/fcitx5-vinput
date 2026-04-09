@@ -176,9 +176,6 @@ jobs:
             bash ./scripts/build-sherpa-onnx.sh \
               "${SHERPA_ONNX_VERSION}" \
               "${runtime_dir}"
-            bash ./scripts/build-vosk-from-source.sh \
-              "" \
-              "${runtime_dir}"
 
             tar -C "${GITHUB_WORKSPACE}" -czf "${orig_runtime_tar}" runtime
           fi

@@ -381,7 +381,7 @@ bool RecognitionSessionManager::CreatePreparedBackend(
 
   // Force backend initialization during preparation so recording does not
   // become the hidden fallback path for expensive model load. Current offline
-  // backends (for example sherpa-offline and vosk-offline) still perform their
+  // backends (for example sherpa-offline) still perform their
   // heavy recognizer/model init inside CreateSession(), so warmup must keep
   // going through that path instead of only constructing the backend object.
   std::string warmup_error;

@@ -32,23 +32,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
-    env:
-      VINPUT_VOSK_RUNTIME_MODE: bundled
-      VINPUT_VOSK_RUNTIME_TARGET: linux-x86_64
     steps:
       - uses: actions/checkout@v6
 
       - name: Install dependencies
         run: ./scripts/ci-install-build-deps.sh ubuntu24.04
-
-      - name: Check Kaldi patch headers
-        run: bash scripts/check-kaldi-openfst-patch.sh
-
-      - name: Check Vosk build script
-        run: bash scripts/check-vosk-build-script.sh
-
-      - name: Check Kaldi build flags
-        run: bash scripts/check-kaldi-build-flags.sh
 
       - name: Install sherpa-onnx build runtime
         shell: bash
@@ -57,12 +45,6 @@ jobs:
           source scripts/sherpa-onnx-vars.sh
           bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
-
-      - name: Install vosk build runtime
-        shell: bash
-        run: |
-          prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
-          bash scripts/install-vosk-runtime.sh "${VINPUT_VOSK_RUNTIME_TARGET}" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -75,7 +57,7 @@ jobs:
         run: python3 scripts/check-i18n.py
 
       - name: Configure
-        run: cmake --preset ci-clang-mold -DVINPUT_VOSK_RUNTIME_MODE="${VINPUT_VOSK_RUNTIME_MODE}"
+        run: cmake --preset ci-clang-mold
 
       - name: Build
         run: cmake --build --preset ci-clang-mold
@@ -88,19 +70,12 @@ jobs:
           - name: debian-12
             image: debian:12
             target: debian12
-            vosk_mode: bundled
-            prepare_vosk: runtime
-            vosk_runtime_target: linux-x86_64
           - name: fedora-43
             image: fedora:43
             target: fedora43
-            vosk_mode: system
-            prepare_vosk: system
           - name: archlinux
             image: archlinux:base-devel
             target: archlinux
-            vosk_mode: system
-            prepare_vosk: system
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
@@ -111,15 +86,6 @@ jobs:
       - name: Install dependencies
         run: ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
 
-      - name: Check Kaldi patch headers
-        run: bash scripts/check-kaldi-openfst-patch.sh
-
-      - name: Check Vosk build script
-        run: bash scripts/check-vosk-build-script.sh
-
-      - name: Check Kaldi build flags
-        run: bash scripts/check-kaldi-build-flags.sh
-
       - name: Install sherpa-onnx build runtime
         shell: bash
         run: |
@@ -127,13 +93,6 @@ jobs:
           source scripts/sherpa-onnx-vars.sh
           bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
-
-      - name: Install vosk build runtime
-        if: ${{ matrix.prepare_vosk == 'runtime' }}
-        shell: bash
-        run: |
-          prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
-          bash scripts/install-vosk-runtime.sh "${{ matrix.vosk_runtime_target }}" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -143,7 +102,7 @@ jobs:
             sccache-ci-${{ matrix.target }}-
 
       - name: Configure
-        run: cmake --preset ci-clang-mold -DVINPUT_VOSK_RUNTIME_MODE="${{ matrix.vosk_mode }}"
+        run: cmake --preset ci-clang-mold
 
       - name: Build
         run: cmake --build --preset ci-clang-mold
