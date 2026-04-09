@@ -16,7 +16,7 @@ vosk_runtime_set_vars() {
     local openfst_short="${OPENFST_VOSK_REV:0:12}"
 
     case "${target}" in
-        ubuntu24.04|debian12|opensuse-leap)
+        ubuntu24.04|debian12|opensuse-leap|flatpak-kde6.10)
             ;;
         *)
             echo "unsupported vosk runtime target: ${target}" >&2
