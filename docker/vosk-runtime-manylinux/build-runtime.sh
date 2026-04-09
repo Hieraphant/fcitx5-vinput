@@ -24,7 +24,9 @@ make -C "${vosk_src}/src" -j"${jobs}" \
     KALDI_ROOT="/opt/kaldi" \
     OPENFST_ROOT="/opt/kaldi/tools/openfst" \
     HAVE_OPENBLAS_CLAPACK=1 \
-    USE_SHARED=1
+    USE_SHARED=1 \
+    EXTRA_CFLAGS="-I/opt/kaldi/src -I/opt/kaldi/tools/openfst/include -I/opt/kaldi/tools/OpenBLAS/install/include" \
+    EXTRA_LDFLAGS="-L/opt/kaldi/src/lib -L/opt/kaldi/tools/openfst/lib -L/opt/kaldi/tools/OpenBLAS/install/lib -Wl,-rpath,/opt/kaldi/src/lib -Wl,-rpath,/opt/kaldi/tools/openfst/lib -Wl,-rpath,/opt/kaldi/tools/OpenBLAS/install/lib"
 
 install -d "${prefix}/include" "${prefix}/lib"
 install -m 644 "${vosk_src}/src/vosk_api.h" "${prefix}/include/"

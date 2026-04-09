@@ -53,4 +53,5 @@ RUN cd /opt \
     && sed -i 's:-msse -msse2:-msse -msse2:g' kaldi.mk \
     && sed -i 's: -O1 : -O3 :g' kaldi.mk \
     && make -j"$(nproc)" online2 rnnlm \
+    && ln -sfn /opt/kaldi/src/lib /opt/kaldi/libs \
     && find /opt/kaldi -name "*.o" -exec rm {} \;
