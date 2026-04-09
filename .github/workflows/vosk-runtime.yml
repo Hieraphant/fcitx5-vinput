@@ -61,6 +61,7 @@ jobs:
                 curl \
                 gcc-c++ \
                 git \
+                jq \
                 lapack-devel \
                 libarchive-devel \
                 libopenssl-devel \
@@ -126,16 +127,42 @@ jobs:
 
       - name: Publish runtime assets to GitHub Release
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           tag="${{ steps.runtime_vars.outputs.release_tag }}"
-          if ! gh release view "${tag}" --repo "${GH_REPO}" >/dev/null 2>&1; then
-            gh release create "${tag}" --repo "${GH_REPO}" \
-              --title "${tag}" \
-              --notes "Reusable Vosk runtime artifacts for supported and compatibility-tested distro targets."
+          api="https://api.github.com/repos/${GH_REPO}"
+          auth="Authorization: Bearer ${GITHUB_TOKEN}"
+          basename="${{ steps.runtime_vars.outputs.basename }}"
+
+          # Ensure the release exists
+          if ! curl -sf -H "${auth}" "${api}/releases/tags/${tag}" >/dev/null 2>&1; then
+            curl -sf -X POST -H "${auth}" -H "Content-Type: application/json" \
+              "${api}/releases" \
+              -d "$(jq -n --arg t "${tag}" --arg b "Reusable Vosk runtime artifacts for supported and compatibility-tested distro targets." \
+                '{tag_name:$t, name:$t, body:$b}')"
           fi
 
-          gh release upload "${tag}" --repo "${GH_REPO}" \
-            "dist/${{ steps.runtime_vars.outputs.basename }}.tar.gz" \
-            "dist/${{ steps.runtime_vars.outputs.basename }}.tar.gz.sha256" \
-            "dist/${{ steps.runtime_vars.outputs.basename }}.manifest.json" \
-            --clobber
+          release=$(curl -sf -H "${auth}" "${api}/releases/tags/${tag}")
+          upload_url=$(echo "${release}" | jq -r '.upload_url | sub("\\{\\?name,label\\}";"")')
+
+          for suffix in .tar.gz .tar.gz.sha256 .manifest.json; do
+            asset_name="${basename}${suffix}"
+            asset_path="dist/${asset_name}"
+
+            # Delete existing asset if present
+            asset_id=$(echo "${release}" | jq -r --arg n "${asset_name}" '.assets[] | select(.name==$n) | .id // empty')
+            if [ -n "${asset_id}" ]; then
+              curl -sf -X DELETE -H "${auth}" "${api}/releases/assets/${asset_id}"
+            fi
+
+            case "${suffix}" in
+              .tar.gz)        ct="application/gzip" ;;
+              .tar.gz.sha256) ct="text/plain" ;;
+              .manifest.json) ct="application/json" ;;
+            esac
+
+            curl -sf -X POST -H "${auth}" -H "Content-Type: ${ct}" \
+              "${upload_url}?name=${asset_name}" \
+              --data-binary "@${asset_path}"
+          done

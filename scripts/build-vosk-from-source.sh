@@ -62,6 +62,7 @@ cmake -S "${kaldi_src}" -B "${kaldi_build}" \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="${prefix}" \
+    -DCMAKE_INSTALL_LIBDIR=lib \
     -DBUILD_SHARED_LIBS=ON \
     -DKALDI_BUILD_TEST=OFF \
     -DFETCHCONTENT_SOURCE_DIR_OPENFST:PATH="${openfst_src}" \

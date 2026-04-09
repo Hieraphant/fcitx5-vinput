@@ -40,6 +40,7 @@ case "${target}" in
             cmake \
             file \
             git \
+            jq \
             make \
             mold \
             ninja-build \
@@ -81,6 +82,7 @@ case "${target}" in
             file \
             git \
             curl \
+            jq \
             patch \
             python3 \
             zstd \
