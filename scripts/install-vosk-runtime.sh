@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 2 ]]; then
-    echo "usage: $0 <ubuntu24.04|debian12|opensuse-leap> <prefix>" >&2
+    echo "usage: $0 <linux-x86_64> <prefix>" >&2
     exit 1
 fi
 
@@ -42,7 +42,7 @@ if [[ -z "${expected_sha256}" || "${actual_sha256}" != "${expected_sha256}" ]]; 
     exit 1
 fi
 
-if ! grep -Fq "\"target\": \"${target}\"" "${manifest_path}"; then
+if ! grep -Fq "\"target\": \"${VOSK_RUNTIME_TARGET}\"" "${manifest_path}"; then
     echo "runtime manifest target mismatch for ${target}" >&2
     exit 1
 fi

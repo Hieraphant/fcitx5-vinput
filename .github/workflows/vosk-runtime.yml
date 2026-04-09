@@ -12,24 +12,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ubuntu24.04
+          - name: linux-x86_64
             image: ubuntu:24.04
-            target: ubuntu24.04
-            cc: clang
-            cxx: clang++
-          - name: debian12
-            image: debian:12
-            target: debian12
-            cc: clang
-            cxx: clang++
-          - name: opensuse-leap
-            image: registry.opensuse.org/opensuse/leap:15.6
-            target: opensuse-leap
-            cc: clang-17
-            cxx: clang++-17
-          - name: flatpak-kde6.10
-            image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
-            target: flatpak-kde6.10
+            target: linux-x86_64
             cc: clang
             cxx: clang++
     runs-on: ubuntu-latest
@@ -40,73 +25,11 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - name: Prepare container prerequisites
-        if: ${{ matrix.target == 'opensuse-leap' }}
-        shell: bash
-        run: |
-          zypper --gpg-auto-import-keys --non-interactive refresh
-          zypper --non-interactive install --no-recommends \
-            gzip \
-            tar
-
       - uses: actions/checkout@v6
 
       - name: Install build dependencies
         shell: bash
-        run: |
-          case "${{ matrix.target }}" in
-            opensuse-leap)
-              zypper --non-interactive addrepo --refresh \
-                https://download.opensuse.org/repositories/devel:/tools:/compiler/15.6/ \
-                devel-tools-compiler
-              zypper --gpg-auto-import-keys --non-interactive refresh
-              zypper --non-interactive install --no-recommends \
-                clang17 \
-                cmake \
-                curl \
-                gcc-c++ \
-                git \
-                jq \
-                lapack-devel \
-                libarchive-devel \
-                libopenssl-devel \
-                make \
-                mold \
-                ninja \
-                openblas-devel \
-                patch \
-                pipewire-devel \
-                python3 \
-                systemd-devel \
-                zstd
-              ;;
-            flatpak-kde6.10)
-              apt-get update
-              apt-get install -y \
-                bzip2 \
-                clang \
-                cmake \
-                curl \
-                file \
-                git \
-                jq \
-                make \
-                mold \
-                ninja-build \
-                patch \
-                pkg-config \
-                python3 \
-                zstd \
-                libarchive-dev \
-                libblas-dev \
-                liblapack-dev \
-                libopenblas-dev \
-                libssl-dev
-              ;;
-            *)
-              ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
-              ;;
-          esac
+        run: ./scripts/ci-install-build-deps.sh ubuntu24.04
 
       - name: Check Kaldi patch headers
         run: bash scripts/check-kaldi-openfst-patch.sh
@@ -167,7 +90,7 @@ jobs:
           if ! curl -sf -H "${auth}" "${api}/releases/tags/${tag}" >/dev/null 2>&1; then
             curl -sf -X POST -H "${auth}" -H "Content-Type: application/json" \
               "${api}/releases" \
-              -d "$(jq -n --arg t "${tag}" --arg b "Reusable Vosk runtime artifacts for supported and compatibility-tested distro targets." \
+              -d "$(jq -n --arg t "${tag}" --arg b "Reusable generic Linux Vosk runtime assets built from the pinned Vosk/Kaldi/OpenFST source toolchain." \
                 '{tag_name:$t, name:$t, body:$b}')"
           fi
 

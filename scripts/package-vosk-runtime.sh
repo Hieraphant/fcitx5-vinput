@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 3 ]]; then
-    echo "usage: $0 <ubuntu24.04|debian12|opensuse-leap|flatpak-kde6.10> <runtime-prefix> <output-dir>" >&2
+    echo "usage: $0 <linux-x86_64> <runtime-prefix> <output-dir>" >&2
     exit 1
 fi
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Build libvosk.so from source in the current environment so the bundled
-# runtime matches the target distro ABI.
+# Build libvosk.so from source in a pinned environment so downstream
+# packaging can reuse one published runtime asset.
 # Usage: build-vosk-from-source.sh [version] [prefix]
 set -euo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-# shellcheck source=./vosk-vars.sh
-source "${script_dir}/vosk-vars.sh"
+# shellcheck source=./vosk-runtime-vars.sh
+source "${script_dir}/vosk-runtime-vars.sh"
 
 version="${1:-${VOSK_VERSION}}"
 prefix="${2:-/usr}"

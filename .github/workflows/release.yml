@@ -92,7 +92,7 @@ jobs:
         run: |
           prefix="${RUNNER_TEMP}/sherpa-onnx-install"
           bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/install-vosk-runtime.sh" \
-            ubuntu24.04 "${prefix}"
+            linux-x86_64 "${prefix}"
 
       - uses: actions/cache@v4
         with:

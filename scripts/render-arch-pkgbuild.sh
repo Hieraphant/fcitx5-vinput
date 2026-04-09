@@ -17,8 +17,6 @@ repo_root=$(cd -- "${script_dir}/.." && pwd)
 default_pkgurl="https://github.com/OWNER/REPO"
 # shellcheck source=./sherpa-onnx-vars.sh
 source "${script_dir}/sherpa-onnx-vars.sh"
-# shellcheck source=./vosk-vars.sh
-source "${script_dir}/vosk-vars.sh"
 
 if origin_url=$(git -C "${repo_root}" remote get-url origin 2>/dev/null); then
     case "${origin_url}" in
@@ -40,7 +38,6 @@ mkdir -p "$(dirname "${output_path}")"
 
 sed \
     -e "s|@SHERPA_ONNX_VERSION@|${SHERPA_ONNX_VERSION}|g" \
-    -e "s|@VOSK_VERSION@|${VOSK_VERSION}|g" \
     -e "s|@VINPUT_PKGVER@|${pkgver}|g" \
     -e "s|@VINPUT_PKGREL@|${pkgrel}|g" \
     -e "s|@VINPUT_PKGURL@|${pkgurl}|g" \
