@@ -1,4 +1,4 @@
-FROM quay.io/pypa/manylinux2014_x86_64
+FROM quay.io/pypa/manylinux2010_x86_64
 
 LABEL description="Build image for generic Linux Vosk runtime assets"
 
@@ -13,11 +13,8 @@ RUN yum -y update && yum -y install \
     autoconf \
     automake \
     cmake \
-    git \
     libffi-devel \
     libtool \
-    make \
-    patch \
     && yum clean all
 
 RUN cd /opt \
