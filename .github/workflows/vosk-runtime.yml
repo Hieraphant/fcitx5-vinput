@@ -8,64 +8,53 @@ permissions:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux-x86_64
-            image: ubuntu:24.04
-            target: linux-x86_64
-            cc: clang
-            cxx: clang++
     runs-on: ubuntu-latest
-    container:
-      image: ${{ matrix.image }}
-    name: ${{ matrix.name }}
+    name: linux-x86_64
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install build dependencies
+      - name: Resolve Vosk runtime vars
+        id: runtime_vars
         shell: bash
-        run: ./scripts/ci-install-build-deps.sh ubuntu24.04
+        run: |
+          source scripts/vosk-runtime-vars.sh
+          vosk_runtime_set_vars linux-x86_64
+          echo "basename=${VOSK_RUNTIME_BASENAME}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=${VOSK_RUNTIME_RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "kaldi_rev=${KALDI_VOSK_REV}" >> "${GITHUB_OUTPUT}"
+          echo "openfst_rev=${OPENFST_VOSK_REV}" >> "${GITHUB_OUTPUT}"
 
-      - name: Check Kaldi patch headers
-        run: bash scripts/check-kaldi-openfst-patch.sh
-
-      - name: Check Vosk build script
-        run: bash scripts/check-vosk-build-script.sh
-
-      - name: Check Kaldi build flags
-        run: bash scripts/check-kaldi-build-flags.sh
+      - name: Build manylinux image
+        shell: bash
+        run: |
+          docker build \
+            --build-arg "KALDI_VOSK_REV=${{ steps.runtime_vars.outputs.kaldi_rev }}" \
+            --build-arg "OPENFST_VOSK_REV=${{ steps.runtime_vars.outputs.openfst_rev }}" \
+            --file docker/vosk-runtime-manylinux/Dockerfile \
+            --tag fcitx5-vinput/vosk-runtime-manylinux:latest \
+            .
 
       - name: Build Vosk runtime
         shell: bash
-        env:
-          CC: ${{ matrix.cc }}
-          CXX: ${{ matrix.cxx }}
         run: |
-          prefix="${GITHUB_WORKSPACE}/runtime"
-          bash scripts/build-vosk-from-source.sh "" "${prefix}"
+          mkdir -p "${GITHUB_WORKSPACE}/runtime"
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/io" \
+            fcitx5-vinput/vosk-runtime-manylinux:latest \
+            /io/docker/vosk-runtime-manylinux/build-runtime.sh \
+            /io/runtime
 
       - name: Package Vosk runtime
         shell: bash
         run: |
           mkdir -p dist
           bash scripts/package-vosk-runtime.sh \
-            "${{ matrix.target }}" \
+            linux-x86_64 \
             "${GITHUB_WORKSPACE}/runtime" \
             "${GITHUB_WORKSPACE}/dist"
-
-      - name: Resolve artifact names
-        id: runtime_vars
-        shell: bash
-        run: |
-          source scripts/vosk-runtime-vars.sh
-          vosk_runtime_set_vars "${{ matrix.target }}"
-          echo "basename=${VOSK_RUNTIME_BASENAME}" >> "${GITHUB_OUTPUT}"
-          echo "release_tag=${VOSK_RUNTIME_RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
 
       - uses: actions/upload-artifact@v6
         with:
