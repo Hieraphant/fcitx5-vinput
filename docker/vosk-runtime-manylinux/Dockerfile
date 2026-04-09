@@ -17,6 +17,8 @@ RUN yum -y update && yum -y install \
     libtool \
     && yum clean all
 
+RUN ln -sf /usr/bin/gfortran /usr/bin/f77
+
 RUN cd /opt \
     && git clone https://github.com/alphacep/kaldi kaldi \
     && git -C /opt/kaldi checkout --detach "${KALDI_VOSK_REV}" \
@@ -31,9 +33,9 @@ RUN cd /opt \
     && make -j"$(nproc)" \
     && find . -name "*.a" -exec cp {} ../../OpenBLAS/install/lib/ \; \
     && cd /opt/kaldi/tools \
-    && git clone https://github.com/alphacep/openfst openfst-src \
-    && git -C openfst-src checkout --detach "${OPENFST_VOSK_REV}" \
-    && cd openfst-src \
+    && git clone https://github.com/alphacep/openfst openfst \
+    && git -C openfst checkout --detach "${OPENFST_VOSK_REV}" \
+    && cd openfst \
     && autoreconf -i \
     && CFLAGS="-g -O3" ./configure \
         --prefix=/opt/kaldi/tools/openfst \
