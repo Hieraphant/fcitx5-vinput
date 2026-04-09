@@ -34,6 +34,7 @@ jobs:
       image: ubuntu:24.04
     env:
       VINPUT_VOSK_RUNTIME_MODE: bundled
+      VINPUT_VOSK_RUNTIME_TARGET: ubuntu24.04
     steps:
       - uses: actions/checkout@v6
 
@@ -61,7 +62,7 @@ jobs:
         shell: bash
         run: |
           prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
-          bash scripts/build-vosk-from-source.sh "" "${prefix}"
+          bash scripts/install-vosk-runtime.sh "${VINPUT_VOSK_RUNTIME_TARGET}" "${prefix}"
 
       - uses: actions/cache@v4
         with:
@@ -88,7 +89,8 @@ jobs:
             image: debian:12
             target: debian12
             vosk_mode: bundled
-            prepare_vosk: source
+            prepare_vosk: runtime
+            vosk_runtime_target: debian12
           - name: fedora-43
             image: fedora:43
             target: fedora43
@@ -127,11 +129,11 @@ jobs:
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
 
       - name: Install vosk build runtime
-        if: ${{ matrix.prepare_vosk == 'source' }}
+        if: ${{ matrix.prepare_vosk == 'runtime' }}
         shell: bash
         run: |
           prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
-          bash scripts/build-vosk-from-source.sh "" "${prefix}"
+          bash scripts/install-vosk-runtime.sh "${{ matrix.vosk_runtime_target }}" "${prefix}"
 
       - uses: actions/cache@v4
         with:
