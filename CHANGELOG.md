@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.1.0) — 2026-04-10
+
+### Breaking Changes
+
+- **asr:** Remove Vosk backend support and related runtime packaging pipeline across release channels
+
+### Build System
+
+- **build:** Publish Sherpa runtime artifacts through the main release flow and simplify distro/runtime packaging paths
+- **ci:** Extend opensuse and manylinux runtime handling needed by the new Sherpa-only packaging flow
+
 ## [2.0.29](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.29) — 2026-04-09
 
 ### Bug Fixes
