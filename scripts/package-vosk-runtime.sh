@@ -57,4 +57,7 @@ cat > "${manifest_path}" <<EOF
 EOF
 
 tar -C "${stage_dir}" -czf "${archive_path}" include lib
-sha256sum "${archive_path}" > "${archive_path}.sha256"
+(
+    cd "${output_dir}"
+    sha256sum "${VOSK_RUNTIME_ARCHIVE}" > "${VOSK_RUNTIME_ARCHIVE}.sha256"
+)

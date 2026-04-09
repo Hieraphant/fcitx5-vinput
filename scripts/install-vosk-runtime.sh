@@ -35,7 +35,12 @@ curl -fL --retry 3 --retry-delay 2 \
     -o "${manifest_path}" \
     "${base_url}/${VOSK_RUNTIME_MANIFEST}"
 
-(cd "${workdir}" && sha256sum -c "$(basename -- "${sha256_path}")")
+expected_sha256="$(awk '{print $1}' "${sha256_path}")"
+actual_sha256="$(sha256sum "${archive_path}" | awk '{print $1}')"
+if [[ -z "${expected_sha256}" || "${actual_sha256}" != "${expected_sha256}" ]]; then
+    echo "runtime archive checksum mismatch for ${VOSK_RUNTIME_ARCHIVE}" >&2
+    exit 1
+fi
 
 if ! grep -Fq "\"target\": \"${target}\"" "${manifest_path}"; then
     echo "runtime manifest target mismatch for ${target}" >&2
