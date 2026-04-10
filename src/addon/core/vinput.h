@@ -13,12 +13,11 @@
 #include <string>
 #include <vector>
 
-#include "common/scene/postprocess_scene.h"
-#include "common/asr/model_manager.h"
 #include "common/asr/recognition_result.h"
 #include "common/config/vinput_config.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/dbus/error_info.h"
+#include "common/scene/postprocess_scene.h"
 
 class VinputNotifierDBusObject;
 
@@ -92,8 +91,7 @@ private:
   void ensureStatusSync();
   void stopStatusSyncIfIdle();
   void enterPendingStartState(fcitx::InputContext *ic,
-                              const fcitx::Key &trigger,
-                              bool command_mode);
+                              const fcitx::Key &trigger, bool command_mode);
   void enterRecordingState(fcitx::InputContext *ic, const fcitx::Key &trigger,
                            bool command_mode);
   void enterBusyState(fcitx::InputContext *ic, bool command_mode,
@@ -102,8 +100,8 @@ private:
   void syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic = nullptr,
                                     bool prefer_command_mode = false);
   void rememberInputContext(fcitx::InputContext *ic);
-  fcitx::InputContext *resolveFrontendInputContext(
-      fcitx::InputContext *fallback_ic = nullptr) const;
+  fcitx::InputContext *
+  resolveFrontendInputContext(fcitx::InputContext *fallback_ic = nullptr) const;
   void updatePreedit(fcitx::InputContext *ic, const std::string &text);
   void clearPreedit(fcitx::InputContext *ic);
 
@@ -125,6 +123,7 @@ private:
     fcitx::Key trigger;
     std::chrono::steady_clock::time_point press_time;
     bool command_mode = false;
+    bool trigger_released = false;
     std::string partial_text;
   };
   std::optional<Session> session_;

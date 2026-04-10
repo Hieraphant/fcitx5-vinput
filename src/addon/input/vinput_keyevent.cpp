@@ -1,9 +1,9 @@
-#include "core/vinput.h"
 #include "common/config/core_config.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"
 #include "common/scene/postprocess_scene.h"
 #include "common/utils/debug_log.h"
+#include "core/vinput.h"
 
 #include "clipboard_public.h"
 #include <fcitx-utils/key.h>
@@ -11,7 +11,6 @@
 #include <fcitx/inputcontext.h>
 
 #include <chrono>
-#include <cstdio>
 #include <string>
 
 namespace {
@@ -22,8 +21,12 @@ constexpr auto kTriggerDebounce = std::chrono::milliseconds(80);
 
 std::string NoSelectionPreeditText() { return _("Please select text first."); }
 
-std::string CommandDisabledPreeditText() { return _("Command mode is disabled (candidate count is 0)."); }
-std::string CommandNoProviderPreeditText() { return _("No LLM provider configured for command mode."); }
+std::string CommandDisabledPreeditText() {
+  return _("Command mode is disabled (candidate count is 0).");
+}
+std::string CommandNoProviderPreeditText() {
+  return _("No LLM provider configured for command mode.");
+}
 std::string DaemonUnavailablePreeditText() {
   return _("Voice input daemon is temporarily unavailable.");
 }
@@ -93,7 +96,8 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
     last_trigger_time_ = now;
 
     cancelPendingStop();
-    if (session_ && session_->phase == Session::Phase::Recording) {
+    if (session_ && session_->phase == Session::Phase::Recording &&
+        session_->trigger_released) {
       finishStopRecording();
       keyEvent.filterAndAccept();
       return;
@@ -134,7 +138,8 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
           return;
         }
         if (cmd_scene->provider_id.empty() ||
-            ResolveLlmProvider(core_config, cmd_scene->provider_id) == nullptr) {
+            ResolveLlmProvider(core_config, cmd_scene->provider_id) ==
+                nullptr) {
           finishFrontendSession(ic);
           updatePreedit(ic, CommandNoProviderPreeditText());
           keyEvent.filterAndAccept();
@@ -143,12 +148,14 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       }
       std::string selected_text;
       auto &surrounding = ic->surroundingText();
-      if (surrounding.isValid() && surrounding.cursor() != surrounding.anchor()) {
+      if (surrounding.isValid() &&
+          surrounding.cursor() != surrounding.anchor()) {
         const auto &text = surrounding.text();
         auto char_from = std::min(surrounding.cursor(), surrounding.anchor());
         auto char_to = std::max(surrounding.cursor(), surrounding.anchor());
         if (fcitx::utf8::validate(text)) {
-          auto byte_from = fcitx::utf8::ncharByteLength(text.begin(), char_from);
+          auto byte_from =
+              fcitx::utf8::ncharByteLength(text.begin(), char_from);
           auto byte_len = fcitx::utf8::ncharByteLength(
               std::next(text.begin(), byte_from), char_to - char_from);
           selected_text = text.substr(byte_from, byte_len);
@@ -184,8 +191,8 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
               "command trigger fallback: daemon bus unavailable\n");
           updatePreedit(ic, DaemonUnavailablePreeditText());
         } else if (!daemonSyncAllowed()) {
-          vinput::debug::Log(
-              "command trigger fallback: daemon sync throttled after timeout/failure\n");
+          vinput::debug::Log("command trigger fallback: daemon sync throttled "
+                             "after timeout/failure\n");
           updatePreedit(ic, DaemonNotRespondingPreeditText());
         }
       }
@@ -195,11 +202,12 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       if (!callStartRecording()) {
         finishFrontendSession(ic);
         if (!bus_) {
-          vinput::debug::Log("record trigger fallback: daemon bus unavailable\n");
+          vinput::debug::Log(
+              "record trigger fallback: daemon bus unavailable\n");
           updatePreedit(ic, DaemonUnavailablePreeditText());
         } else if (!daemonSyncAllowed()) {
-          vinput::debug::Log(
-              "record trigger fallback: daemon sync throttled after timeout/failure\n");
+          vinput::debug::Log("record trigger fallback: daemon sync throttled "
+                             "after timeout/failure\n");
           updatePreedit(ic, DaemonNotRespondingPreeditText());
         }
       }
@@ -211,6 +219,7 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
   // Push-to-talk: stop on release only if held longer than toggle threshold
   if (session_ && session_->phase == Session::Phase::Recording &&
       keyEvent.isRelease() && isReleaseOfActiveTrigger(keyEvent.key())) {
+    session_->trigger_released = true;
     auto held = std::chrono::steady_clock::now() - session_->press_time;
     if (held >= kToggleThreshold) {
       scheduleStopRecording();
@@ -220,9 +229,8 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
   }
 
   if ((is_trigger || is_command) && keyEvent.isRelease()) {
-    if (!session_) {
-      // Session already ended (e.g. error path cleared preedit but release comes after)
-      // Nothing to clean up
+    if (session_) {
+      session_->trigger_released = true;
     }
     keyEvent.filterAndAccept();
     return;
@@ -247,7 +255,8 @@ bool VinputEngine::isReleaseOfActiveTrigger(const fcitx::Key &key) const {
       return true;
     }
     return release_key.states().testAny(trigger_key.states()) &&
-           (release_key.states() & trigger_key.states()) == trigger_key.states();
+           (release_key.states() & trigger_key.states()) ==
+               trigger_key.states();
   }
 
   const auto released_modifier_state =
