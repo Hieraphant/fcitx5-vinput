@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fcitx-utils/dbus/bus.h>
+#include <fcitx-utils/eventdispatcher.h>
 #include <fcitx-utils/handlertable.h>
 #include <fcitx-utils/trackableobject.h>
 #include <fcitx/addonfactory.h>
@@ -109,6 +110,7 @@ private:
   void clearPreedit(fcitx::InputContext *ic);
 
   fcitx::Instance *instance_;
+  fcitx::EventDispatcher event_dispatcher_;
   std::vector<std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>>
       eventHandlers_;
   fcitx::dbus::Bus *bus_ = nullptr;

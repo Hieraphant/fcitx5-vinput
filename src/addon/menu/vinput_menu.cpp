@@ -839,7 +839,7 @@ void VinputEngine::requestAsrMenuStateRefresh(fcitx::InputContext *ic) {
       return;
     }
 
-    instance_->eventDispatcher().scheduleWithContext(
+    event_dispatcher_.scheduleWithContext(
         ic_ref, [this, seq, state = std::move(state), ok, lifetime_weak]() {
           if (lifetime_weak.expired() || seq != asr_state_refresh_seq_) {
             return;

@@ -82,6 +82,7 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
   vinput::i18n::Init();
   ensureDaemonServiceInstalled();
   reloadConfig();
+  event_dispatcher_.attach(&instance_->eventLoop());
 
   eventHandlers_.emplace_back(instance_->watchEvent(
       fcitx::EventType::InputContextKeyEvent,
@@ -153,6 +154,7 @@ VinputEngine::~VinputEngine() {
   partial_slot_.reset();
   result_slot_.reset();
 
+  event_dispatcher_.detach();
   notifier_dbus_.reset();
   bus_ = nullptr;
   lifetime_token_.reset();
