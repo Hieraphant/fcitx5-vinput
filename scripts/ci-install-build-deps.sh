@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
-    echo "usage: $0 <ubuntu24.04|debian12|fedora43|archlinux>" >&2
+    echo "usage: $0 <ubuntu24.04|debian12|fedora43|opensuse-leap|archlinux>" >&2
     exit 1
 fi
 
@@ -29,6 +29,12 @@ install_qt_pacman() {
     pacman -S --noconfirm --needed \
         qt6-base \
         qt6-tools
+}
+
+install_qt_zypper() {
+    "${sudo_cmd[@]}" zypper --non-interactive install --no-recommends \
+        qt6-base-devel \
+        qt6-tools-devel
 }
 
 case "${target}" in
@@ -124,6 +130,39 @@ case "${target}" in
             nlohmann-json-devel \
             cli11-devel
         install_qt_dnf
+        ;;
+    opensuse-leap)
+        "${sudo_cmd[@]}" zypper --non-interactive addrepo --refresh \
+            https://download.opensuse.org/repositories/devel:/tools:/compiler/15.6/ \
+            devel-tools-compiler || true
+        "${sudo_cmd[@]}" zypper --gpg-auto-import-keys --non-interactive refresh
+        "${sudo_cmd[@]}" zypper --non-interactive install --no-recommends \
+            clang17 \
+            cmake \
+            gettext-tools \
+            git \
+            jq \
+            lapack-devel \
+            libarchive-devel \
+            libcurl-devel \
+            libopenblas_pthreads-devel \
+            libopenssl-devel \
+            make \
+            mold \
+            ninja \
+            openblas-common-devel \
+            patch \
+            pkg-config \
+            pipewire-devel \
+            python3 \
+            rpm-build \
+            sccache \
+            systemd-devel \
+            zstd \
+            fcitx5-devel \
+            cli11-devel \
+            nlohmann_json-devel
+        install_qt_zypper
         ;;
     archlinux)
         pacman -Syu --noconfirm --needed \

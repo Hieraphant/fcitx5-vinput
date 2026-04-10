@@ -286,6 +286,56 @@ jobs:
           path: dist/*.rpm
           if-no-files-found: error
 
+  build-rpm-opensuse-leap:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    container:
+      image: registry.opensuse.org/opensuse/leap:15.6
+    steps:
+      - name: Install checkout prerequisites
+        run: |
+          zypper --gpg-auto-import-keys --non-interactive refresh
+          zypper --non-interactive install --no-recommends gzip tar
+
+      - uses: actions/checkout@v6
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh opensuse-leap
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Build RPM package
+        shell: bash
+        run: |
+          version="${{ needs.source_archive.outputs.package_version }}"
+          source ./scripts/sherpa-onnx-vars.sh
+          mkdir -p "${HOME}/rpmbuild/"{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+          cp "dist/${{ needs.source_archive.outputs.source_archive }}" "${HOME}/rpmbuild/SOURCES/"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o "${HOME}/rpmbuild/SOURCES/${SHERPA_ONNX_ARCHIVE}" \
+            "${SHERPA_ONNX_URL}"
+
+          sed \
+            -e "s/@VINPUT_VERSION@/${version}/g" \
+            -e "s/@SHERPA_ONNX_VERSION@/${SHERPA_ONNX_VERSION}/g" \
+            packaging/opensuse/fcitx5-vinput.spec \
+            > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
+
+          rpmbuild -bb "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec" \
+            --define "_topdir $HOME/rpmbuild"
+
+          mkdir -p dist
+          find "${HOME}/rpmbuild/RPMS" -name '*.rpm' -exec cp {} dist/ \;
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release-rpm-opensuse-leap15.6
+          path: dist/*.rpm
+          if-no-files-found: error
+
   build-arch:
     needs: source_archive
     runs-on: ubuntu-latest
@@ -365,6 +415,7 @@ jobs:
       - build-deb-ubuntu
       - build-deb-debian12
       - build-rpm-fedora
+      - build-rpm-opensuse-leap
       - build-arch
       - build-flatpak
     runs-on: ubuntu-latest

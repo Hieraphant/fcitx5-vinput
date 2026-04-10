@@ -8,6 +8,8 @@ on:
       - 'src/**'
       - 'CMakeLists.txt'
       - 'scripts/**'
+      - 'packaging/**'
+      - '.github/workflows/**'
       - 'data/**'
       - 'po/**'
   pull_request:
@@ -16,6 +18,8 @@ on:
       - 'src/**'
       - 'CMakeLists.txt'
       - 'scripts/**'
+      - 'packaging/**'
+      - '.github/workflows/**'
       - 'data/**'
       - 'po/**'
 
@@ -73,6 +77,9 @@ jobs:
           - name: fedora-43
             image: fedora:43
             target: fedora43
+          - name: opensuse-leap-15.6
+            image: registry.opensuse.org/opensuse/leap:15.6
+            target: opensuse-leap
           - name: archlinux
             image: archlinux:base-devel
             target: archlinux
@@ -81,6 +88,12 @@ jobs:
       image: ${{ matrix.image }}
     name: ${{ matrix.name }}
     steps:
+      - name: Install checkout prerequisites
+        if: matrix.target == 'opensuse-leap'
+        run: |
+          zypper --gpg-auto-import-keys --non-interactive refresh
+          zypper --non-interactive install --no-recommends gzip tar
+
       - uses: actions/checkout@v6
 
       - name: Install dependencies
