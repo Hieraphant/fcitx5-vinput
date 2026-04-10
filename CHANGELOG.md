@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.1.2) — 2026-04-10
+
+### Packaging
+
+- **opensuse:** Fix the RPM spec to build and install with an explicit Ninja-based CMake invocation during release packaging
+
 ## [2.1.1](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.1.1) — 2026-04-10
 
 ### Packaging

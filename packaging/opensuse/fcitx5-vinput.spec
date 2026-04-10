@@ -49,7 +49,10 @@ via any OpenAI-compatible API.
 export CC=clang-17
 export CXX=clang++-17
 bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-install %{SOURCE1}
-%cmake -G Ninja \
+cmake -S . -B build -G Ninja \
+    -DCMAKE_INSTALL_PREFIX=%{_prefix} \
+    -DCMAKE_INSTALL_LIBDIR=%{_libdir} \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_PREFIX_PATH=%{_builddir}/sherpa-onnx-install \
     -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \
     -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold \
@@ -57,10 +60,10 @@ bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-in
     -DVINPUT_PROJECT_VERSION=%{version} \
     -DVINPUT_PACKAGE_RELEASE=%{release} \
     -DVINPUT_PACKAGE_HOMEPAGE_URL=%{url}
-%cmake_build
+cmake --build build
 
 %install
-%cmake_install
+DESTDIR=%{buildroot} cmake --install build --prefix %{_prefix} --verbose
 
 %files
 %license LICENSE
@@ -78,5 +81,5 @@ bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-in
 %{_datadir}/icons/hicolor/
 
 %changelog
-* Thu Apr 10 2026 xifan2333 <noreply@github.com> - @VINPUT_VERSION@-1
+* Fri Apr 10 2026 xifan2333 <noreply@github.com> - @VINPUT_VERSION@-1
 - Add openSUSE Leap release packaging
