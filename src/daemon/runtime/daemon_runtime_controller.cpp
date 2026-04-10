@@ -2,6 +2,7 @@
 
 #include "common/config/core_config.h"
 #include "common/dbus/dbus_interface.h"
+#include "common/i18n.h"
 #include "common/utils/debug_log.h"
 #include "daemon/audio/audio_utils.h"
 
@@ -365,7 +366,7 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
   if (phase_ != vinput::dbus::Status::Recording) {
     vinput::debug::Log("stop rejected (phase: %s)\n",
                        vinput::dbus::StatusToString(phase_));
-    return DbusService::MethodResult::Failure("Recording is not active.");
+    return DbusService::MethodResult::Failure(_("Recording is not active."));
   }
 
   capture_->EndRecording();

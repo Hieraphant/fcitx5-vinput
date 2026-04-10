@@ -249,6 +249,9 @@ msgstr ""
 msgid "Current: "
 msgstr ""
 
+msgid "Recording is not active."
+msgstr ""
+
 #, c-format
 msgid "Switched scene to '%s'."
 msgstr ""

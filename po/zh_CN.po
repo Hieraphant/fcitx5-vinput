@@ -251,6 +251,9 @@ msgstr "模型 /过滤"
 msgid "Current: "
 msgstr "当前："
 
+msgid "Recording is not active."
+msgstr "当前未在录音。"
+
 #, c-format
 msgid "Switched scene to '%s'."
 msgstr "已切换场景到 '%s'。"
