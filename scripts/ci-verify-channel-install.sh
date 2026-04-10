@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 2 ]]; then
-    echo "usage: $0 <ppa-ubuntu24.04|copr-fedora43|aur-archlinux> <version>" >&2
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+    echo "usage: $0 <ppa-ubuntu24.04|copr-fedora43|aur-archlinux> <version> [ppa_revision]" >&2
     exit 1
 fi
 
 target=$1
 version=$2
+ppa_revision=${3:-}
 
 fail_verify() {
     echo "$1" >&2
@@ -69,7 +70,11 @@ case "${target}" in
             fail_verify "ppa:xifan233/ppa does not currently publish fcitx5-vinput for noble"
         fi
         expected_version=$(apt-cache policy fcitx5-vinput | sed -n 's/  Candidate: //p')
-        if [[ ! "${expected_version}" =~ ^${version}-1ppa[0-9]+~noble1$ ]]; then
+        if [[ -n "${ppa_revision}" ]]; then
+            if [[ "${expected_version}" != "${version}-1ppa${ppa_revision}~noble1" ]]; then
+                fail_verify "ppa candidate ${expected_version} does not match expected ${version}-1ppa${ppa_revision}~noble1"
+            fi
+        elif [[ ! "${expected_version}" =~ ^${version}-1ppa[0-9]+~noble1$ ]]; then
             fail_verify "ppa candidate ${expected_version} does not match expected ${version}-1ppaN~noble1 pattern"
         fi
         apt-get install -y --no-install-recommends "fcitx5-vinput=${expected_version}"
