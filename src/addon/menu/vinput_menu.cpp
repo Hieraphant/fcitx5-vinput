@@ -5,6 +5,7 @@
 #include "common/i18n.h"
 #include "common/registry/registry_i18n.h"
 #include "common/dbus/asr_backend_state_utils.h"
+#include "common/runtime/runtime_defaults.h"
 #include "common/scene/postprocess_scene.h"
 #include "common/utils/string_utils.h"
 #include <fcitx/candidatelist.h>
@@ -17,6 +18,8 @@
 #include <cstdlib>
 #include <sstream>
 #include <string>
+#include <systemd/sd-bus.h>
+#include <thread>
 
 namespace {
 
@@ -89,6 +92,63 @@ bool MatchesSearch(const AsrMenuItem &item, const std::string &query) {
 
 bool MatchesSearch(const SceneOption &item, const std::string &query) {
   return MatchesAllTerms(item.search_text, query);
+}
+
+bool QueryAsrBackendStateFromUserBus(vinput::dbus::AsrBackendState *state) {
+  sd_bus *bus = nullptr;
+  if (sd_bus_open_user(&bus) < 0) {
+    return false;
+  }
+
+  sd_bus_set_method_call_timeout(
+      bus, static_cast<uint64_t>(vinput::runtime::kDbusCallTimeoutUsec));
+
+  sd_bus_error err = SD_BUS_ERROR_NULL;
+  sd_bus_message *reply = nullptr;
+  const int r = sd_bus_call_method(bus, vinput::dbus::kBusName,
+                                   vinput::dbus::kObjectPath,
+                                   vinput::dbus::kInterface,
+                                   vinput::dbus::kMethodGetAsrBackendState,
+                                   &err, &reply, "");
+  if (r < 0) {
+    sd_bus_error_free(&err);
+    if (reply) {
+      sd_bus_message_unref(reply);
+    }
+    sd_bus_unref(bus);
+    return false;
+  }
+
+  const char *target_provider = "";
+  const char *target_model = "";
+  const char *effective_provider = "";
+  const char *effective_model = "";
+  const char *last_error = "";
+  int reload_in_progress = 0;
+  int has_effective_backend = 0;
+  if (sd_bus_message_read(reply, "sssssbb", &target_provider, &target_model,
+                          &effective_provider, &effective_model, &last_error,
+                          &reload_in_progress, &has_effective_backend) < 0) {
+    sd_bus_message_unref(reply);
+    sd_bus_error_free(&err);
+    sd_bus_unref(bus);
+    return false;
+  }
+
+  if (state) {
+    state->target_provider_id = target_provider ? target_provider : "";
+    state->target_model_id = target_model ? target_model : "";
+    state->effective_provider_id = effective_provider ? effective_provider : "";
+    state->effective_model_id = effective_model ? effective_model : "";
+    state->last_error = last_error ? last_error : "";
+    state->reload_in_progress = reload_in_progress != 0;
+    state->has_effective_backend = has_effective_backend != 0;
+  }
+
+  sd_bus_message_unref(reply);
+  sd_bus_error_free(&err);
+  sd_bus_unref(bus);
+  return true;
 }
 
 std::string ResultMenuTitle(std::size_t count) {
@@ -693,11 +753,9 @@ void VinputEngine::reloadAsrMenuItems() {
   const std::string configured_provider = core_config.asr.activeProvider;
   const std::string configured_model = ResolvePreferredLocalModel(core_config);
   vinput::dbus::AsrBackendState backend_state;
-  bool have_backend_state = has_cached_asr_backend_state_;
+  const bool have_backend_state = has_cached_asr_backend_state_;
   if (have_backend_state) {
     backend_state = cached_asr_backend_state_;
-  } else {
-    have_backend_state = queryAsrBackendState(&backend_state);
   }
   const std::string active_provider =
       have_backend_state && !backend_state.effective_provider_id.empty()
@@ -760,6 +818,45 @@ void VinputEngine::reloadAsrMenuItems() {
   }
 }
 
+void VinputEngine::requestAsrMenuStateRefresh(fcitx::InputContext *ic) {
+  if (!ic || !lifetime_token_) {
+    return;
+  }
+
+  const auto seq = ++asr_state_refresh_seq_;
+  auto ic_ref = ic->watch();
+  std::weak_ptr<bool> lifetime_weak = lifetime_token_;
+
+  std::thread([this, seq, ic_ref, lifetime_weak]() mutable {
+    if (lifetime_weak.expired()) {
+      return;
+    }
+
+    vinput::dbus::AsrBackendState state;
+    const bool ok = QueryAsrBackendStateFromUserBus(&state);
+
+    if (lifetime_weak.expired()) {
+      return;
+    }
+
+    instance_->eventDispatcher().scheduleWithContext(
+        ic_ref, [this, seq, state = std::move(state), ok, lifetime_weak]() {
+          if (lifetime_weak.expired() || seq != asr_state_refresh_seq_) {
+            return;
+          }
+          if (!ok) {
+            return;
+          }
+          cached_asr_backend_state_ = state;
+          has_cached_asr_backend_state_ = true;
+          if (asr_menu_visible_ && asr_menu_ic_) {
+            reloadAsrMenuItems();
+            rebuildAsrMenu(asr_menu_ic_);
+          }
+        });
+  }).detach();
+}
+
 void VinputEngine::rebuildAsrMenu(fcitx::InputContext *ic) {
   if (!ic) {
     return;
@@ -809,6 +906,7 @@ void VinputEngine::showAsrMenu(fcitx::InputContext *ic) {
   asr_menu_query_.clear();
   asr_menu_filter_mode_ = false;
   rebuildAsrMenu(ic);
+  requestAsrMenuStateRefresh(ic);
 }
 
 void VinputEngine::hideAsrMenu() {
@@ -1020,14 +1118,25 @@ void VinputEngine::selectAsrItem(std::size_t index, fcitx::InputContext *ic) {
     hideAsrMenu();
     return;
   }
-  hideAsrMenu();
-  if (!last_known_daemon_status_.empty()) {
-    callReloadAsrBackendAsync(item.display_label, item.provider_id,
-                              item.model_id);
-  } else {
-    notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
-                                   item.display_label.c_str()));
+  if (has_cached_asr_backend_state_) {
+    cached_asr_backend_state_.target_provider_id = item.provider_id;
+    cached_asr_backend_state_.target_model_id = item.model_id;
+    cached_asr_backend_state_.reload_in_progress = true;
+    cached_asr_backend_state_.last_error.clear();
   }
+  if (!queryDaemonStatus().empty()) {
+    std::string reload_error;
+    if (!callReloadAsrBackend(&reload_error)) {
+      notifyError(reload_error.empty() ? _("Failed to reload ASR backend.")
+                                       : reload_error);
+      hideAsrMenu();
+      return;
+    }
+  }
+  hideAsrMenu();
+  notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
+                                 item.display_label.c_str()));
+  requestAsrMenuStateRefresh(ic);
   (void)ic;
 }
 

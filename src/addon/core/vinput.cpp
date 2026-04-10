@@ -1,18 +1,17 @@
 #include "core/vinput.h"
-#include "dbus/notifier_dbus_object.h"
 #include "common/config/core_config.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/i18n.h"
+#include "common/scene/postprocess_scene.h"
 #include "common/utils/file_utils.h"
 #include "common/utils/path_utils.h"
 #include "common/utils/sandbox.h"
-#include "common/scene/postprocess_scene.h"
+#include "dbus/notifier_dbus_object.h"
 
 #include <dbus_public.h>
 #include <fcitx-utils/event.h>
 #include <fcitx/inputcontext.h>
 
-#include <cstdio>
 #include <fstream>
 #include <string>
 
@@ -24,7 +23,8 @@ void ensureDaemonServiceInstalled() {
   if (!vinput::sandbox::IsInSandbox())
     return;
 
-  const std::filesystem::path dest = vinput::path::DaemonServiceUnitInstallPath();
+  const std::filesystem::path dest =
+      vinput::path::DaemonServiceUnitInstallPath();
   if (dest.empty()) {
     return;
   }
@@ -32,8 +32,8 @@ void ensureDaemonServiceInstalled() {
   std::error_code ec_exists;
   bool destExists = std::filesystem::exists(dest, ec_exists);
   if (ec_exists) {
-    FCITX_LOG(Error) << "vinput: failed to check existence of " << dest
-                     << ": " << ec_exists.message();
+    FCITX_LOG(Error) << "vinput: failed to check existence of " << dest << ": "
+                     << ec_exists.message();
     return;
   }
   if (destExists)
@@ -66,14 +66,14 @@ void ensureDaemonServiceInstalled() {
       {"systemctl", "--user", "daemon-reload"});
   std::string cmd;
   for (const auto &arg : reload_cmd) {
-    if (!cmd.empty()) cmd += ' ';
+    if (!cmd.empty())
+      cmd += ' ';
     cmd += arg;
   }
   int ret = system(cmd.c_str());
   if (ret != 0) {
     FCITX_LOG(Error)
-        << "vinput: failed to reload systemd user daemon, return code: "
-        << ret;
+        << "vinput: failed to reload systemd user daemon, return code: " << ret;
   }
 }
 } // namespace
@@ -90,8 +90,7 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
 
   eventHandlers_.emplace_back(instance_->watchEvent(
       fcitx::EventType::InputContextCreated,
-      fcitx::EventWatcherPhase::PreInputMethod,
-      [this](fcitx::Event &event) {
+      fcitx::EventWatcherPhase::PreInputMethod, [this](fcitx::Event &event) {
         auto &icEvent = static_cast<fcitx::InputContextEvent &>(event);
         auto *ic = icEvent.inputContext();
         ic->setCapabilityFlags(ic->capabilityFlags() |
@@ -101,8 +100,7 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
 
   eventHandlers_.emplace_back(instance_->watchEvent(
       fcitx::EventType::InputContextDestroyed,
-      fcitx::EventWatcherPhase::PreInputMethod,
-      [this](fcitx::Event &event) {
+      fcitx::EventWatcherPhase::PreInputMethod, [this](fcitx::Event &event) {
         auto &icEvent = static_cast<fcitx::InputContextEvent &>(event);
         auto *ic = icEvent.inputContext();
         if (session_ && session_->ic == ic) {
@@ -143,7 +141,22 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
   }
 }
 
-VinputEngine::~VinputEngine() = default;
+VinputEngine::~VinputEngine() {
+  status_sync_event_.reset();
+  pending_stop_event_.reset();
+
+  pending_stop_call_slot_.reset();
+  pending_start_call_slot_.reset();
+
+  error_slot_.reset();
+  status_slot_.reset();
+  partial_slot_.reset();
+  result_slot_.reset();
+
+  notifier_dbus_.reset();
+  bus_ = nullptr;
+  lifetime_token_.reset();
+}
 
 void VinputEngine::reloadConfig() {
   settings_ = LoadVinputSettings();

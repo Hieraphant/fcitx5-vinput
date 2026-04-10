@@ -1,14 +1,12 @@
-#include "core/vinput.h"
+#include "common/asr/recognition_result.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/dbus/error_info.h"
-#include "common/dbus/asr_backend_state_utils.h"
 #include "common/i18n.h"
-#include "common/asr/recognition_result.h"
 #include "common/runtime/runtime_defaults.h"
-#include "common/utils/path_utils.h"
+#include "common/utils/debug_log.h"
 #include "common/utils/path_utils.h"
 #include "common/utils/string_utils.h"
-#include "common/utils/debug_log.h"
+#include "core/vinput.h"
 
 #include "notifications_public.h"
 #include <dbus_public.h>
@@ -75,31 +73,33 @@ std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
 
   if (error.code == kErrorCodeLocalAsrModelConfigMissing) {
     return error.subject.empty()
-               ? _("Local ASR model configuration is missing. Please configure a model first.")
+               ? _("Local ASR model configuration is missing. Please configure "
+                   "a model first.")
                : vinput::str::FmtStr(
-                     _("Local ASR model configuration is missing for provider '%s'. Please configure a model first."),
+                     _("Local ASR model configuration is missing for provider "
+                       "'%s'. Please configure a model first."),
                      error.subject);
   }
   if (error.code == kErrorCodeLocalAsrModelTypeMissing) {
     return error.subject.empty()
                ? _("Local ASR model metadata is missing family.")
-               : vinput::str::FmtStr(
-                     _("Local ASR model metadata is missing family for provider '%s'."),
-                     error.subject);
+               : vinput::str::FmtStr(_("Local ASR model metadata is missing "
+                                       "family for provider '%s'."),
+                                     error.subject);
   }
   if (error.code == kErrorCodeLocalAsrModelInvalidPath) {
     return error.subject.empty()
                ? _("Local ASR model metadata contains an invalid path.")
-               : vinput::str::FmtStr(
-                     _("Local ASR model metadata contains an invalid path for provider '%s'."),
-                     error.subject);
+               : vinput::str::FmtStr(_("Local ASR model metadata contains an "
+                                       "invalid path for provider '%s'."),
+                                     error.subject);
   }
   if (error.code == kErrorCodeLocalAsrModelTokensMissing) {
     return error.subject.empty()
                ? _("Local ASR model tokens file is missing.")
-               : vinput::str::FmtStr(
-                     _("Local ASR model tokens file is missing for provider '%s'."),
-                     error.subject);
+               : vinput::str::FmtStr(_("Local ASR model tokens file is missing "
+                                       "for provider '%s'."),
+                                     error.subject);
   }
   if (error.code == kErrorCodeLocalAsrModelFilesMissing) {
     return error.subject.empty()
@@ -111,30 +111,30 @@ std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
   if (error.code == kErrorCodeLocalAsrModelRootResolveFailed) {
     return error.subject.empty()
                ? _("Failed to resolve the local ASR model directory.")
-               : vinput::str::FmtStr(
-                     _("Failed to resolve the local ASR model directory for provider '%s'."),
-                     error.subject);
+               : vinput::str::FmtStr(_("Failed to resolve the local ASR model "
+                                       "directory for provider '%s'."),
+                                     error.subject);
   }
   if (error.code == kErrorCodeLocalAsrModelParseFailed) {
     return error.subject.empty()
                ? _("Failed to parse local ASR model metadata.")
-               : vinput::str::FmtStr(
-                     _("Failed to parse local ASR model metadata for provider '%s'."),
-                     error.subject);
+               : vinput::str::FmtStr(_("Failed to parse local ASR model "
+                                       "metadata for provider '%s'."),
+                                     error.subject);
   }
   if (error.code == kErrorCodeLocalAsrUnsupportedModelType) {
     return error.subject.empty()
                ? _("The local ASR model type is not supported.")
-               : vinput::str::FmtStr(
-                     _("The local ASR model type is not supported for provider '%s'."),
-                     error.subject);
+               : vinput::str::FmtStr(_("The local ASR model type is not "
+                                       "supported for provider '%s'."),
+                                     error.subject);
   }
   if (error.code == kErrorCodeLocalAsrRecognizerCreateFailed) {
     return error.subject.empty()
                ? _("Failed to initialize the local ASR recognizer.")
-               : vinput::str::FmtStr(
-                     _("Failed to initialize the local ASR recognizer for provider '%s'."),
-                     error.subject);
+               : vinput::str::FmtStr(_("Failed to initialize the local ASR "
+                                       "recognizer for provider '%s'."),
+                                     error.subject);
   }
   if (error.code == kErrorCodeVadCreateFailed) {
     return error.subject.empty()
@@ -239,13 +239,15 @@ std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
     return _("Failed to restart the daemon.");
   }
   if (error.code == kErrorCodeDaemonBusy) {
-    return _("Voice input daemon is busy. Please wait for the current request to finish.");
+    return _("Voice input daemon is busy. Please wait for the current request "
+             "to finish.");
   }
   if (error.code == kErrorCodeAsrBackendLoading) {
     return _("ASR backend is still loading. Please try again in a moment.");
   }
   if (error.code == kErrorCodeAsrBackendReloadFailed) {
-    return AppendDetail(_("ASR backend reload failed. The previous backend may still be active."),
+    return AppendDetail(_("ASR backend reload failed. The previous backend may "
+                          "still be active."),
                         error.detail);
   }
 
@@ -323,11 +325,10 @@ void VinputEngine::setupDBusWatcher() {
   fcitx::dbus::MatchRule error_rule(kBusName, kObjectPath, kInterface,
                                     kSignalDaemonNotification);
 
-  error_slot_ =
-      bus_->addMatch(error_rule, [this](fcitx::dbus::Message &msg) {
-        onDaemonNotification(msg);
-        return true;
-      });
+  error_slot_ = bus_->addMatch(error_rule, [this](fcitx::dbus::Message &msg) {
+    onDaemonNotification(msg);
+    return true;
+  });
 }
 
 bool VinputEngine::callStartRecording() {
@@ -347,11 +348,11 @@ bool VinputEngine::callStartRecording() {
           auto *ic = resolveFrontendInputContext();
           finishFrontendSession(ic);
           if (ic) {
-            updatePreedit(ic, reply ? RenderMethodCallFailure(
-                                          reply.errorName(),
-                                          reply.errorMessage(),
-                                          DaemonUnavailablePreeditText())
-                                    : DaemonUnavailablePreeditText());
+            updatePreedit(ic, reply
+                                  ? RenderMethodCallFailure(
+                                        reply.errorName(), reply.errorMessage(),
+                                        DaemonUnavailablePreeditText())
+                                  : DaemonUnavailablePreeditText());
           }
           return true;
         }
@@ -383,11 +384,11 @@ bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
           auto *ic = resolveFrontendInputContext();
           finishFrontendSession(ic);
           if (ic) {
-            updatePreedit(ic, reply ? RenderMethodCallFailure(
-                                          reply.errorName(),
-                                          reply.errorMessage(),
-                                          DaemonUnavailablePreeditText())
-                                    : DaemonUnavailablePreeditText());
+            updatePreedit(ic, reply
+                                  ? RenderMethodCallFailure(
+                                        reply.errorName(), reply.errorMessage(),
+                                        DaemonUnavailablePreeditText())
+                                  : DaemonUnavailablePreeditText());
           }
           return true;
         }
@@ -419,11 +420,11 @@ bool VinputEngine::callStopRecording(const std::string &scene_id) {
           auto *ic = resolveFrontendInputContext();
           finishFrontendSession(ic);
           if (ic) {
-            updatePreedit(ic, reply ? RenderMethodCallFailure(
-                                          reply.errorName(),
-                                          reply.errorMessage(),
-                                          DaemonUnavailablePreeditText())
-                                    : DaemonUnavailablePreeditText());
+            updatePreedit(ic, reply
+                                  ? RenderMethodCallFailure(
+                                        reply.errorName(), reply.errorMessage(),
+                                        DaemonUnavailablePreeditText())
+                                  : DaemonUnavailablePreeditText());
           }
           return true;
         }
@@ -446,8 +447,8 @@ void VinputEngine::ensureStatusSync() {
 
   if (!status_sync_event_) {
     status_sync_event_ = instance_->eventLoop().addTimeEvent(
-        CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + kStatusSyncIntervalUsec, 0,
-        [this](fcitx::EventSourceTime *event, uint64_t) {
+        CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + kStatusSyncIntervalUsec,
+        0, [this](fcitx::EventSourceTime *event, uint64_t) {
           syncFrontendWithDaemonStatus();
           if (!(session_.has_value() || status_ic_ != nullptr)) {
             return false;
@@ -480,8 +481,12 @@ void VinputEngine::enterPendingStartState(fcitx::InputContext *ic,
     clearPreedit(status_ic_);
   }
   if (!session_) {
-    session_.emplace(Session{Session::Phase::PendingStart, ic, trigger,
-                             std::chrono::steady_clock::now(), command_mode,
+    session_.emplace(Session{Session::Phase::PendingStart,
+                             ic,
+                             trigger,
+                             std::chrono::steady_clock::now(),
+                             command_mode,
+                             {},
                              {}});
   } else {
     session_->phase = Session::Phase::PendingStart;
@@ -490,8 +495,8 @@ void VinputEngine::enterPendingStartState(fcitx::InputContext *ic,
     session_->command_mode = command_mode;
   }
   status_ic_ = ic;
-  updatePreedit(ic, ComposeLivePreedit(command_mode, false, {},
-                                       StartingPreeditText()));
+  updatePreedit(
+      ic, ComposeLivePreedit(command_mode, false, {}, StartingPreeditText()));
   ensureStatusSync();
 }
 
@@ -506,8 +511,13 @@ void VinputEngine::enterRecordingState(fcitx::InputContext *ic,
     clearPreedit(status_ic_);
   }
   if (!session_) {
-    session_.emplace(Session{Session::Phase::Recording, ic, trigger,
-                             std::chrono::steady_clock::now(), command_mode, {}});
+    session_.emplace(Session{Session::Phase::Recording,
+                             ic,
+                             trigger,
+                             std::chrono::steady_clock::now(),
+                             command_mode,
+                             {},
+                             {}});
   } else {
     session_->phase = Session::Phase::Recording;
     session_->ic = ic;
@@ -515,11 +525,11 @@ void VinputEngine::enterRecordingState(fcitx::InputContext *ic,
     session_->command_mode = command_mode;
   }
   status_ic_ = ic;
-  updatePreedit(ic, ComposeLivePreedit(
-                        command_mode, true,
-                        session_ ? session_->partial_text : std::string{},
-                        command_mode ? CommandingPreeditText()
-                                     : RecordingPreeditText()));
+  updatePreedit(
+      ic, ComposeLivePreedit(command_mode, true,
+                             session_ ? session_->partial_text : std::string{},
+                             command_mode ? CommandingPreeditText()
+                                          : RecordingPreeditText()));
   ensureStatusSync();
 }
 
@@ -533,8 +543,13 @@ void VinputEngine::enterBusyState(fcitx::InputContext *ic, bool command_mode,
     clearPreedit(status_ic_);
   }
   if (!session_) {
-    session_.emplace(Session{Session::Phase::Busy, ic, fcitx::Key(),
-                             std::chrono::steady_clock::now(), command_mode, {}});
+    session_.emplace(Session{Session::Phase::Busy,
+                             ic,
+                             fcitx::Key(),
+                             std::chrono::steady_clock::now(),
+                             command_mode,
+                             {},
+                             {}});
   } else {
     session_->phase = Session::Phase::Busy;
     session_->ic = ic;
@@ -542,16 +557,15 @@ void VinputEngine::enterBusyState(fcitx::InputContext *ic, bool command_mode,
     session_->command_mode = command_mode;
   }
   status_ic_ = ic;
-  updatePreedit(ic, ComposeLivePreedit(
-                        command_mode, false,
-                        session_ ? session_->partial_text : std::string{},
-                        preedit_text));
+  updatePreedit(
+      ic, ComposeLivePreedit(command_mode, false,
+                             session_ ? session_->partial_text : std::string{},
+                             preedit_text));
   ensureStatusSync();
 }
 
 void VinputEngine::finishFrontendSession(fcitx::InputContext *fallback_ic) {
-  auto *ic = session_ ? session_->ic
-                      : (fallback_ic ? fallback_ic : status_ic_);
+  auto *ic = session_ ? session_->ic : (fallback_ic ? fallback_ic : status_ic_);
   session_.reset();
   if (status_ic_ == ic) {
     status_ic_ = nullptr;
@@ -567,8 +581,8 @@ std::string VinputEngine::queryDaemonStatus() const {
     return {};
   }
 
-  auto msg =
-      bus_->createMethodCall(kBusName, kObjectPath, kInterface, kMethodGetStatus);
+  auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
+                                    kMethodGetStatus);
   auto reply = msg.call(vinput::runtime::kDbusCallTimeoutUsec);
   if (!reply || reply.isError()) {
     vinput::debug::Log("daemon status query failed reply=%s error=%s\n",
@@ -604,7 +618,8 @@ bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
                        reply ? reply.errorMessage().c_str() : "(no reply)");
     const_cast<VinputEngine *>(this)->noteDaemonSyncFailure();
     if (error) {
-      *error = reply ? reply.errorMessage() : _("Failed to contact vinput-daemon.");
+      *error =
+          reply ? reply.errorMessage() : _("Failed to contact vinput-daemon.");
       if (error->empty()) {
         *error = _("Failed to query ASR backend state.");
       }
@@ -676,82 +691,6 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
   return true;
 }
 
-void VinputEngine::callReloadAsrBackendAsync(
-    const std::string &display_label, const std::string &provider_id,
-    const std::string &model_id) {
-  pending_reload_call_slot_.reset();
-
-  if (!bus_ || !daemonSyncAllowed()) {
-    noteDaemonSyncFailure();
-    notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
-                                   display_label.c_str()));
-    return;
-  }
-
-  auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
-                                    kMethodReloadAsrBackend);
-  pending_reload_call_slot_ = msg.callAsync(
-      vinput::runtime::kDbusCallTimeoutUsec,
-      [this, display_label, provider_id,
-       model_id](fcitx::dbus::Message &reply) {
-        pending_reload_call_slot_.reset();
-        if (!reply || reply.isError()) {
-          noteDaemonSyncFailure();
-          std::string err_msg =
-              reply ? reply.errorMessage()
-                    : std::string(_("Failed to reload ASR backend."));
-          if (err_msg.empty()) {
-            err_msg = _("Failed to reload ASR backend.");
-          }
-          notifyError(err_msg);
-          return true;
-        }
-        clearDaemonSyncFailure();
-
-        vinput::dbus::AsrBackendState backend_state;
-        if (!queryAsrBackendState(&backend_state)) {
-          notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
-                                         display_label.c_str()));
-          return true;
-        }
-
-        switch (ClassifyRequestedAsrBackend(backend_state, provider_id,
-                                            model_id)) {
-        case RequestedAsrBackendStatus::kReloadInProgress:
-          notifyInfo(vinput::str::FmtStr(_("Switching ASR to '%s'."),
-                                         display_label.c_str()));
-          break;
-        case RequestedAsrBackendStatus::kApplied:
-          notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
-                                         display_label.c_str()));
-          break;
-        case RequestedAsrBackendStatus::kFailedStillUsingPrevious:
-          notifyWarning(vinput::str::FmtStr(
-              _("Saved ASR selection '%s', but the runtime is still using the "
-                "previous backend."),
-              display_label.c_str()));
-          break;
-        case RequestedAsrBackendStatus::kFailedNoUsableBackend:
-          notifyWarning(vinput::str::FmtStr(
-              _("Saved ASR selection '%s', but no usable ASR backend is "
-                "active."),
-              display_label.c_str()));
-          break;
-        case RequestedAsrBackendStatus::kConfigSaved:
-        case RequestedAsrBackendStatus::kUnknown:
-          notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
-                                         display_label.c_str()));
-          break;
-        }
-        return true;
-      });
-  if (!pending_reload_call_slot_) {
-    noteDaemonSyncFailure();
-    notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
-                                   display_label.c_str()));
-  }
-}
-
 bool VinputEngine::daemonSyncAllowed() const {
   return std::chrono::steady_clock::now() >= daemon_sync_blocked_until_;
 }
@@ -770,8 +709,8 @@ void VinputEngine::clearDaemonSyncFailure() {
   daemon_sync_blocked_until_ = std::chrono::steady_clock::time_point{};
 }
 
-void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic,
-                                                bool prefer_command_mode) {
+void VinputEngine::syncFrontendWithDaemonStatus(
+    fcitx::InputContext *fallback_ic, bool prefer_command_mode) {
   const std::string status = queryDaemonStatus();
   if (status.empty()) {
     return;
@@ -861,7 +800,8 @@ void VinputEngine::onRecognitionResult(fcitx::dbus::Message &msg) {
 
   int llm_count = 0;
   for (const auto &c : payload.candidates) {
-    if (c.source == vinput::result::kSourceLlm) ++llm_count;
+    if (c.source == vinput::result::kSourceLlm)
+      ++llm_count;
   }
   if (llm_count > 1) {
     // Save command mode for result menu interaction
@@ -899,14 +839,13 @@ void VinputEngine::onRecognitionPartial(fcitx::dbus::Message &msg) {
     session_->partial_text = partial_text;
   }
   if (!partial_text.empty()) {
-    updatePreedit(ic, ComposeLivePreedit(
-                          session_ ? session_->command_mode : false,
-                          session_ &&
-                              session_->phase == Session::Phase::Recording,
-                          partial_text,
-                          session_ && session_->command_mode
-                              ? CommandingPreeditText()
-                              : RecordingPreeditText()));
+    updatePreedit(
+        ic, ComposeLivePreedit(
+                session_ ? session_->command_mode : false,
+                session_ && session_->phase == Session::Phase::Recording,
+                partial_text,
+                session_ && session_->command_mode ? CommandingPreeditText()
+                                                   : RecordingPreeditText()));
   }
 }
 
@@ -955,13 +894,11 @@ void VinputEngine::showDaemonNotification(
   const int timeout = error_like ? vinput::runtime::kErrorNotificationTimeoutMs
                                  : vinput::runtime::kInfoNotificationTimeoutMs;
 
-  auto *notifications =
-      instance_->addonManager().addon("notifications", true);
+  auto *notifications = instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
-        "fcitx5-vinput", 0, icon, title, message,
-        std::vector<std::string>{}, timeout,
-        fcitx::NotificationActionCallback{},
+        "fcitx5-vinput", 0, icon, title, message, std::vector<std::string>{},
+        timeout, fcitx::NotificationActionCallback{},
         fcitx::NotificationClosedCallback{});
   } else {
     fprintf(stderr, "vinput: %s: %s\n", title.c_str(), message.c_str());
@@ -976,8 +913,7 @@ void VinputEngine::notifyError(const vinput::dbus::ErrorInfo &error) {
   std::string title = _("Voice Input");
   std::string message = RenderErrorMessage(error);
 
-  auto *notifications =
-      instance_->addonManager().addon("notifications", true);
+  auto *notifications = instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
         "fcitx5-vinput", 0, "dialog-error", title, message,
@@ -1000,8 +936,7 @@ void VinputEngine::notifyWarning(const std::string &message) {
   }
 
   std::string title = _("Voice Input");
-  auto *notifications =
-      instance_->addonManager().addon("notifications", true);
+  auto *notifications = instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
         "fcitx5-vinput", 0, "dialog-warning", title, message,
@@ -1020,8 +955,7 @@ void VinputEngine::notifyInfo(const std::string &message) {
   }
 
   std::string title = _("Voice Input");
-  auto *notifications =
-      instance_->addonManager().addon("notifications", true);
+  auto *notifications = instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
         "fcitx5-vinput", 0, "dialog-information", title, message,

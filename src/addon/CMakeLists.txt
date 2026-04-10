@@ -22,10 +22,12 @@ target_link_libraries(fcitx5-vinput PRIVATE
     Fcitx5::Module::DBus
     Fcitx5::Module::Clipboard
     Fcitx5::Module::Notifications
+    ${SDBUS_LIBRARIES}
 )
 target_include_directories(fcitx5-vinput PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${SDBUS_INCLUDE_DIRS}
 )
 set_target_properties(fcitx5-vinput PROPERTIES PREFIX "")
 

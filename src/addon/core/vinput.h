@@ -2,11 +2,13 @@
 
 #include <fcitx-utils/dbus/bus.h>
 #include <fcitx-utils/handlertable.h>
+#include <fcitx-utils/trackableobject.h>
 #include <fcitx/addonfactory.h>
 #include <fcitx/addoninstance.h>
 #include <fcitx/addonmanager.h>
 #include <fcitx/instance.h>
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <optional>
@@ -56,6 +58,7 @@ private:
   bool handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent);
   void reloadAsrMenuItems();
   void rebuildAsrMenu(fcitx::InputContext *ic);
+  void requestAsrMenuStateRefresh(fcitx::InputContext *ic);
   void showResultMenu(fcitx::InputContext *ic,
                       const vinput::result::Payload &payload);
   void hideResultMenu();
@@ -70,9 +73,6 @@ private:
   bool callStartCommandRecording(const std::string &selected_text);
   bool callStopRecording(const std::string &scene_id);
   bool callReloadAsrBackend(std::string *error = nullptr);
-  void callReloadAsrBackendAsync(const std::string &display_label,
-                                 const std::string &provider_id,
-                                 const std::string &model_id);
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onRecognitionPartial(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
@@ -119,7 +119,6 @@ private:
   std::unique_ptr<fcitx::dbus::Slot> error_slot_;
   std::unique_ptr<fcitx::dbus::Slot> pending_start_call_slot_;
   std::unique_ptr<fcitx::dbus::Slot> pending_stop_call_slot_;
-  std::unique_ptr<fcitx::dbus::Slot> pending_reload_call_slot_;
   struct Session {
     enum class Phase { PendingStart, Recording, Busy };
     Phase phase;
@@ -167,6 +166,8 @@ private:
   std::string last_known_daemon_status_;
   vinput::dbus::AsrBackendState cached_asr_backend_state_;
   bool has_cached_asr_backend_state_ = false;
+  std::atomic<uint64_t> asr_state_refresh_seq_{0};
+  std::shared_ptr<bool> lifetime_token_ = std::make_shared<bool>(true);
   std::unique_ptr<fcitx::EventSourceTime> pending_stop_event_;
   std::unique_ptr<fcitx::EventSourceTime> status_sync_event_;
   VinputSettings settings_;
