@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.1.1) — 2026-04-10
+
+### Packaging
+
+- **release:** Add openSUSE Leap RPM artifacts to the release pipeline
+- **ci:** Cover openSUSE Leap packaging in CI before release publication
+
 ## [2.1.0](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.1.0) — 2026-04-10
 
 ### Breaking Changes
