@@ -362,109 +362,119 @@ void DaemonRuntimeController::ScheduleCaptureStopOnMainThread() {
 
 DbusService::MethodResult DaemonRuntimeController::StopRecording(
     const std::string &scene_id) {
-  std::lock_guard<std::mutex> lock(state_mutex_);
-  if (phase_ != vinput::dbus::Status::Recording) {
-    vinput::debug::Log("stop rejected (phase: %s)\n",
-                       vinput::dbus::StatusToString(phase_));
-    return DbusService::MethodResult::Failure(_("Recording is not active."));
-  }
-
-  capture_->EndRecording();
-  auto captured_pcm = capture_->StopAndGetBuffer();
-  accepting_chunks_.store(false, std::memory_order_relaxed);
-
-  if (!active_session_) {
-    vinput::debug::Log("recording stopped without active session\n");
-    phase_ = vinput::dbus::Status::Idle;
-    current_order_.reset();
-    dbus_->EmitStatusChanged(
-        vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
-    vinput::debug::Log("phase -> idle\n");
-    MaybeApplyPendingAsrBackendReload();
-    return DbusService::MethodResult::Success();
-  }
-
-  if (UsesBufferedDelivery(active_backend_)) {
-    current_recording_pcm_ = std::move(captured_pcm);
-    current_sample_count_ = current_recording_pcm_.size();
-  } else {
-    if (captured_pcm.size() > current_sample_count_ + pending_chunk_pcm_.size()) {
-      pending_chunk_pcm_.insert(
-          pending_chunk_pcm_.end(),
-          captured_pcm.begin() +
-              static_cast<std::ptrdiff_t>(current_sample_count_ +
-                                          pending_chunk_pcm_.size()),
-          captured_pcm.end());
+  bool apply_pending_reload = false;
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    if (phase_ != vinput::dbus::Status::Recording) {
+      vinput::debug::Log("stop rejected (phase: %s)\n",
+                         vinput::dbus::StatusToString(phase_));
+      return DbusService::MethodResult::Failure(_("Recording is not active."));
     }
 
-    if (!pending_chunk_pcm_.empty()) {
-      const std::size_t tail_samples = pending_chunk_pcm_.size();
-      std::string error;
-      if (!active_session_->PushAudio(
-              std::span<const int16_t>(pending_chunk_pcm_.data(), tail_samples),
-              &error)) {
-        fprintf(stderr,
-                "vinput-daemon: failed to push final audio tail chunk: %s\n",
-                error.c_str());
-        CancelActiveSession();
-        phase_ = vinput::dbus::Status::Error;
-        dbus_->EmitStatusChanged(
-            vinput::dbus::StatusToString(vinput::dbus::Status::Error));
-        if (!error.empty()) {
-          dbus_->EmitNotification(vinput::dbus::MakeRawError(error));
+    capture_->EndRecording();
+    auto captured_pcm = capture_->StopAndGetBuffer();
+    accepting_chunks_.store(false, std::memory_order_relaxed);
+
+    if (!active_session_) {
+      vinput::debug::Log("recording stopped without active session\n");
+      phase_ = vinput::dbus::Status::Idle;
+      current_order_.reset();
+      dbus_->EmitStatusChanged(
+          vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
+      vinput::debug::Log("phase -> idle\n");
+      apply_pending_reload = true;
+    } else {
+      if (UsesBufferedDelivery(active_backend_)) {
+        current_recording_pcm_ = std::move(captured_pcm);
+        current_sample_count_ = current_recording_pcm_.size();
+      } else {
+        if (captured_pcm.size() >
+            current_sample_count_ + pending_chunk_pcm_.size()) {
+          pending_chunk_pcm_.insert(
+              pending_chunk_pcm_.end(),
+              captured_pcm.begin() +
+                  static_cast<std::ptrdiff_t>(current_sample_count_ +
+                                              pending_chunk_pcm_.size()),
+              captured_pcm.end());
         }
+
+        if (!pending_chunk_pcm_.empty()) {
+          const std::size_t tail_samples = pending_chunk_pcm_.size();
+          std::string error;
+          if (!active_session_->PushAudio(
+                  std::span<const int16_t>(pending_chunk_pcm_.data(),
+                                           tail_samples),
+                  &error)) {
+            fprintf(stderr,
+                    "vinput-daemon: failed to push final audio tail chunk: %s\n",
+                    error.c_str());
+            CancelActiveSession();
+            phase_ = vinput::dbus::Status::Error;
+            dbus_->EmitStatusChanged(
+                vinput::dbus::StatusToString(vinput::dbus::Status::Error));
+            if (!error.empty()) {
+              dbus_->EmitNotification(vinput::dbus::MakeRawError(error));
+            }
+            phase_ = vinput::dbus::Status::Idle;
+            dbus_->EmitStatusChanged(
+                vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
+            vinput::debug::Log("phase -> idle\n");
+            apply_pending_reload = true;
+          } else {
+            current_sample_count_ += tail_samples;
+            EmitStreamingEvents(active_session_.get());
+            vinput::debug::Log(
+                "flushed final audio tail chunk samples=%zu captured=%zu "
+                "chunk_size=%zu\n",
+                tail_samples, captured_pcm.size(), kStreamingChunkSamples);
+            pending_chunk_pcm_.clear();
+          }
+        }
+      }
+
+      if (!apply_pending_reload &&
+          current_sample_count_ < vinput::daemon::asr::kMinSamplesForRecognition) {
+        vinput::debug::Log(
+            "recording too short, skipping inference: %zu samples (%.1f ms)\n",
+            current_sample_count_,
+            static_cast<double>(current_sample_count_) * 1000.0 / 16000.0);
+        CancelActiveSession();
         phase_ = vinput::dbus::Status::Idle;
+        current_order_.reset();
         dbus_->EmitStatusChanged(
             vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
         vinput::debug::Log("phase -> idle\n");
-        MaybeApplyPendingAsrBackendReload();
-        return DbusService::MethodResult::Success();
+        apply_pending_reload = true;
       }
-      current_sample_count_ += tail_samples;
-      EmitStreamingEvents(active_session_.get());
-      vinput::debug::Log(
-          "flushed final audio tail chunk samples=%zu captured=%zu "
-          "chunk_size=%zu\n",
-          tail_samples, captured_pcm.size(), kStreamingChunkSamples);
-      pending_chunk_pcm_.clear();
+
+      if (!apply_pending_reload) {
+        current_order_ = RecognitionOrder{};
+        current_order_->audio_delivery_mode =
+            active_backend_.capabilities.audio_delivery_mode;
+        current_order_->session = std::move(active_session_);
+        current_order_->backend = active_backend_;
+        current_order_->pcm = std::move(current_recording_pcm_);
+        current_order_->recognized_text = latest_final_text_;
+        current_order_->scene_id = scene_id;
+        current_order_->is_command = current_is_command_;
+        current_order_->selected_text = current_selected_text_;
+        current_is_command_ = false;
+        current_selected_text_.clear();
+        LogRecognitionRequest(active_backend_, current_sample_count_);
+        current_sample_count_ = 0;
+        active_backend_ = {};
+        phase_ = vinput::dbus::Status::Inferring;
+        dbus_->EmitStatusChanged(
+            vinput::dbus::StatusToString(vinput::dbus::Status::Inferring));
+        worker_cv_.notify_one();
+        vinput::debug::Log("recording stopped\n");
+      }
     }
   }
 
-  if (current_sample_count_ < vinput::daemon::asr::kMinSamplesForRecognition) {
-    vinput::debug::Log(
-        "recording too short, skipping inference: %zu samples (%.1f ms)\n",
-        current_sample_count_,
-        static_cast<double>(current_sample_count_) * 1000.0 / 16000.0);
-    CancelActiveSession();
-    phase_ = vinput::dbus::Status::Idle;
-    current_order_.reset();
-    dbus_->EmitStatusChanged(
-        vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
-    vinput::debug::Log("phase -> idle\n");
+  if (apply_pending_reload) {
     MaybeApplyPendingAsrBackendReload();
-    return DbusService::MethodResult::Success();
   }
-
-  current_order_ = RecognitionOrder{};
-  current_order_->audio_delivery_mode =
-      active_backend_.capabilities.audio_delivery_mode;
-  current_order_->session = std::move(active_session_);
-  current_order_->backend = active_backend_;
-  current_order_->pcm = std::move(current_recording_pcm_);
-  current_order_->recognized_text = latest_final_text_;
-  current_order_->scene_id = scene_id;
-  current_order_->is_command = current_is_command_;
-  current_order_->selected_text = current_selected_text_;
-  current_is_command_ = false;
-  current_selected_text_.clear();
-  LogRecognitionRequest(active_backend_, current_sample_count_);
-  current_sample_count_ = 0;
-  active_backend_ = {};
-  phase_ = vinput::dbus::Status::Inferring;
-  dbus_->EmitStatusChanged(
-      vinput::dbus::StatusToString(vinput::dbus::Status::Inferring));
-  worker_cv_.notify_one();
-  vinput::debug::Log("recording stopped\n");
   return DbusService::MethodResult::Success();
 }
 
