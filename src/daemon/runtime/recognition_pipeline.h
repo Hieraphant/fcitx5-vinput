@@ -16,7 +16,7 @@ namespace vinput::daemon::runtime {
 struct RecognitionOrder {
   vinput::daemon::asr::AudioDeliveryMode audio_delivery_mode =
       vinput::daemon::asr::AudioDeliveryMode::Chunked;
-  std::unique_ptr<vinput::daemon::asr::RecognitionSession> session;
+  std::shared_ptr<vinput::daemon::asr::RecognitionSession> session;
   vinput::daemon::asr::BackendDescriptor backend;
   std::vector<int16_t> pcm;
   std::string recognized_text;

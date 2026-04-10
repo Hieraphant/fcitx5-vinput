@@ -50,7 +50,8 @@ private:
       vinput::daemon::asr::RecognitionSession *session,
       std::string *latest_partial_text = nullptr);
   void ScheduleCaptureStopOnMainThread();
-  void CancelActiveSession();
+  std::shared_ptr<vinput::daemon::asr::RecognitionSession>
+  ReleaseActiveSessionLocked();
   void SetPhase(vinput::dbus::Status new_phase);
   void ResetToIdle();
   void WorkerMain();
@@ -61,10 +62,11 @@ private:
   RecognitionPipeline *pipeline_ = nullptr;
 
   mutable std::mutex state_mutex_;
+  mutable std::mutex session_io_mutex_;
   std::condition_variable worker_cv_;
   vinput::dbus::Status phase_ = vinput::dbus::Status::Idle;
   std::optional<RecognitionOrder> current_order_;
-  std::unique_ptr<vinput::daemon::asr::RecognitionSession> active_session_;
+  std::shared_ptr<vinput::daemon::asr::RecognitionSession> active_session_;
   vinput::daemon::asr::BackendDescriptor active_backend_;
   bool current_is_command_ = false;
   std::string current_selected_text_;
@@ -76,6 +78,7 @@ private:
   std::optional<std::chrono::steady_clock::time_point> recording_started_at_;
   std::optional<std::chrono::steady_clock::time_point> first_non_silent_at_;
   bool first_partial_logged_ = false;
+  bool start_recording_in_progress_ = false;
   bool pending_asr_backend_reload_ = false;
   int notify_fd_ = -1;
   std::atomic<bool> pending_capture_stop_{false};
