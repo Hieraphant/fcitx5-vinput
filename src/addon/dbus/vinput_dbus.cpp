@@ -1,6 +1,7 @@
 #include "core/vinput.h"
 #include "common/dbus/dbus_interface.h"
 #include "common/dbus/error_info.h"
+#include "common/dbus/asr_backend_state_utils.h"
 #include "common/i18n.h"
 #include "common/asr/recognition_result.h"
 #include "common/runtime/runtime_defaults.h"
@@ -624,6 +625,8 @@ bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
     state->last_error = std::move(std::get<4>(payload));
     state->reload_in_progress = std::get<5>(payload);
     state->has_effective_backend = std::get<6>(payload);
+    const_cast<VinputEngine *>(this)->cached_asr_backend_state_ = *state;
+    const_cast<VinputEngine *>(this)->has_cached_asr_backend_state_ = true;
   }
   if (error) {
     error->clear();
@@ -671,6 +674,80 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
     error->clear();
   }
   return true;
+}
+
+void VinputEngine::callReloadAsrBackendAsync(
+    const std::string &display_label, const std::string &provider_id,
+    const std::string &model_id) {
+  if (!bus_ || !daemonSyncAllowed()) {
+    noteDaemonSyncFailure();
+    notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
+                                   display_label.c_str()));
+    return;
+  }
+
+  auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
+                                    kMethodReloadAsrBackend);
+  pending_reload_call_slot_ = msg.callAsync(
+      vinput::runtime::kDbusCallTimeoutUsec,
+      [this, display_label, provider_id,
+       model_id](fcitx::dbus::Message &reply) {
+        pending_reload_call_slot_.reset();
+        if (!reply || reply.isError()) {
+          noteDaemonSyncFailure();
+          std::string err_msg =
+              reply ? reply.errorMessage()
+                    : std::string(_("Failed to reload ASR backend."));
+          if (err_msg.empty()) {
+            err_msg = _("Failed to reload ASR backend.");
+          }
+          notifyError(err_msg);
+          return true;
+        }
+        clearDaemonSyncFailure();
+
+        vinput::dbus::AsrBackendState backend_state;
+        if (!queryAsrBackendState(&backend_state)) {
+          notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
+                                         display_label.c_str()));
+          return true;
+        }
+
+        switch (ClassifyRequestedAsrBackend(backend_state, provider_id,
+                                            model_id)) {
+        case RequestedAsrBackendStatus::kReloadInProgress:
+          notifyInfo(vinput::str::FmtStr(_("Switching ASR to '%s'."),
+                                         display_label.c_str()));
+          break;
+        case RequestedAsrBackendStatus::kApplied:
+          notifyInfo(vinput::str::FmtStr(_("Switched ASR to '%s'."),
+                                         display_label.c_str()));
+          break;
+        case RequestedAsrBackendStatus::kFailedStillUsingPrevious:
+          notifyWarning(vinput::str::FmtStr(
+              _("Saved ASR selection '%s', but the runtime is still using the "
+                "previous backend."),
+              display_label.c_str()));
+          break;
+        case RequestedAsrBackendStatus::kFailedNoUsableBackend:
+          notifyWarning(vinput::str::FmtStr(
+              _("Saved ASR selection '%s', but no usable ASR backend is "
+                "active."),
+              display_label.c_str()));
+          break;
+        case RequestedAsrBackendStatus::kConfigSaved:
+        case RequestedAsrBackendStatus::kUnknown:
+          notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
+                                         display_label.c_str()));
+          break;
+        }
+        return true;
+      });
+  if (!pending_reload_call_slot_) {
+    noteDaemonSyncFailure();
+    notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
+                                   display_label.c_str()));
+  }
 }
 
 bool VinputEngine::daemonSyncAllowed() const {

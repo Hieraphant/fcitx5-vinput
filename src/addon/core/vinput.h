@@ -70,6 +70,9 @@ private:
   bool callStartCommandRecording(const std::string &selected_text);
   bool callStopRecording(const std::string &scene_id);
   bool callReloadAsrBackend(std::string *error = nullptr);
+  void callReloadAsrBackendAsync(const std::string &display_label,
+                                 const std::string &provider_id,
+                                 const std::string &model_id);
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onRecognitionPartial(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
@@ -116,6 +119,7 @@ private:
   std::unique_ptr<fcitx::dbus::Slot> error_slot_;
   std::unique_ptr<fcitx::dbus::Slot> pending_start_call_slot_;
   std::unique_ptr<fcitx::dbus::Slot> pending_stop_call_slot_;
+  std::unique_ptr<fcitx::dbus::Slot> pending_reload_call_slot_;
   struct Session {
     enum class Phase { PendingStart, Recording, Busy };
     Phase phase;
@@ -161,6 +165,8 @@ private:
   std::chrono::steady_clock::time_point last_trigger_time_;
   std::chrono::steady_clock::time_point daemon_sync_blocked_until_{};
   std::string last_known_daemon_status_;
+  vinput::dbus::AsrBackendState cached_asr_backend_state_;
+  bool has_cached_asr_backend_state_ = false;
   std::unique_ptr<fcitx::EventSourceTime> pending_stop_event_;
   std::unique_ptr<fcitx::EventSourceTime> status_sync_event_;
   VinputSettings settings_;
