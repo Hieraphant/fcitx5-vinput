@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.3](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.1.3) — 2026-04-10
+
+### Bug Fixes
+
+- **addon:** Make ASR backend switching use async reload handling and cached backend state so menu feedback stays responsive and reflects the active runtime more accurately
+
 ## [2.1.2](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.1.2) — 2026-04-10
 
 ### Packaging
