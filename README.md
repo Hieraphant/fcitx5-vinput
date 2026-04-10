@@ -62,6 +62,7 @@ sudo apt-get install -f
 ### Nix (via flake)
 
 - Currently supports `x86_64-linux` and `aarch64-linux`
+- Binary cache available via [Cachix](https://fcitx5-vinput.cachix.org), pre-built binaries are automatically used when building the flake
 
 #### Home manager usage example
 
@@ -79,6 +80,12 @@ sudo apt-get install -f
     fcitx5-vinput = {
       url = "github:xifan2333/fcitx5-vinput";
     };
+  };
+
+  # Trust the fcitx5-vinput binary cache so nix uses pre-built binaries
+  nixConfig = {
+    extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
+    extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
   };
 
   outputs =

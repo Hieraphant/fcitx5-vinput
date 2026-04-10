@@ -62,6 +62,7 @@ sudo apt-get install -f
 ### Nix（通过 flake）
 
 - 当前支持 `x86_64-linux` 和 `aarch64-linux`
+- 通过 [Cachix](https://fcitx5-vinput.cachix.org) 提供二进制缓存，构建 flake 时自动使用预编译产物
 
 #### Home Manager 使用示例
 
@@ -79,6 +80,12 @@ sudo apt-get install -f
     fcitx5-vinput = {
       url = "github:xifan2333/fcitx5-vinput";
     };
+  };
+
+  # 信任 fcitx5-vinput 二进制缓存以使用预编译产物
+  nixConfig = {
+    extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
+    extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
   };
 
   outputs =

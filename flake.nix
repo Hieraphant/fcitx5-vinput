@@ -1,6 +1,11 @@
 {
   description = "Local offline voice input plugin for Fcitx5";
 
+  nixConfig = {
+    extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
+    extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
+  };
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     sherpa-onnx.url = "github:xifan2333/sherpa-onnx-flake";
