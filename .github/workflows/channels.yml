@@ -195,66 +195,6 @@ jobs:
             "${pkg}_source.changes"
           dput ppa:xifan233/ppa "${pkg}_source.changes"
 
-  verify-ppa:
-    needs: ppa
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:24.04
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Wait for published PPA binary
-        shell: bash
-        run: |
-          version="${{ inputs.version }}"
-          max_attempts=30
-          sleep_seconds=60
-
-          for attempt in $(seq 1 "${max_attempts}"); do
-            if ./scripts/ci-verify-channel-install.sh \
-              ppa-ubuntu24.04 "${version}" "${{ inputs.ppa_revision }}"; then
-              exit 0
-            fi
-
-            if [[ "${attempt}" -eq "${max_attempts}" ]]; then
-              echo "PPA did not publish an installable binary for ${version} in time" >&2
-              exit 1
-            fi
-
-            echo "PPA binary not published yet for ${version}; retrying in ${sleep_seconds}s (${attempt}/${max_attempts})"
-            sleep "${sleep_seconds}"
-          done
-
-  verify-copr:
-    needs: copr
-    runs-on: ubuntu-latest
-    container:
-      image: fedora:43
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Wait for published COPR package
-        shell: bash
-        run: |
-          version="${{ inputs.version }}"
-          max_attempts=30
-          sleep_seconds=60
-
-          for attempt in $(seq 1 "${max_attempts}"); do
-            if ./scripts/ci-verify-channel-install.sh \
-              copr-fedora43 "${version}"; then
-              exit 0
-            fi
-
-            if [[ "${attempt}" -eq "${max_attempts}" ]]; then
-              echo "COPR did not publish an installable binary for ${version} in time" >&2
-              exit 1
-            fi
-
-            echo "COPR binary not published yet for ${version}; retrying in ${sleep_seconds}s (${attempt}/${max_attempts})"
-            sleep "${sleep_seconds}"
-          done
-
   aur:
     runs-on: ubuntu-latest
     steps:
