@@ -679,6 +679,8 @@ bool VinputEngine::callReloadAsrBackend(std::string *error) {
 void VinputEngine::callReloadAsrBackendAsync(
     const std::string &display_label, const std::string &provider_id,
     const std::string &model_id) {
+  pending_reload_call_slot_.reset();
+
   if (!bus_ || !daemonSyncAllowed()) {
     noteDaemonSyncFailure();
     notifyInfo(vinput::str::FmtStr(_("ASR switch requested for '%s'."),
