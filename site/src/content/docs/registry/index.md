@@ -25,6 +25,14 @@ vinput-registry/
         └── README.md
 ```
 
+## Core rules
+
+- All scripts must be **self-contained** — only use the standard library of your chosen runtime. No third-party dependencies, no `pip install`, no `npm install`. This ensures scripts work on any machine out of the box.
+- Scripts can be written in any language. Python 3 is the recommended choice because it is available on virtually all Linux distributions. Node.js, Bash, or other runtimes are also acceptable as long as the stdlib-only rule is met.
+- The `command` field in registry JSON works like a VS Code `tasks.json` entry: it specifies the interpreter, and `args` specifies the script path.
+- Download URLs use array form for fallback.
+- Each script resource must include an entry script and `README.md`.
+
 ## ID conventions
 
 | Type | Pattern | Example |
@@ -52,7 +60,7 @@ A non-streaming provider receives a complete audio recording and returns the tra
 | Output | Final transcript text via **stdout** |
 | Errors | Human-readable messages to **stderr** |
 | Exit codes | `0` success, `1` runtime error, `2` usage error |
-| Dependencies | Python standard library only |
+| Dependencies | Standard library only (no third-party packages) |
 
 **File structure:**
 
@@ -75,7 +83,7 @@ A streaming provider recognizes audio in real time as it arrives.
 | Output | JSONL via **stdout** |
 | Errors | **stderr** only |
 | Exit codes | `0` success, `1` runtime error, `2` usage error |
-| Dependencies | Python standard library only |
+| Dependencies | Standard library only (no third-party packages) |
 
 **Input protocol (stdin):**
 
@@ -143,7 +151,7 @@ An adapter is a local process that exposes a non-standard LLM as an OpenAI-compa
 | Command | `python3` |
 | Provides | Local HTTP server |
 | Required endpoints | `GET /v1/models`, `POST /v1/chat/completions` |
-| Dependencies | Python standard library only |
+| Dependencies | Standard library only (no third-party packages) |
 
 **File structure:**
 

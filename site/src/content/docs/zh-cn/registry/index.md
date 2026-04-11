@@ -25,6 +25,14 @@ vinput-registry/
         └── README.md
 ```
 
+## 核心规则
+
+- 所有脚本必须**自包含**，只能使用所选运行时的标准库。禁止引入第三方依赖，不能有 `pip install`、`npm install` 等额外安装步骤。这样可以保证脚本在任何人的机器上都能直接运行。
+- 脚本可以使用任何语言。推荐 Python 3，因为几乎所有 Linux 发行版都自带。Node.js、Bash 等运行时也可以，只要满足"仅标准库"的约束。
+- registry JSON 中的 `command` 字段类似 VS Code `tasks.json`：指定解释器，`args` 指定脚本路径。
+- 下载 URL 使用数组形式，按顺序回退。
+- 每个脚本资源必须包含入口脚本和 `README.md`。
+
 ## ID 规范
 
 | 类型 | 格式 | 示例 |
@@ -52,7 +60,7 @@ vinput-registry/
 | 输出 | 最终识别文本，通过 **stdout** |
 | 错误 | 可读错误信息，通过 **stderr** |
 | 退出码 | `0` 成功，`1` 运行时错误，`2` 用法错误 |
-| 依赖 | 仅 Python 标准库 |
+| 依赖 | 仅标准库（禁止第三方包） |
 
 **文件结构：**
 
@@ -75,7 +83,7 @@ resources/providers/<目录>/batch/
 | 输出 | JSONL，通过 **stdout** |
 | 错误 | 仅 **stderr** |
 | 退出码 | `0` 成功，`1` 运行时错误，`2` 用法错误 |
-| 依赖 | 仅 Python 标准库 |
+| 依赖 | 仅标准库（禁止第三方包） |
 
 **输入协议（stdin）：**
 
@@ -143,7 +151,7 @@ resources/providers/<目录>/streaming/
 | 命令 | `python3` |
 | 提供 | 本地 HTTP 服务 |
 | 必须实现 | `GET /v1/models`、`POST /v1/chat/completions` |
-| 依赖 | 仅 Python 标准库 |
+| 依赖 | 仅标准库（禁止第三方包） |
 
 **文件结构：**
 
