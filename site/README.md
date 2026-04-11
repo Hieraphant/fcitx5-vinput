@@ -1,7 +1,6 @@
-# fcitx5-vinput docs
+# fcitx5-vinput site
 
-Starlight-based static site for project landing pages, downloads, and future
-split documentation.
+Starlight-based static site for the project landing page and install page.
 
 ## Commands
 
@@ -20,7 +19,5 @@ Run commands from `site/`:
 - Starlight site scaffold
 - English + Simplified Chinese locale routing
 - GitHub Pages workflow
-- Placeholder pages for overview, downloads, and documentation migration
-
-README content is not split yet. Current repo-level `README.md` and
-`README_zh.md` remain the source of truth until the migration starts.
+- Landing page
+- Install page
