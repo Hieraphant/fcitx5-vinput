@@ -2,6 +2,7 @@
 :root {
 	--accent-hsl: 234, 89%, 74%;
 	--overlay-blurple: hsla(var(--accent-hsl), 0.2);
+	--sl-font-headings: 'Space Grotesk', var(--sl-font-system);
 }
 
 :root[data-theme='light'] {

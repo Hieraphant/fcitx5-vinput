@@ -36,6 +36,30 @@ export default defineConfig({
 				baseUrl:
 					'https://github.com/xifan2333/fcitx5-vinput/edit/main/site/',
 			},
+			head: [
+				{
+					tag: 'link',
+					attrs: {
+						rel: 'preconnect',
+						href: 'https://fonts.googleapis.com',
+					},
+				},
+				{
+					tag: 'link',
+					attrs: {
+						rel: 'preconnect',
+						href: 'https://fonts.gstatic.com',
+						crossorigin: '',
+					},
+				},
+				{
+					tag: 'link',
+					attrs: {
+						rel: 'stylesheet',
+						href: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap',
+					},
+				},
+			],
 			customCss: ['./src/styles/custom.css'],
 			sidebar: ['overview', 'downloads', 'documentation'],
 		}),
