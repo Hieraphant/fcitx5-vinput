@@ -25,20 +25,62 @@ https://github.com/user-attachments/assets/5a548a68-153c-4842-bab6-926f30bb720e
 - **GUI 与 CLI** — `vinput-gui` 快速上手，`vinput` CLI 完整控制
 - **多发行版** — Arch、Fedora、Ubuntu/Debian、Nix、Flatpak
 
-## 快速安装
+## 安装
+
+### Arch Linux (AUR)
 
 ```bash
-# Arch Linux (AUR)
 yay -S fcitx5-vinput-bin
-
-# Fedora (COPR)
-sudo dnf copr enable xifan/fcitx5-vinput-bin && sudo dnf install fcitx5-vinput
-
-# Ubuntu 24.04 (PPA)
-sudo add-apt-repository ppa:xifan233/ppa && sudo apt update && sudo apt install fcitx5-vinput
 ```
 
-Nix、Flatpak、Debian、本地安装包和源码构建请查看[安装页面](https://xifan2333.github.io/fcitx5-vinput/zh-cn/install/)。
+### Fedora (COPR)
+
+```bash
+sudo dnf copr enable xifan/fcitx5-vinput-bin
+sudo dnf install fcitx5-vinput
+```
+
+### Ubuntu 24.04 (PPA)
+
+```bash
+sudo add-apt-repository ppa:xifan233/ppa
+sudo apt update
+sudo apt install fcitx5-vinput
+```
+
+### Ubuntu / Debian（手动安装）
+
+```bash
+# 从 GitHub Releases 下载最新 .deb
+sudo dpkg -i fcitx5-vinput_*.deb
+sudo apt-get install -f
+```
+
+### Nix (flake)
+
+```nix
+inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
+```
+
+通过 [Cachix](https://fcitx5-vinput.cachix.org) 提供二进制缓存。完整 Home Manager 示例见[安装文档](https://xifan2333.github.io/fcitx5-vinput/zh-cn/install/)。
+
+### Flatpak
+
+```bash
+flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
+flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
+```
+
+### 源码构建
+
+**依赖：** cmake、fcitx5、pipewire、libcurl、nlohmann-json、CLI11、Qt6
+
+```bash
+sudo bash scripts/build-sherpa-onnx.sh
+cmake --preset release-clang-mold
+cmake --build --preset release-clang-mold
+sudo cmake --install build
+```
 
 ## 快速开始
 
@@ -52,8 +94,21 @@ fcitx5 -r
 - **短按** `Alt_R` — 开始/停止录音
 - **长按** `Alt_R` — 即说即停
 
-完整的配置指南、ASR 配置、场景与 LLM、资源仓库贡献规范请查看[文档站点](https://xifan2333.github.io/fcitx5-vinput/zh-cn/)。
+## 按键说明
+
+| 按键 | 默认 | 功能 |
+|------|------|------|
+| 触发键 | `Alt_R` | 短按切换录音；长按即说即停 |
+| 命令键 | `Control_R` | 选中文本后按住，语音指令修改选中内容 |
+| ASR 菜单键 | `F8` | 打开 ASR 提供商 / 模型切换菜单 |
+| 场景菜单键 | `Shift_R` | 打开场景切换菜单 |
+
+所有按键均可在 Fcitx5 配置界面中自定义。
+
+## 文档
+
+ASR 配置、场景与 LLM、CLI 参考和资源仓库贡献规范请查看[文档站点](https://xifan2333.github.io/fcitx5-vinput/zh-cn/)。
 
 ## 许可证
 
-[MIT](LICENSE)
+[GPL-3.0](LICENSE)

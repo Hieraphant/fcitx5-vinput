@@ -25,20 +25,62 @@ https://github.com/user-attachments/assets/5a548a68-153c-4842-bab6-926f30bb720e
 - **GUI & CLI** — `vinput-gui` for quick setup, `vinput` CLI for full control
 - **Cross-distro** — Arch, Fedora, Ubuntu/Debian, Nix, Flatpak
 
-## Quick install
+## Installation
+
+### Arch Linux (AUR)
 
 ```bash
-# Arch Linux (AUR)
 yay -S fcitx5-vinput-bin
-
-# Fedora (COPR)
-sudo dnf copr enable xifan/fcitx5-vinput-bin && sudo dnf install fcitx5-vinput
-
-# Ubuntu 24.04 (PPA)
-sudo add-apt-repository ppa:xifan233/ppa && sudo apt update && sudo apt install fcitx5-vinput
 ```
 
-For Nix, Flatpak, Debian, local packages, and build from source, see the [Install](https://xifan2333.github.io/fcitx5-vinput/install/) page.
+### Fedora (COPR)
+
+```bash
+sudo dnf copr enable xifan/fcitx5-vinput-bin
+sudo dnf install fcitx5-vinput
+```
+
+### Ubuntu 24.04 (PPA)
+
+```bash
+sudo add-apt-repository ppa:xifan233/ppa
+sudo apt update
+sudo apt install fcitx5-vinput
+```
+
+### Ubuntu / Debian (manual)
+
+```bash
+# Download latest .deb from GitHub Releases
+sudo dpkg -i fcitx5-vinput_*.deb
+sudo apt-get install -f
+```
+
+### Nix (flake)
+
+```nix
+inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
+```
+
+Binary cache via [Cachix](https://fcitx5-vinput.cachix.org). Full Home Manager example in the [install docs](https://xifan2333.github.io/fcitx5-vinput/install/).
+
+### Flatpak
+
+```bash
+flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
+flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
+```
+
+### Build from source
+
+**Dependencies:** cmake, fcitx5, pipewire, libcurl, nlohmann-json, CLI11, Qt6
+
+```bash
+sudo bash scripts/build-sherpa-onnx.sh
+cmake --preset release-clang-mold
+cmake --build --preset release-clang-mold
+sudo cmake --install build
+```
 
 ## Quick start
 
@@ -52,8 +94,21 @@ Open **Vinput GUI** → **Resources → Models** → download and activate a mod
 - **Tap** `Alt_R` — start/stop recording
 - **Hold** `Alt_R` — push-to-talk
 
-For full setup guide, ASR configuration, scenes & LLM, and registry contribution, see the [documentation site](https://xifan2333.github.io/fcitx5-vinput/).
+## Key bindings
+
+| Key | Default | Function |
+|-----|---------|----------|
+| Trigger Key | `Alt_R` | Tap to toggle recording; hold to push-to-talk |
+| Command Key | `Control_R` | Hold after selecting text to modify with voice |
+| ASR Menu Key | `F8` | Open ASR provider / model switcher |
+| Scene Menu Key | `Shift_R` | Open scene switcher |
+
+All keys can be customized in Fcitx5 configuration.
+
+## Documentation
+
+For ASR configuration, scenes & LLM setup, CLI reference, and registry contribution guide, see the [documentation site](https://xifan2333.github.io/fcitx5-vinput/).
 
 ## License
 
-[MIT](LICENSE)
+[GPL-3.0](LICENSE)
