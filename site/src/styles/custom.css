@@ -1,33 +1,28 @@
-/* One Dark (dark mode) + One Light (light mode) for Starlight */
-
-/* Light mode — One Light palette */
+/* Landing page styles — mirrors Starlight official docs approach */
 :root {
-  --sl-color-accent-low: #e8eaed;
-  --sl-color-accent: #4078f2;
-  --sl-color-accent-high: #293d6b;
-  --sl-color-white: #383a42;
-  --sl-color-gray-1: #4b4e58;
-  --sl-color-gray-2: #696c77;
-  --sl-color-gray-3: #a0a1a7;
-  --sl-color-gray-4: #c8c8cc;
-  --sl-color-gray-5: #e5e5e6;
-  --sl-color-gray-6: #f0f0f1;
-  --sl-color-black: #fafafa;
-  --sl-color-text-accent: #4078f2;
+	--accent-hsl: 234, 89%, 74%;
+	--overlay-blurple: hsla(var(--accent-hsl), 0.2);
 }
 
-/* Dark mode — One Dark palette */
-:root[data-theme='dark'] {
-  --sl-color-accent-low: #2c313a;
-  --sl-color-accent: #61afef;
-  --sl-color-accent-high: #c8ddf5;
-  --sl-color-white: #abb2bf;
-  --sl-color-gray-1: #abb2bf;
-  --sl-color-gray-2: #848b98;
-  --sl-color-gray-3: #5c6370;
-  --sl-color-gray-4: #3e4451;
-  --sl-color-gray-5: #2c313a;
-  --sl-color-gray-6: #21252b;
-  --sl-color-black: #282c34;
-  --sl-color-text-accent: #61afef;
+:root[data-theme='light'] {
+	--accent-hsl: 234, 89%, 56%;
+}
+
+[data-has-hero] .page {
+	background:
+		linear-gradient(215deg, var(--overlay-blurple), transparent 40%),
+		radial-gradient(var(--overlay-blurple), transparent 40%) no-repeat -60vw -40vh / 105vw 200vh,
+		radial-gradient(var(--overlay-blurple), transparent 65%) no-repeat 50% calc(100% + 20rem) /
+			60rem 30rem;
+}
+
+[data-has-hero] header {
+	border-bottom: 1px solid transparent;
+	background-color: transparent;
+	-webkit-backdrop-filter: blur(16px);
+	backdrop-filter: blur(16px);
+}
+
+[data-has-hero] .hero > img {
+	filter: drop-shadow(0 0 3rem var(--overlay-blurple));
 }

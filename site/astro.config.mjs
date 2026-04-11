@@ -7,15 +7,12 @@ export default defineConfig({
 	base: '/fcitx5-vinput',
 	integrations: [
 		starlight({
-			title: {
-				en: 'fcitx5-vinput',
-				'zh-CN': 'fcitx5-vinput',
-			},
-			description:
-				'Local offline voice input for Fcitx5 with on-device ASR, optional LLM post-processing, and cross-distro packaging.',
+			title: 'fcitx5-vinput',
 			logo: {
 				src: './public/favicon.svg',
 			},
+			description:
+				'Local offline voice input for Fcitx5 with on-device ASR, optional LLM post-processing, and cross-distro packaging.',
 			favicon: '/favicon.svg',
 			defaultLocale: 'root',
 			locales: {
