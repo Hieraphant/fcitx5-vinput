@@ -1,0 +1,45 @@
+---
+title: fcitx5-vinput
+description: Offline voice input for Fcitx5 with local ASR, optional LLM post-processing, and cross-distro packaging.
+template: splash
+hero:
+  tagline: Local-first voice input for Linux desktops, packaged for real users instead of demo screenshots.
+  actions:
+    - text: Project overview
+      link: ./overview/
+      icon: right-arrow
+    - text: Downloads
+      link: ./downloads/
+      icon: download
+    - text: GitHub Releases
+      link: https://github.com/xifan2333/fcitx5-vinput/releases
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Site status
+
+<CardGrid stagger>
+	<Card title="Framework ready" icon="rocket">
+		The Starlight skeleton is now in place in `site/`, separate from the C++
+		build and packaging workflow.
+	</Card>
+	<Card title="i18n routing ready" icon="languages">
+		English lives at the root locale and Simplified Chinese under
+		`/zh-cn/`.
+	</Card>
+	<Card title="Release page reserved" icon="package">
+		The downloads section is ready for the next step: fetching the latest
+		release and exposing package links in one place.
+	</Card>
+	<Card title="README stays intact" icon="document">
+		Current documentation still lives in the repo `README.md` and
+		`README_zh.md`. We have not started splitting sections yet.
+	</Card>
+	<Card title="Pages deployment ready" icon="cloud">
+		GitHub Pages deployment is handled by a dedicated workflow and does not
+		require a separate publishing branch.
+	</Card>
+</CardGrid>

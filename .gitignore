@@ -25,3 +25,5 @@ __pycache__/
 .kiro/
 repo/
 fcitx5-vinput.flatpak
+node_modules/
+.astro/
