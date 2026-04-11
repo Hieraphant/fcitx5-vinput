@@ -341,7 +341,7 @@ bool VinputEngine::callStartRecording() {
   pending_start_call_slot_ = msg.callAsync(
       vinput::runtime::kDbusCallTimeoutUsec,
       [this](fcitx::dbus::Message &reply) {
-        pending_start_call_slot_.reset();
+        auto slot = std::move(pending_start_call_slot_);
         if (!reply || reply.isError()) {
           noteDaemonSyncFailure();
           fprintf(stderr, "vinput: StartRecording rejected by daemon\n");
@@ -377,7 +377,7 @@ bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
   pending_start_call_slot_ = msg.callAsync(
       vinput::runtime::kDbusCallTimeoutUsec,
       [this](fcitx::dbus::Message &reply) {
-        pending_start_call_slot_.reset();
+        auto slot = std::move(pending_start_call_slot_);
         if (!reply || reply.isError()) {
           noteDaemonSyncFailure();
           fprintf(stderr, "vinput: StartCommandRecording rejected by daemon\n");
@@ -413,7 +413,7 @@ bool VinputEngine::callStopRecording(const std::string &scene_id) {
   pending_stop_call_slot_ = msg.callAsync(
       vinput::runtime::kDbusCallTimeoutUsec,
       [this](fcitx::dbus::Message &reply) {
-        pending_stop_call_slot_.reset();
+        auto slot = std::move(pending_stop_call_slot_);
         if (!reply || reply.isError()) {
           noteDaemonSyncFailure();
           fprintf(stderr, "vinput: StopRecording rejected by daemon\n");
