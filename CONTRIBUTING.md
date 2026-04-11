@@ -2,15 +2,28 @@
 
 Thanks for your interest in fcitx5-vinput!
 
+## Documentation
+
+Full documentation is available at the [project site](https://xifan2333.github.io/fcitx5-vinput/). For registry contribution guidelines (ASR providers, LLM adapters, models), see the [Registry](https://xifan2333.github.io/fcitx5-vinput/registry/) page.
+
 ## Build from Source
 
-```bash
-# Install dependencies (Arch Linux example)
-sudo pacman -S cmake ninja fcitx5 pipewire libcurl nlohmann-json qt6-base
+**Dependencies:** cmake, fcitx5, pipewire, libcurl, nlohmann-json, CLI11, Qt6
 
-# Build
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
+```bash
+sudo bash scripts/build-sherpa-onnx.sh
+cmake --preset release-clang-mold
+cmake --build --preset release-clang-mold
+sudo cmake --install build
+```
+
+Or use `just`:
+
+```bash
+just sherpa
+just configure-release
+just build
+sudo just install
 ```
 
 ## Project Structure
@@ -19,6 +32,7 @@ cmake --build build
 - `src/daemon/` — ASR daemon (audio capture, inference, post-processing)
 - `src/common/` — Shared code (configs, D-Bus interface, scenes)
 - `src/cli/` — `vinput` CLI tool
+- `site/` — Documentation site (Astro + Starlight)
 
 ## Submitting Changes
 
@@ -34,6 +48,18 @@ Use the [Bug Report](https://github.com/xifan2333/fcitx5-vinput/issues/new?templ
 - Distribution
 - Daemon logs: `journalctl --user -u vinput-daemon.service`
 
+## Contributing to the Registry
+
+The [vinput-registry](https://github.com/xifan2333/vinput-registry) repository hosts downloadable resources: ASR models, cloud ASR provider scripts, and LLM adapter scripts.
+
+To contribute a new provider, adapter, or model, see the [Registry](https://xifan2333.github.io/fcitx5-vinput/registry/) page for the full specification.
+
+Key rules:
+- Scripts must be self-contained — standard library only, no third-party dependencies
+- Python 3 is recommended; other runtimes are acceptable
+- Each script resource needs an `entry.py` (or equivalent) and `README.md`
+- Add i18n entries for both `en_US.json` and `zh_CN.json`
+
 ## Translations
 
 Translation files are in `po/`. To add a new language:
@@ -46,10 +72,3 @@ Translation files are in `po/`. To add a new language:
 
 - C++20
 - Follow the existing style in the codebase
-
-## Fcitx Key API Note
-
-- `fcitx::Key::check(...)` and `fcitx::Key::checkKeyList(...)` are upstream Fcitx5 APIs from `Fcitx5/Utils/fcitx-utils/key.h`.
-- They are not implemented by `fcitx5-vinput`; this project only calls them.
-- For user-configurable hotkeys, `checkKeyList(...)` is still appropriate.
-- For internal menu control paths that need strict press/release behavior, explicit `keysym + state` checks are preferred over relying on `check(...)` alone.
