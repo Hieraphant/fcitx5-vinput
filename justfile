@@ -26,23 +26,27 @@ configure-release prefix="/usr" *cmake_args:
   cmake --preset release-clang-mold -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
 
 release ref="main" version="":
-  version_value="{{version}}"; \
-  if [ -z "${version_value}" ]; then \
-    version_value="$$(tr -d '\n' < VERSION)"; \
-  fi; \
-  git tag "v${version_value}" {{ref}}; \
+  #!/usr/bin/env bash
+  set -euo pipefail
+  version_value="{{version}}"
+  if [ -z "${version_value}" ]; then
+    version_value="$(tr -d '\n' < VERSION)"
+  fi
+  git tag "v${version_value}" {{ref}}
   git push origin "v${version_value}"
 
 channels ref="main" version="" ppa_revision="":
-  version_value="{{version}}"; \
-  ppa_revision_value="{{ppa_revision}}"; \
-  if [ -z "${version_value}" ]; then \
-    version_value="$$(tr -d '\n' < VERSION)"; \
-  fi; \
-  extra_fields=(); \
-  if [ -n "${ppa_revision_value}" ]; then \
-    extra_fields+=(--field ppa_revision="${ppa_revision_value}"); \
-  fi; \
+  #!/usr/bin/env bash
+  set -euo pipefail
+  version_value="{{version}}"
+  ppa_revision_value="{{ppa_revision}}"
+  if [ -z "${version_value}" ]; then
+    version_value="$(tr -d '\n' < VERSION)"
+  fi
+  extra_fields=()
+  if [ -n "${ppa_revision_value}" ]; then
+    extra_fields+=(--field ppa_revision="${ppa_revision_value}")
+  fi
   gh workflow run channels.yml \
     --ref main \
     --field ref="{{ref}}" \
