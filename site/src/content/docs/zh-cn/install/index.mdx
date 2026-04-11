@@ -30,13 +30,80 @@ sudo apt install fcitx5-vinput
 
 ### Nix (flake)
 
-在你的配置中添加 flake input：
+支持 `x86_64-linux` 和 `aarch64-linux`。可通过 [Cachix](https://fcitx5-vinput.cachix.org) 获取二进制缓存，构建 flake 时会自动使用预编译产物。
+
+#### Home Manager 示例
+
+将 `fcitx5-vinput` 添加为 flake input：
 
 ```nix
-inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
+{
+  description = "Your flake description";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    fcitx5-vinput = {
+      url = "github:xifan2333/fcitx5-vinput";
+    };
+  };
+
+  # 信任 fcitx5-vinput 的二进制缓存
+  nixConfig = {
+    extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
+    extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixos-hardware,
+      home-manager,
+      ...
+    }@inputs:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+      };
+      homeManagerConfiguration = home-manager.lib.homeManagerConfiguration;
+    in
+    {
+      homeConfigurations = {
+        "kakapt@krypton" = homeManagerConfiguration {
+          inherit pkgs;
+          modules = [ ./your_home_module.nix ];
+          extraSpecialArgs = inputs;
+        };
+      };
+    };
+}
 ```
 
-可通过 [Cachix](https://fcitx5-vinput.cachix.org) 获取二进制缓存。完整的 Home Manager 用法参见 [README](https://github.com/xifan2333/fcitx5-vinput#nix-via-flake)。
+然后在 Fcitx5 addon wrapper 中引入 `fcitx5-vinput`：
+
+```nix
+{ pkgs, ... }@inputs:
+let
+  fcitx5-vinput = inputs.fcitx5-vinput.packages."${pkgs.stdenv.hostPlatform.system}".default;
+in
+{
+  home.packages = [
+    fcitx5-vinput
+  ];
+
+  i18n.inputMethod = {
+    enable = true;
+    type = "fcitx5";
+    fcitx5.addons = with pkgs; [
+      fcitx5-vinput
+    ];
+  };
+}
+```
 
 ### Flatpak
 
@@ -85,3 +152,7 @@ just configure-release
 just build
 sudo just install
 ```
+
+第一步会下载本地构建和发布打包所需的预编译 sherpa-onnx 运行时。运行时库随安装产物一起捆绑，不需要单独安装系统包依赖。
+
+源码构建默认使用 Fcitx5 系统前缀（`/usr`），插件会安装到 Fcitx5 扫描的目录下。如果之前安装在 `/usr/local`，请从干净的 build 目录重新安装，以确保 `vinput.conf` 和 `fcitx5-vinput.so` 移到 Fcitx5 系统路径。

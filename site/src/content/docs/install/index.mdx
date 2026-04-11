@@ -30,13 +30,80 @@ sudo apt install fcitx5-vinput
 
 ### Nix (flake)
 
-Add the flake input to your configuration:
+Supports `x86_64-linux` and `aarch64-linux`. Binary cache is available via [Cachix](https://fcitx5-vinput.cachix.org) — pre-built binaries are used automatically when building the flake.
+
+#### Home Manager example
+
+Add `fcitx5-vinput` as a flake input:
 
 ```nix
-inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
+{
+  description = "Your flake description";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    fcitx5-vinput = {
+      url = "github:xifan2333/fcitx5-vinput";
+    };
+  };
+
+  # Trust the fcitx5-vinput binary cache so nix uses pre-built binaries
+  nixConfig = {
+    extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
+    extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixos-hardware,
+      home-manager,
+      ...
+    }@inputs:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+      };
+      homeManagerConfiguration = home-manager.lib.homeManagerConfiguration;
+    in
+    {
+      homeConfigurations = {
+        "kakapt@krypton" = homeManagerConfiguration {
+          inherit pkgs;
+          modules = [ ./your_home_module.nix ];
+          extraSpecialArgs = inputs;
+        };
+      };
+    };
+}
 ```
 
-Binary cache is available via [Cachix](https://fcitx5-vinput.cachix.org). See the [README](https://github.com/xifan2333/fcitx5-vinput#nix-via-flake) for a full Home Manager example.
+Then put `fcitx5-vinput` into your Fcitx5 addon wrapper:
+
+```nix
+{ pkgs, ... }@inputs:
+let
+  fcitx5-vinput = inputs.fcitx5-vinput.packages."${pkgs.stdenv.hostPlatform.system}".default;
+in
+{
+  home.packages = [
+    fcitx5-vinput
+  ];
+
+  i18n.inputMethod = {
+    enable = true;
+    type = "fcitx5";
+    fcitx5.addons = with pkgs; [
+      fcitx5-vinput
+    ];
+  };
+}
+```
 
 ### Flatpak
 
@@ -85,3 +152,7 @@ just configure-release
 just build
 sudo just install
 ```
+
+The first step downloads the pre-built sherpa-onnx runtime used by local builds and release packaging. Runtime libraries are bundled with the installed artifacts instead of being declared as a separate system package dependency.
+
+Source builds default to the Fcitx5 system prefix (`/usr`) so the addon is installed under the directories Fcitx5 scans. If you installed an older build under `/usr/local`, reinstall from a clean build directory so `vinput.conf` and `fcitx5-vinput.so` move to the Fcitx5 system paths.
