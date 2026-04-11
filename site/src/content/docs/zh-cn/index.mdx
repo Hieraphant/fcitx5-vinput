@@ -1,11 +1,11 @@
 ---
 title: fcitx5-vinput
-description: 面向 Fcitx5 的本地优先语音输入方案，支持离线 ASR、可选 LLM 后处理和多发行版打包。
+description: 面向 Fcitx5 的语音输入方案，支持本地与云端 ASR、LLM 改写和多发行版安装。
 template: splash
 editUrl: false
 lastUpdated: false
 hero:
-  tagline: 说话，松手，完成。真正能用于日常工作的 Linux 离线语音输入。
+  tagline: 可能是目前最好用的 Linux 语音输入方案。
   image:
     html: <img src="/fcitx5-vinput/hero-mic.svg" alt="fcitx5-vinput 麦克风图标" width="400" height="400" />
   actions:
@@ -25,22 +25,19 @@ hero:
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid stagger>
-  <Card title="完全离线" icon="laptop">
-    基于 [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 推理，所有计算在本机完成，无需网络，数据不离开设备。
+  <Card title="按住即说" icon="rocket">
+    按住说话，松开完成，让语音输入像快捷键一样直接，不需要额外学习成本。
   </Card>
-  <Card title="LLM 后处理" icon="translate">
-    接入任意 OpenAI 兼容 API（Ollama、SiliconFlow 等），实时对识别结果做纠错、排版或翻译。
+  <Card title="安装省心" icon="download">
+    支持 Arch、Fedora、Ubuntu / Debian、Nix 和 Flatpak，尽量减少不同 Linux 环境下的折腾成本。
   </Card>
-  <Card title="命令模式" icon="pencil">
-    选中文字 → 按住命令键 → 口述指令 → 松手。所选内容由 LLM 即时改写。
+  <Card title="多擎协同" icon="list-format">
+    既可使用内置 [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 本地识别，也可切换云 ASR，按速度、效果和成本灵活选择。
   </Card>
-  <Card title="场景管理" icon="setting">
-    用快捷键在多个场景之间随时切换，每个场景携带独立的系统提示词、提供商和模型配置。
+  <Card title="AI 改写" icon="translate">
+    不止语音转文字，还能借助 LLM 做纠错、润色、翻译和指令式改写。
   </Card>
-  <Card title="多 ASR 提供商" icon="list-format">
-    使用内置本地引擎，或接入云端提供商（OpenAI、ElevenLabs、豆包，或自定义脚本）。
-  </Card>
-  <Card title="vinput CLI" icon="rocket">
-    通过命令行管理模型、场景、LLM 提供商和守护进程状态，无需手动编辑配置文件。
+  <Card title="双轨管理" icon="setting">
+    图形界面适合快速上手，命令行适合精细管理模型、场景、提供商和守护进程状态。
   </Card>
 </CardGrid>

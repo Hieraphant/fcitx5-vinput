@@ -12,7 +12,7 @@ export default defineConfig({
 				src: './public/favicon.svg',
 			},
 			description:
-				'Local offline voice input for Fcitx5 with on-device ASR, optional LLM post-processing, and cross-distro packaging.',
+				'Voice input for Fcitx5 with local and cloud ASR, LLM rewriting, and cross-distro installation.',
 			favicon: '/favicon.svg',
 			defaultLocale: 'root',
 			locales: {
