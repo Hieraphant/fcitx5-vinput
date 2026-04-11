@@ -25,7 +25,15 @@ dev prefix="/usr" *cmake_args:
 configure-release prefix="/usr" *cmake_args:
   cmake --preset release-clang-mold -DCMAKE_INSTALL_PREFIX={{prefix}} {{cmake_args}}
 
-release ref="main" version="" ppa_revision="":
+release ref="main" version="":
+  version_value="{{version}}"; \
+  if [ -z "${version_value}" ]; then \
+    version_value="$$(tr -d '\n' < VERSION)"; \
+  fi; \
+  git tag "v${version_value}" {{ref}}; \
+  git push origin "v${version_value}"
+
+channels ref="main" version="" ppa_revision="":
   version_value="{{version}}"; \
   ppa_revision_value="{{ppa_revision}}"; \
   if [ -z "${version_value}" ]; then \
