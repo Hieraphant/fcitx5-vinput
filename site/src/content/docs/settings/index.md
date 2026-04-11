@@ -72,22 +72,6 @@ vinput config set /asr/vad/enabled true
 vinput config set /global/default_language zh
 ```
 
-## Configuration file locations
-
-| File | Path |
-|------|------|
-| Plugin config (keybindings, etc.) | `~/.config/fcitx5/conf/vinput.conf` |
-| Core config (model, LLM, scenes) | `~/.config/vinput/config.json` |
-| Model directory | `~/.local/share/vinput/models/` |
-
-### Flatpak paths
-
-| File | Path |
-|------|------|
-| Plugin config (keybindings, etc.) | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
-| Core config (model, LLM, scenes) | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
-| Model directory | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
-
 ## General CLI
 
 ```bash

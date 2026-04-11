@@ -91,3 +91,23 @@ vinput provider use <id>       # 切换当前 ASR 提供商
 | 快选 | `1`–`9` | 快速选择候选 |
 
 所有按键均可在 Fcitx5 配置界面中自定义。
+
+## 配置文件位置
+
+| 文件 | 路径 |
+|------|------|
+| Fcitx5 插件配置（按键等） | `~/.config/fcitx5/conf/vinput.conf` |
+| 核心配置（模型、LLM、场景） | `~/.config/vinput/config.json` |
+| 模型目录 | `~/.local/share/vinput/models/` |
+| ASR 提供商脚本 | `~/.local/share/vinput/providers/` |
+| LLM 适配器脚本 | `~/.local/share/vinput/adapters/` |
+
+Flatpak 安装下路径不同：
+
+| 文件 | 路径 |
+|------|------|
+| Fcitx5 插件配置 | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
+| 核心配置 | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
+| 模型目录 | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
+| ASR 提供商脚本 | `~/.var/app/org.fcitx.Fcitx5/data/vinput/providers/` |
+| LLM 适配器脚本 | `~/.var/app/org.fcitx.Fcitx5/data/vinput/adapters/` |

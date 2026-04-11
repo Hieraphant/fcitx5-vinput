@@ -72,22 +72,6 @@ vinput config set /asr/vad/enabled true
 vinput config set /global/default_language zh
 ```
 
-## 配置文件位置
-
-| 文件 | 路径 |
-|------|------|
-| Fcitx5 插件配置（按键等） | `~/.config/fcitx5/conf/vinput.conf` |
-| 核心配置（模型、LLM、场景） | `~/.config/vinput/config.json` |
-| 模型目录 | `~/.local/share/vinput/models/` |
-
-### Flatpak 路径
-
-| 文件 | 路径 |
-|------|------|
-| Fcitx5 插件配置（按键等） | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
-| 核心配置（模型、LLM、场景） | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
-| 模型目录 | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
-
 ## 通用 CLI
 
 ```bash

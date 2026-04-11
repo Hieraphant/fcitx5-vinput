@@ -91,3 +91,23 @@ Available cloud ASR providers include:
 | Quick Select | `1`–`9` | Quick-pick candidate |
 
 All keys can be customized in Fcitx5 configuration.
+
+## Configuration files
+
+| File | Path |
+|------|------|
+| Plugin config (keybindings, etc.) | `~/.config/fcitx5/conf/vinput.conf` |
+| Core config (model, LLM, scenes) | `~/.config/vinput/config.json` |
+| Model directory | `~/.local/share/vinput/models/` |
+| ASR provider scripts | `~/.local/share/vinput/providers/` |
+| LLM adapter scripts | `~/.local/share/vinput/adapters/` |
+
+Flatpak installs use different paths:
+
+| File | Path |
+|------|------|
+| Plugin config | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
+| Core config | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
+| Model directory | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
+| ASR provider scripts | `~/.var/app/org.fcitx.Fcitx5/data/vinput/providers/` |
+| LLM adapter scripts | `~/.var/app/org.fcitx.Fcitx5/data/vinput/adapters/` |
