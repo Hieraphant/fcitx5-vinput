@@ -56,7 +56,7 @@ export default defineConfig({
 					tag: 'link',
 					attrs: {
 						rel: 'stylesheet',
-						href: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap',
+						href: 'https://fonts.googleapis.com/css2?family=Audiowide&display=swap',
 					},
 				},
 			],
