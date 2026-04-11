@@ -133,3 +133,9 @@ For ASR configuration, scenes & LLM setup, CLI reference, and registry contribut
 ## License
 
 [GPL-3.0](LICENSE)
+
+## Sponsor
+
+If this project has been helpful to you, feel free to support it.
+
+<img src="https://raw.githubusercontent.com/xifan2333/xifan2333/main/assets/donate.png" alt="Donate" width="300" />
