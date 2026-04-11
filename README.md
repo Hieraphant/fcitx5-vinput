@@ -58,11 +58,22 @@ sudo apt-get install -f
 
 ### Nix (flake)
 
+Supports `x86_64-linux` and `aarch64-linux`.
+
 ```nix
 inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
 ```
 
-Binary cache via [Cachix](https://fcitx5-vinput.cachix.org). Full Home Manager example in the [install docs](https://xifan2333.github.io/fcitx5-vinput/install/).
+Binary cache via [Cachix](https://fcitx5-vinput.cachix.org):
+
+```nix
+nixConfig = {
+  extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
+  extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
+};
+```
+
+Full Home Manager example in the [install docs](https://xifan2333.github.io/fcitx5-vinput/install/).
 
 ### Flatpak
 
@@ -70,6 +81,16 @@ Binary cache via [Cachix](https://fcitx5-vinput.cachix.org). Full Home Manager e
 flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
 flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
 ```
+
+### Other distributions
+
+Download the package for your system from [GitHub Releases](https://github.com/xifan2333/fcitx5-vinput/releases/latest):
+
+- **Debian / Linux Mint / Ubuntu (other)**: `.deb`
+- **openSUSE / Fedora (other)**: `.rpm`
+- **Arch-based**: `.pkg.tar.zst`
+- **Flatpak**: `.flatpak`
+- **Generic Linux**: `_bundled.tar.gz`
 
 ### Build from source
 

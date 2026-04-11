@@ -58,11 +58,22 @@ sudo apt-get install -f
 
 ### Nix (flake)
 
+支持 `x86_64-linux` 和 `aarch64-linux`。
+
 ```nix
 inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
 ```
 
-通过 [Cachix](https://fcitx5-vinput.cachix.org) 提供二进制缓存。完整 Home Manager 示例见[安装文档](https://xifan2333.github.io/fcitx5-vinput/zh-cn/install/)。
+通过 [Cachix](https://fcitx5-vinput.cachix.org) 提供二进制缓存：
+
+```nix
+nixConfig = {
+  extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
+  extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
+};
+```
+
+完整 Home Manager 示例见[安装文档](https://xifan2333.github.io/fcitx5-vinput/zh-cn/install/)。
 
 ### Flatpak
 
@@ -70,6 +81,16 @@ inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
 flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
 flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
 ```
+
+### 其他发行版
+
+从 [GitHub Releases](https://github.com/xifan2333/fcitx5-vinput/releases/latest) 下载对应安装包：
+
+- **Debian / Linux Mint / Ubuntu（其他版本）**：`.deb`
+- **openSUSE / Fedora（其他版本）**：`.rpm`
+- **Arch 系**：`.pkg.tar.zst`
+- **Flatpak**：`.flatpak`
+- **通用 Linux**：`_bundled.tar.gz`
 
 ### 源码构建
 
