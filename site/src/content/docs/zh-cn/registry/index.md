@@ -1,5 +1,5 @@
 ---
-title: Registry
+title: 资源仓库
 description: "vinput-registry 贡献规范：模型、提供商和适配器。"
 ---
 

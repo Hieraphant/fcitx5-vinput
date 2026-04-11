@@ -1,5 +1,5 @@
 ---
-title: ASR
+title: 语音识别
 description: 语音识别：本地模型、云端提供商与热词。
 ---
 
