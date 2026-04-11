@@ -64,7 +64,7 @@ export default defineConfig({
 				},
 			],
 			customCss: ['./src/styles/custom.css'],
-			sidebar: ['install'],
+			sidebar: ['install', 'guide'],
 		}),
 	],
 });

@@ -1,0 +1,249 @@
+---
+title: 配置指南
+description: 安装后的设置与配置。
+---
+
+import guiModels from '~/assets/guide/gui-models.png';
+import guiAsrProviders from '~/assets/guide/gui-asr-providers.png';
+
+## 快速开始
+
+### 1. 启动守护进程
+
+```bash
+systemctl --user enable --now vinput-daemon.service
+```
+
+### 2. 在 Fcitx5 中启用
+
+打开 Fcitx5 配置 → 附加组件 → 找到 **Vinput** → 启用。
+
+### 3. 安装模型
+
+打开图形管理界面：
+
+```bash
+vinput-gui
+```
+
+进入 **资源 → 模型**，在可用模型列表中选择需要的模型，点击 **下载** 安装，然后点击 **使用** 激活。
+
+<img src={guiModels.src} alt="vinput-gui 模型管理" width="720" />
+
+也可以用 CLI：
+
+```bash
+vinput model list -a            # 浏览可用模型
+vinput model add <模型名>        # 下载并安装
+vinput model use <模型名>        # 设置为当前模型
+```
+
+也可手动将模型目录放到 `~/.local/share/vinput/models/<模型名>/`，目录内需包含：
+- `vinput-model.json`
+- `model.int8.onnx` 或 `model.onnx`
+- `tokens.txt`
+
+### 4. 开始使用
+
+- **短按** `Alt_R` 开始录音，再按一次停止并识别
+- **长按** `Alt_R` 录音，松开自动识别上屏（push-to-talk）
+
+## ASR 提供商
+
+除了内置的本地模型，还可以安装云端 ASR 提供商，在速度、效果和成本之间灵活选择。
+
+打开 GUI → **资源 → ASR 提供商**，浏览可用提供商并点击 **安装**。或用 CLI：
+
+<img src={guiAsrProviders.src} alt="vinput-gui ASR 提供商管理" width="720" />
+
+```bash
+vinput provider list -a        # 列出可用远程 ASR 提供商
+vinput provider add <id>       # 从注册源安装
+vinput provider use <id>       # 切换当前 ASR 提供商
+```
+
+随时按 `F8` 打开 ASR 提供商 / 模型切换菜单，在运行时自由切换。
+
+当前可用的云端 ASR 提供商：
+
+| 提供商 | 模式 | 说明 |
+|--------|------|------|
+| 豆包（非流式） | 非流式 | 豆包语音 / 火山引擎录音文件极速版 |
+| ElevenLabs | 非流式 / 流式 | ElevenLabs speech-to-text API |
+| 阿里百炼 | 非流式 / 流式 | Qwen3-ASR，OpenAI 兼容 / Realtime API |
+| 豆包（流式） | 流式 | 火山引擎 AI Gateway Doubao ASR Realtime |
+| 豆包输入法（流式） | 流式 | 非官方豆包输入法实时语音识别协议 |
+| OpenAI 兼容 | 非流式 / 流式 | OpenAI `/v1/audio/transcriptions` 或 Realtime WebSocket |
+
+## 按键说明
+
+| 按键 | 默认 | 功能 |
+|------|------|------|
+| 触发键 | `Alt_R` | 短按切换录音；长按即说即停 |
+| 命令键 | `Control_R` | 选中文本后按住，语音指令修改选中内容 |
+| ASR 菜单键 | `F8` | 打开 ASR 提供商 / 模型切换菜单 |
+| 场景菜单键 | `Shift_R` | 打开场景切换菜单 |
+| 翻页 | `Page Up` / `Page Down` | 候选列表翻页 |
+| 移动 | `↑` / `↓` | 候选列表移动光标 |
+| 确认 | `Enter` | 确认选中候选 |
+| 取消 | `Esc` | 关闭菜单 |
+| 快选 | `1`–`9` | 快速选择候选 |
+
+所有按键均可在 Fcitx5 配置界面中自定义。
+
+## 场景与 LLM
+
+场景控制 LLM 对识别结果的处理方式，通过场景菜单键（`Shift_R`）在运行时切换。
+
+每个场景包含：
+- **ID** — 唯一标识符
+- **标签** — 菜单中显示的名称
+- **Prompt** — 发送给 LLM 的系统提示
+
+只有同时配置了 `provider + model + prompt` 的场景才会调用 LLM。内置的 `__raw__` 场景会完全跳过 LLM。
+
+### LLM 配置示例
+
+以本地 [Ollama](https://ollama.com) 为例：
+
+```bash
+vinput llm add ollama --base-url http://127.0.0.1:11434/v1
+vinput scene add --id polish \
+  --label "润色" \
+  --provider ollama \
+  --model qwen2.5:7b \
+  --prompt "将识别结果润色为自然的中文。"
+vinput scene use polish
+```
+
+### 命令模式
+
+选中文本 → 按住命令键（`Control_R`） → 说出指令 → 松开 → 完成。
+
+如果当前没有可用的 surrounding-text 选区，命令模式会回退到当前的 primary selection 剪贴板内容。这样操作上更顺手，但也意味着如果 primary selection 里残留的是旧文本或无关文本，它也可能被送入命令改写流程。
+
+**示例：**
+- 选中中文 → 说 *"翻译成英文"* → 替换为英文译文
+- 选中代码 → 说 *"加上注释"* → 替换为加注释版本
+
+> 需要先配置并启用 LLM。
+
+## CLI 参考
+
+完整语法可使用 `vinput --help` 或 `vinput <子命令> --help` 查看。
+
+> Flatpak 下使用 CLI：`flatpak run --command=/app/addons/Vinput/bin/vinput org.fcitx.Fcitx5 --help`
+
+### 模型管理
+
+```bash
+vinput model list               # 列出已安装模型
+vinput model list -a            # 列出可用远程模型
+vinput model add <名称>          # 下载安装模型
+vinput model use <名称>          # 切换当前模型
+vinput model remove <名称>       # 删除模型
+vinput model info <名称>         # 查看模型详情
+```
+
+### 场景管理
+
+```bash
+vinput scene list               # 列出所有场景
+vinput scene add --id <id>      # 添加场景
+vinput scene edit <id>          # 编辑场景
+vinput scene use <id>           # 切换当前场景
+vinput scene remove <id>        # 删除场景
+```
+
+如果场景要调用 LLM，`--provider`、`--model`、`--prompt` 需要同时提供。
+
+### LLM 配置
+
+```bash
+vinput llm list                         # 列出已配置 LLM 提供商
+vinput llm add <id> --base-url <url>    # 添加 LLM 提供商
+vinput llm edit <id> --base-url <url>   # 编辑 LLM 提供商
+vinput llm remove <id>                  # 删除 LLM 提供商
+vinput adapter list                     # 列出已安装 LLM 适配器
+vinput adapter list -a                  # 列出可用远程适配器
+vinput adapter add <id>                 # 从注册源安装适配器
+vinput adapter start <id>               # 启动适配器
+vinput adapter stop <id>                # 停止适配器
+```
+
+LLM 提供商由场景引用，不再有单独的"当前提供商"开关。LLM 适配器只是本地 OpenAI 兼容桥接进程，提供商可以指向它。
+
+### ASR 提供商
+
+```bash
+vinput provider list            # 列出已配置 ASR 提供商
+vinput provider list -a        # 列出可用远程 ASR 提供商
+vinput provider add <id>       # 从注册源安装
+vinput provider use <id>       # 切换当前 ASR 提供商
+vinput provider edit <id>      # 编辑外部提供商脚本
+vinput provider remove <id>    # 删除提供商
+```
+
+### 热词管理
+
+```bash
+vinput hotword get              # 查看当前热词文件路径
+vinput hotword set <路径>        # 设置热词文件
+vinput hotword edit             # 用编辑器打开热词文件
+vinput hotword clear            # 清除热词文件配置
+```
+
+### 设备管理
+
+```bash
+vinput device list              # 列出录音设备
+vinput device use <名称>         # 设置当前设备
+```
+
+### 配置辅助
+
+```bash
+vinput config get /global/capture_device        # 读取配置项（JSON Pointer）
+vinput config set /global/capture_device <值>   # 写入配置项
+vinput config edit core                         # 编辑核心配置（config.json）
+vinput config edit fcitx                        # 编辑 Fcitx 插件配置（vinput.conf）
+```
+
+高级注册源回退可直接在 `config.json` 里配置分类型的 source 列表，例如 `registry.models`、`registry.asr_providers`、`registry.llm_adapters`、`registry.i18n`。程序会按顺序依次尝试这些 URL，直到某个源成功。
+
+### 录音控制
+
+```bash
+vinput recording start              # 开始录音
+vinput recording stop               # 停止录音并识别
+vinput recording stop --scene <ID>  # 使用指定场景停止录音
+vinput recording toggle             # 切换录音开始/停止
+vinput recording toggle --scene <ID># 使用指定场景切换录音
+```
+
+### 守护进程管理
+
+```bash
+vinput daemon start             # 启动
+vinput daemon stop              # 停止
+vinput daemon restart           # 重启
+vinput daemon log               # 查看日志
+vinput daemon log -f            # 跟踪日志
+vinput init                     # 创建默认配置和模型目录
+```
+
+## 配置文件
+
+| 文件 | 路径 |
+|------|------|
+| Fcitx5 插件配置（按键等） | `~/.config/fcitx5/conf/vinput.conf` |
+| 核心配置（模型、LLM、场景） | `~/.config/vinput/config.json` |
+| 模型目录 | `~/.local/share/vinput/models/` |
+
+### Flatpak 路径
+
+| 文件 | 路径 |
+|------|------|
+| Fcitx5 插件配置（按键等） | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
+| 核心配置（模型、LLM、场景） | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
+| 模型目录 | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
