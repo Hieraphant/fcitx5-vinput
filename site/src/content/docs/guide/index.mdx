@@ -12,10 +12,11 @@ import guiAsrProviders from '~/assets/guide/gui-asr-providers.png';
 
 ## Quick start
 
-### 1. Start the daemon
+### 1. Start the daemon and reload Fcitx5
 
 ```bash
 systemctl --user enable --now vinput-daemon.service
+fcitx5 -r
 ```
 
 ### 2. Enable in Fcitx5

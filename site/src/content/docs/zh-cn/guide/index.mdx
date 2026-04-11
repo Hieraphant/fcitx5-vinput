@@ -12,10 +12,11 @@ import guiAsrProviders from '~/assets/guide/gui-asr-providers.png';
 
 ## 快速开始
 
-### 1. 启动守护进程
+### 1. 启动守护进程并重启 Fcitx5
 
 ```bash
 systemctl --user enable --now vinput-daemon.service
+fcitx5 -r
 ```
 
 ### 2. 在 Fcitx5 中启用
