@@ -31,3 +31,8 @@
 [data-has-hero] .hero > img {
 	filter: drop-shadow(0 0 3rem var(--overlay-blurple));
 }
+
+/* Full-width tables */
+.sl-markdown-content table {
+	width: 100%;
+}
