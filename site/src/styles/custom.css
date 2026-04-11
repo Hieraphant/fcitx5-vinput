@@ -29,12 +29,10 @@
 	backdrop-filter: blur(16px);
 }
 
-[data-has-hero] .sl-container {
-	margin-inline: auto;
-}
-
-[data-has-hero] .right-group {
-	display: flex;
+@media (max-width: 50rem) {
+	[data-has-hero] .sl-container {
+		margin-inline: auto;
+	}
 }
 
 [data-has-hero] .hero > img {
