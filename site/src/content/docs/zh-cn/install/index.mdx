@@ -1,0 +1,87 @@
+---
+title: 安装
+description: 在 Linux 上安装 fcitx5-vinput。
+---
+
+import ReleaseDownloads from '~/components/ReleaseDownloads.astro';
+
+## 仓库安装
+
+### Arch Linux (AUR)
+
+```bash
+yay -S fcitx5-vinput-bin
+```
+
+### Fedora (COPR)
+
+```bash
+sudo dnf copr enable xifan/fcitx5-vinput-bin
+sudo dnf install fcitx5-vinput
+```
+
+### Ubuntu 24.04 (PPA)
+
+```bash
+sudo add-apt-repository ppa:xifan233/ppa
+sudo apt update
+sudo apt install fcitx5-vinput
+```
+
+### Nix (flake)
+
+在你的配置中添加 flake input：
+
+```nix
+inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
+```
+
+可通过 [Cachix](https://fcitx5-vinput.cachix.org) 获取二进制缓存。完整的 Home Manager 用法参见 [README](https://github.com/xifan2333/fcitx5-vinput#nix-via-flake)。
+
+### Flatpak
+
+```bash
+flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
+flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
+```
+
+安装后需要授予额外权限并重启 Fcitx5：
+
+```bash
+flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
+flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
+flatpak kill org.fcitx.Fcitx5
+```
+
+## 本地安装
+
+下载对应发行版的安装包，直接安装。
+
+<ReleaseDownloads lang="zh-cn" />
+
+下载后安装：
+
+- **`.deb`**：`sudo dpkg -i <文件>.deb && sudo apt-get install -f`
+- **`.rpm`**：`sudo dnf install <文件>.rpm`
+- **`.pkg.tar.zst`**：`sudo pacman -U <文件>.pkg.tar.zst`
+- **`.flatpak`**：`flatpak install <文件>.flatpak`
+
+## 源码构建
+
+**依赖：** cmake、fcitx5、pipewire、libcurl、nlohmann-json、CLI11、Qt6
+
+```bash
+sudo bash scripts/build-sherpa-onnx.sh
+cmake --preset release-clang-mold
+cmake --build --preset release-clang-mold
+sudo cmake --install build
+```
+
+也可以用 `just`：
+
+```bash
+just sherpa
+just configure-release
+just build
+sudo just install
+```
