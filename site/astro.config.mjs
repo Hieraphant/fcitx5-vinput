@@ -41,6 +41,48 @@ export default defineConfig({
 			},
 			head: [
 				{
+					tag: 'meta',
+					attrs: {
+						property: 'og:image',
+						content: '/fcitx5-vinput/hero-mic.svg',
+					},
+				},
+				{
+					tag: 'meta',
+					attrs: {
+						property: 'og:type',
+						content: 'website',
+					},
+				},
+				{
+					tag: 'meta',
+					attrs: {
+						property: 'og:site_name',
+						content: 'fcitx5-vinput',
+					},
+				},
+				{
+					tag: 'meta',
+					attrs: {
+						name: 'twitter:card',
+						content: 'summary',
+					},
+				},
+				{
+					tag: 'script',
+					attrs: { type: 'application/ld+json' },
+					content: JSON.stringify({
+						'@context': 'https://schema.org',
+						'@type': 'SoftwareApplication',
+						name: 'fcitx5-vinput',
+						description:
+							'Voice input for Fcitx5 with local and cloud ASR, LLM rewriting, and cross-distro installation.',
+						applicationCategory: 'UtilitiesApplication',
+						operatingSystem: 'Linux',
+						url: 'https://xifan2333.github.io/fcitx5-vinput/',
+					}),
+				},
+				{
 					tag: 'link',
 					attrs: {
 						rel: 'preconnect',
