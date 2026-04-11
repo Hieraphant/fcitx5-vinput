@@ -36,7 +36,6 @@ export default defineConfig({
 				baseUrl:
 					'https://github.com/xifan2333/fcitx5-vinput/edit/main/site/',
 			},
-			customCss: ['./src/styles/custom.css'],
 			sidebar: ['overview', 'downloads', 'documentation'],
 		}),
 	],
