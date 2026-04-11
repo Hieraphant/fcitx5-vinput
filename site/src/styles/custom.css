@@ -29,6 +29,14 @@
 	backdrop-filter: blur(16px);
 }
 
+[data-has-hero] .sl-container {
+	margin-inline: auto;
+}
+
+[data-has-hero] .right-group {
+	display: flex;
+}
+
 [data-has-hero] .hero > img {
 	filter: drop-shadow(0 0 3rem var(--overlay-blurple));
 }
