@@ -2,7 +2,11 @@
 :root {
 	--accent-hsl: 234, 89%, 74%;
 	--overlay-blurple: hsla(var(--accent-hsl), 0.2);
-	--sl-font-headings: 'Space Grotesk', var(--sl-font-system);
+}
+
+[data-site-title-text] {
+	font-family: 'Audiowide', var(--sl-font-system);
+	font-weight: 400;
 }
 
 :root[data-theme='light'] {

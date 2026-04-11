@@ -36,6 +36,9 @@ export default defineConfig({
 				baseUrl:
 					'https://github.com/xifan2333/fcitx5-vinput/edit/main/site/',
 			},
+			components: {
+				SiteTitle: './src/components/SiteTitle.astro',
+			},
 			head: [
 				{
 					tag: 'link',
