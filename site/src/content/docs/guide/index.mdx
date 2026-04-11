@@ -6,6 +6,8 @@ description: Set up and configure fcitx5-vinput after installation.
 import guiModels from '~/assets/guide/gui-models.png';
 import guiAsrProviders from '~/assets/guide/gui-asr-providers.png';
 
+<iframe src="//player.bilibili.com/player.html?bvid=BV17gXrBGE74&autoplay=0" width="720" height="405" scrolling="no" frameborder="0" allowfullscreen style="border-radius:8px"></iframe>
+
 ## Quick start
 
 ### 1. Start the daemon
@@ -20,11 +22,7 @@ Open Fcitx5 Configuration → Addons → Find **Vinput** → Enable.
 
 ### 3. Install a model
 
-Open the GUI:
-
-```bash
-vinput-gui
-```
+Open **Vinput GUI** (launch from your application menu, or run `vinput-gui` in a terminal).
 
 Go to **Resources → Models**, browse the available models list and click **Download** to install one, then click **Use** to activate it.
 
@@ -52,7 +50,7 @@ You can also manually place a model directory in `~/.local/share/vinput/models/<
 
 Besides the built-in local model, you can install cloud ASR providers for different speed, quality, or cost trade-offs.
 
-Open the GUI → **Resources → ASR Providers**, browse available providers and click **Install**. Or use the CLI:
+In Vinput GUI, go to **Resources → ASR Providers**, browse available providers and click **Install**. Or use the CLI:
 
 <img src={guiAsrProviders.src} alt="vinput-gui ASR provider management" width="720" />
 
@@ -90,160 +88,3 @@ Available cloud ASR providers include:
 | Quick Select | `1`–`9` | Quick-pick candidate |
 
 All keys can be customized in Fcitx5 configuration.
-
-## Scenes & LLM
-
-Scenes control how LLM processes recognition results. Switch between them at runtime using the scene menu key (`Shift_R`).
-
-Each scene has:
-- **ID** — unique identifier
-- **Label** — display name in the menu
-- **Prompt** — system prompt sent to the LLM
-
-LLM is only used when a scene has `provider + model + prompt` configured. The built-in `__raw__` scene bypasses LLM entirely.
-
-### LLM setup example
-
-Using local [Ollama](https://ollama.com):
-
-```bash
-vinput llm add ollama --base-url http://127.0.0.1:11434/v1
-vinput scene add --id polish \
-  --label "Polish" \
-  --provider ollama \
-  --model qwen2.5:7b \
-  --prompt "Rewrite the recognized text into polished Chinese."
-vinput scene use polish
-```
-
-### Command mode
-
-Select text → hold command key (`Control_R`) → speak your instruction → release → done.
-
-If there is no active surrounding-text selection, command mode falls back to the current primary-selection clipboard text. This keeps the workflow convenient, but stale or unrelated selected text may be sent into the command rewrite flow if your primary selection is not what you expect.
-
-**Examples:**
-- Select Chinese text → say *"translate to English"* → replaced with translation
-- Select code → say *"add comments"* → replaced with commented version
-
-> Requires LLM to be configured and enabled.
-
-## CLI reference
-
-Use `vinput --help` or `vinput <subcommand> --help` for the full current syntax.
-
-> Flatpak: `flatpak run --command=/app/addons/Vinput/bin/vinput org.fcitx.Fcitx5 --help`
-
-### Model management
-
-```bash
-vinput model list               # List installed models
-vinput model list -a            # List available remote models
-vinput model add <name>         # Download and install
-vinput model use <name>         # Switch active model
-vinput model remove <name>      # Remove model
-vinput model info <name>        # View model details
-```
-
-### Scene management
-
-```bash
-vinput scene list               # List all scenes
-vinput scene add --id <id>      # Add a scene
-vinput scene edit <id>          # Edit a scene
-vinput scene use <id>           # Switch active scene
-vinput scene remove <id>        # Remove scene
-```
-
-Scenes that use LLM must set `--provider`, `--model`, and `--prompt` together.
-
-### LLM configuration
-
-```bash
-vinput llm list                         # List configured LLM providers
-vinput llm add <id> --base-url <url>    # Add an LLM provider
-vinput llm edit <id> --base-url <url>   # Edit an LLM provider
-vinput llm remove <id>                  # Remove an LLM provider
-vinput adapter list                     # List installed LLM adapters
-vinput adapter list -a                  # List available remote adapters
-vinput adapter add <id>                 # Install an adapter from registry
-vinput adapter start <id>               # Start an adapter
-vinput adapter stop <id>                # Stop an adapter
-```
-
-LLM providers are referenced by scenes; there is no separate active-provider toggle. An LLM adapter is only a local OpenAI-compatible bridge process that a provider may point to.
-
-### ASR providers
-
-```bash
-vinput provider list            # List configured ASR providers
-vinput provider list -a        # List available remote ASR providers
-vinput provider add <id>       # Install a provider from registry
-vinput provider use <id>       # Switch active ASR provider
-vinput provider edit <id>      # Edit external provider script
-vinput provider remove <id>    # Remove provider
-```
-
-### Hotword management
-
-```bash
-vinput hotword get              # View current hotword file path
-vinput hotword set <path>       # Set hotword file
-vinput hotword edit             # Open hotword file in editor
-vinput hotword clear            # Clear hotword configuration
-```
-
-### Device management
-
-```bash
-vinput device list              # List capture devices
-vinput device use <id>          # Set active capture device
-```
-
-### Config helpers
-
-```bash
-vinput config get /global/capture_device        # Get a config value (JSON Pointer)
-vinput config set /global/capture_device <val>  # Set a config value
-vinput config edit core                         # Edit core config (config.json)
-vinput config edit fcitx                        # Edit Fcitx addon config (vinput.conf)
-```
-
-Registry fallback is configured directly in `config.json` with typed source lists such as `registry.models`, `registry.asr_providers`, `registry.llm_adapters`, and `registry.i18n`. URLs are tried in order until one succeeds.
-
-### Recording control
-
-```bash
-vinput recording start              # Start recording
-vinput recording stop               # Stop recording and recognize
-vinput recording stop --scene <ID>  # Stop with specific scene
-vinput recording toggle             # Toggle recording start/stop
-vinput recording toggle --scene <ID># Toggle with specific scene
-```
-
-### Daemon management
-
-```bash
-vinput daemon start             # Start daemon
-vinput daemon stop              # Stop daemon
-vinput daemon restart           # Restart daemon
-vinput daemon log               # View logs
-vinput daemon log -f            # Follow logs
-vinput init                     # Create default config and model directories
-```
-
-## Configuration files
-
-| File | Path |
-|------|------|
-| Plugin config (keybindings, etc.) | `~/.config/fcitx5/conf/vinput.conf` |
-| Core config (model, LLM, scenes) | `~/.config/vinput/config.json` |
-| Model directory | `~/.local/share/vinput/models/` |
-
-### Flatpak paths
-
-| File | Path |
-|------|------|
-| Plugin config (keybindings, etc.) | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
-| Core config (model, LLM, scenes) | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
-| Model directory | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
