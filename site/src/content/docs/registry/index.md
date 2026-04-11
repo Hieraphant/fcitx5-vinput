@@ -148,10 +148,45 @@ An adapter is a local process that exposes a non-standard LLM as an OpenAI-compa
 
 | Item | Spec |
 |------|------|
-| Command | `python3` |
+| Command | Interpreter (e.g. `python3`) |
 | Provides | Local HTTP server |
 | Required endpoints | `GET /v1/models`, `POST /v1/chat/completions` |
 | Dependencies | Standard library only (no third-party packages) |
+
+### Response format
+
+For `POST /v1/chat/completions`, Vinput expects:
+
+- Non-streaming only: `"stream": false`
+- Standard OpenAI chat completion JSON envelope
+- `choices[0].message.content` must be a string
+- That string itself must be JSON in this shape:
+
+```json
+{
+  "candidates": [
+    "candidate 1",
+    "candidate 2"
+  ]
+}
+```
+
+The outer response is OpenAI-compatible, while the inner `content` string is the structured payload consumed by Vinput.
+
+`GET /v1/models` only needs to return the standard OpenAI list format:
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "my-model",
+      "object": "model",
+      "owned_by": "my-adapter"
+    }
+  ]
+}
+```
 
 **File structure:**
 

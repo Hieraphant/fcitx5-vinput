@@ -148,10 +148,45 @@ resources/providers/<目录>/streaming/
 
 | 项目 | 规格 |
 |------|------|
-| 命令 | `python3` |
+| 命令 | 解释器（如 `python3`） |
 | 提供 | 本地 HTTP 服务 |
 | 必须实现 | `GET /v1/models`、`POST /v1/chat/completions` |
 | 依赖 | 仅标准库（禁止第三方包） |
+
+### 响应格式
+
+对于 `POST /v1/chat/completions`，Vinput 要求：
+
+- 仅非流式：`"stream": false`
+- 标准 OpenAI chat completion JSON 响应结构
+- `choices[0].message.content` 必须是字符串
+- 该字符串本身必须是如下格式的 JSON：
+
+```json
+{
+  "candidates": [
+    "候选结果 1",
+    "候选结果 2"
+  ]
+}
+```
+
+外层是 OpenAI 兼容响应，内层 `content` 字符串是 Vinput 消费的结构化数据。
+
+`GET /v1/models` 只需返回标准 OpenAI 列表格式：
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "my-model",
+      "object": "model",
+      "owned_by": "my-adapter"
+    }
+  ]
+}
+```
 
 **文件结构：**
 
