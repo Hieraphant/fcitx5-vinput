@@ -41,7 +41,7 @@
     </message>
     <message>
         <source>Error</source>
-        <translation type="unfinished">错误</translation>
+        <translation>错误</translation>
     </message>
     <message>
         <source>Failed to save config.</source>
@@ -131,10 +131,12 @@
         <translation>需要额外配置</translation>
     </message>
     <message>
-        <source>Vinput requires additional Flatpak permissions.
-Please follow the instructions.</source>
-        <translation>语音输入需要额外的 Flatpak 权限。
-请参考说明文档。</translation>
+        <source>Vinput requires additional Flatpak permissions. Run the following commands, then restart Fcitx5:
+
+%1</source>
+        <translation>Vinput 需要额外的 Flatpak 权限。请运行以下命令，然后重启 Fcitx5：
+
+%1</translation>
     </message>
     <message>
         <source>Failed to save config.</source>

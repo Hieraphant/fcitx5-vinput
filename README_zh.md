@@ -82,6 +82,14 @@ flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-aut
 flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
 ```
 
+安装后需要授予额外权限并重启 Fcitx5：
+
+```bash
+flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
+flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
+flatpak kill org.fcitx.Fcitx5
+```
+
 ### 其他发行版
 
 从 [GitHub Releases](https://github.com/xifan2333/fcitx5-vinput/releases/latest) 下载对应安装包：

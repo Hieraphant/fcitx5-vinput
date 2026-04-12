@@ -1,6 +1,5 @@
 #include "pages/control/control_page.h"
 
-#include <QDesktopServices>
 #include <QFormLayout>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -11,7 +10,6 @@
 #include <QMessageBox>
 #include <QPointer>
 #include <QThreadPool>
-#include <QUrl>
 #include <QVBoxLayout>
 
 #include "common/utils/sandbox.h"
@@ -543,15 +541,18 @@ void ControlPage::checkSandboxPermissions() {
   if (missing.empty())
     return;
 
+  const QString commands =
+      QStringLiteral("flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5\n"
+                     "flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5\n"
+                     "flatpak kill org.fcitx.Fcitx5");
+
   QMessageBox msg(this);
   msg.setIcon(QMessageBox::Warning);
   msg.setWindowTitle(tr("Additional Install Required"));
-  msg.setText(tr("Vinput requires additional Flatpak permissions.\n"
-                 "Please follow the instructions."));
-  if (msg.exec() == QMessageBox::Ok) {
-    QDesktopServices::openUrl(
-        QUrl("https://github.com/xifan2333/fcitx5-vinput#Flatpak"));
-  }
+  msg.setText(tr("Vinput requires additional Flatpak permissions. "
+                 "Run the following commands, then restart Fcitx5:\n\n%1")
+                  .arg(commands));
+  msg.exec();
 }
 
 }  // namespace vinput::gui
