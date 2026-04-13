@@ -198,7 +198,6 @@ void from_json(const json &j, Definition &d) {
   d.timeout_ms = j.value("timeout_ms", vinput::scene::kDefaultTimeoutMs);
   d.context_lines =
       j.value("context_lines", vinput::scene::kDefaultContextLines);
-  d.builtin = j.value("builtin", false);
 }
 
 }  // namespace vinput::scene
