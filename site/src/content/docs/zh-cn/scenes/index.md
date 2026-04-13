@@ -34,6 +34,7 @@ ASR 原始文本 → [场景 prompt + LLM] → 改写后的文本
 | `prompt` | 发送给 LLM 的系统提示 |
 | `provider_id` | 绑定的 LLM 提供商 |
 | `model` | 使用的模型名称 |
+| `context_lines` | 发送给 LLM 作为上下文的前文行数 |
 | `candidate_count` | 返回候选数量 |
 
 只有同时配置了 `provider_id` + `model` + `prompt` 的场景才会调用 LLM。
@@ -61,6 +62,7 @@ ASR 原始文本 → [场景 prompt + LLM] → 改写后的文本
         "prompt": "纠正语音识别文本的错误，保留原意...",
         "provider_id": "groq",
         "model": "openai/gpt-oss-120b",
+        "context_lines": 3,
         "candidate_count": 5
       }
     ]
@@ -70,7 +72,9 @@ ASR 原始文本 → [场景 prompt + LLM] → 改写后的文本
 
 ### GUI 操作
 
-在 Vinput GUI 的 **LLM** tab 中管理场景：添加、编辑 prompt、绑定 provider 和 model。
+在 Vinput GUI 的 **LLM** tab 中管理场景：添加、编辑 prompt、绑定 provider 和 model，并设置 **Context Lines**。
+
+`context_lines` 用来控制 Vinput 在改写前额外发送给 LLM 的前文行数。它适合翻译、续写、段落级润色等依赖附近文本语境的场景。设为 `0` 表示不附带额外上下文。
 
 ### CLI 操作
 

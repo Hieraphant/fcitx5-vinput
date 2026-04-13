@@ -34,6 +34,7 @@ Each scene contains:
 | `prompt` | System prompt sent to the LLM |
 | `provider_id` | Bound LLM provider |
 | `model` | Model name to use |
+| `context_lines` | Number of previous text lines sent as context to the LLM |
 | `candidate_count` | Number of candidates to return |
 
 LLM is only invoked when `provider_id` + `model` + `prompt` are all configured.
@@ -61,6 +62,7 @@ Corresponding config:
         "prompt": "Correct ASR errors, keep original meaning...",
         "provider_id": "groq",
         "model": "openai/gpt-oss-120b",
+        "context_lines": 3,
         "candidate_count": 5
       }
     ]
@@ -70,7 +72,9 @@ Corresponding config:
 
 ### GUI
 
-In Vinput GUI, manage scenes in the **LLM** tab: add, edit prompt, bind provider and model.
+In Vinput GUI, manage scenes in the **LLM** tab: add, edit prompt, bind provider and model, and configure **Context Lines**.
+
+`context_lines` controls how many previous text lines Vinput sends to the LLM as extra context before rewriting. This is useful for translation, continuation, and style-consistent polishing. Set it to `0` to disable extra context.
 
 ### CLI
 
