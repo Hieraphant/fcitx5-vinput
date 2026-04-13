@@ -341,6 +341,10 @@
         <translation>模型：</translation>
     </message>
     <message>
+        <source>Context Lines:</source>
+        <translation>上下文行数：</translation>
+    </message>
+    <message>
         <source>Candidate Count:</source>
         <translation>候选词数量：</translation>
     </message>
