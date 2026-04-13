@@ -2,6 +2,7 @@
 
 #include "common/llm/defaults.h"
 #include "common/utils/debug_log.h"
+#include "common/utils/path_utils.h"
 
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
@@ -10,6 +11,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <cstdio>
+#include <fstream>
 #include <optional>
 
 #include <string>
@@ -205,6 +207,38 @@ std::string BuildUserInputMarkdown(std::string_view source_text) {
   return markdown;
 }
 
+std::string BuildContextPrefix(int max_lines) {
+  if (max_lines <= 0) {
+    return {};
+  }
+  const auto path = vinput::path::ContextCachePath();
+  std::ifstream ifs(path);
+  if (!ifs) {
+    return {};
+  }
+  std::vector<std::string> lines;
+  std::string line;
+  while (std::getline(ifs, line)) {
+    if (!line.empty()) {
+      lines.push_back(std::move(line));
+    }
+  }
+  if (lines.empty()) {
+    return {};
+  }
+  const auto start =
+      (static_cast<int>(lines.size()) > max_lines)
+          ? lines.end() - max_lines
+          : lines.begin();
+  std::string result = "Recent input history (use to fix ASR errors):\n";
+  for (auto it = start; it != lines.end(); ++it) {
+    result += *it;
+    result += '\n';
+  }
+  result += '\n';
+  return result;
+}
+
 std::string BuildConstraintsSuffix(int candidate_count) {
   if (candidate_count <= 0) {
     return {};
@@ -255,6 +289,9 @@ RewriteWithOpenAiCompatible(const std::string &text,
       effective_task + BuildConstraintsSuffix(candidate_count);
   const std::string user_content =
       use_markdown_user_input ? BuildUserInputMarkdown(text) : text;
+  const std::string context_prefix = BuildContextPrefix(scene.context_lines);
+  const std::string final_user_content =
+      context_prefix.empty() ? user_content : (context_prefix + user_content);
 
   if (vinput::debug::Enabled()) {
     LogLlmInput(provider, url, text);
@@ -262,7 +299,7 @@ RewriteWithOpenAiCompatible(const std::string &text,
 
   std::vector<json> messages;
   messages.push_back({{"role", "system"}, {"content", system_content}});
-  messages.push_back({{"role", "user"}, {"content", user_content}});
+  messages.push_back({{"role", "user"}, {"content", final_user_content}});
 
   json request = {
       {"model", scene.model},

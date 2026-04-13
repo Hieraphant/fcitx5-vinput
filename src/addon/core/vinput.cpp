@@ -15,6 +15,8 @@
 #include <fstream>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 using namespace vinput::dbus;
 
 namespace {
@@ -125,6 +127,14 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
         }
       }));
 
+  eventHandlers_.emplace_back(instance_->watchEvent(
+      fcitx::EventType::InputContextCommitString,
+      fcitx::EventWatcherPhase::PostInputMethod, [this](fcitx::Event &event) {
+        auto &commitEvent =
+            static_cast<fcitx::CommitStringEvent &>(event);
+        onCommitString(commitEvent.text());
+      }));
+
   auto *dbus_addon = instance_->addonManager().addon("dbus");
   if (dbus_addon) {
     bus_ = dbus_addon->call<fcitx::IDBusModule::bus>();
@@ -219,6 +229,58 @@ fcitx::InputContext *VinputEngine::resolveFrontendInputContext(
     return fallback_ic;
   }
   return last_active_ic_;
+}
+
+void VinputEngine::onCommitString(const std::string &text) {
+  if (text.empty()) {
+    return;
+  }
+  const auto path = vinput::path::ContextCachePath();
+  std::error_code ec;
+  std::filesystem::create_directories(path.parent_path(), ec);
+  if (ec) {
+    return;
+  }
+
+  nlohmann::json entry;
+  entry["text"] = text;
+  {
+    std::ofstream ofs(path, std::ios::app);
+    if (ofs) {
+      ofs << entry.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace)
+          << '\n';
+    }
+  }
+
+  constexpr int kTruncateInterval = 100;
+  constexpr int kKeepLines = 200;
+  if (++commit_write_count_ >= kTruncateInterval) {
+    commit_write_count_ = 0;
+    std::ifstream ifs(path);
+    if (!ifs) {
+      return;
+    }
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(ifs, line)) {
+      if (!line.empty()) {
+        lines.push_back(std::move(line));
+      }
+    }
+    ifs.close();
+    if (static_cast<int>(lines.size()) > kKeepLines) {
+      const auto start = lines.end() - kKeepLines;
+      const auto tmp = path.string() + ".tmp";
+      std::ofstream ofs_tmp(tmp, std::ios::trunc);
+      if (ofs_tmp) {
+        for (auto it = start; it != lines.end(); ++it) {
+          ofs_tmp << *it << '\n';
+        }
+        ofs_tmp.close();
+        std::filesystem::rename(tmp, path, ec);
+      }
+    }
+  }
 }
 
 fcitx::AddonInstance *

@@ -47,6 +47,10 @@
         <source>Failed to save config.</source>
         <translation>保存配置失败。</translation>
     </message>
+    <message>
+        <source>Details</source>
+        <translation>查看详情</translation>
+    </message>
 </context>
 <context>
     <name>vinput::gui::ControlPage</name>
@@ -366,7 +370,7 @@
     </message>
     <message>
         <source>Provider &apos;%1&apos; not found.</source>
-        <translation>未找到提供商"%1"。</translation>
+        <translation>未找到提供商&quot;%1&quot;。</translation>
     </message>
     <message>
         <source>Provider base_url is empty.</source>
@@ -379,12 +383,12 @@
     <message>
         <source>Connection to &apos;%1&apos; failed:
 %2</source>
-        <translation>连接"%1"失败：
+        <translation>连接&quot;%1&quot;失败：
 %2</translation>
     </message>
     <message>
         <source>Invalid response from &apos;%1&apos;.</source>
-        <translation>"%1"返回了无效的响应。</translation>
+        <translation>&quot;%1&quot;返回了无效的响应。</translation>
     </message>
     <message>
         <source>Test Succeeded</source>
@@ -393,7 +397,7 @@
     <message>
         <source>Connected to &apos;%1&apos;.
 Found %2 model(s).</source>
-        <translation>已连接"%1"。
+        <translation>已连接&quot;%1&quot;。
 找到 %2 个模型。</translation>
     </message>
 </context>
@@ -534,14 +538,6 @@ Found %2 model(s).</source>
     <message>
         <source>Error</source>
         <translation>错误</translation>
-    </message>
-    <message>
-        <source>Local Model Updated</source>
-        <translation>本地模型已更新</translation>
-    </message>
-    <message>
-        <source>Selected model &apos;%1&apos; has been assigned to the preferred local ASR provider.</source>
-        <translation>已将所选模型&quot;%1&quot;分配给首选的本地 ASR 提供商。</translation>
     </message>
     <message>
         <source>Selected model &apos;%1&apos; saved as the preferred local ASR model. Backend reload is in progress.</source>

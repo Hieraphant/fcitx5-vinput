@@ -21,8 +21,11 @@ private slots:
   void onSaveClicked();
   void onOpenConfigClicked();
   void reloadAll();
+  void onNotificationReady(QString id, QString title, QString text, QString url);
 
 private:
+  void checkNotification();
+
   QTabWidget *tabWidget_;
 
   vinput::gui::ControlPage *controlPage_;

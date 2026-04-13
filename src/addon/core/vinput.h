@@ -108,6 +108,7 @@ private:
   resolveFrontendInputContext(fcitx::InputContext *fallback_ic = nullptr) const;
   void updatePreedit(fcitx::InputContext *ic, const std::string &text);
   void clearPreedit(fcitx::InputContext *ic);
+  void onCommitString(const std::string &text);
 
   fcitx::Instance *instance_;
   fcitx::EventDispatcher event_dispatcher_;
@@ -174,6 +175,7 @@ private:
   std::unique_ptr<fcitx::EventSourceTime> status_sync_event_;
   VinputSettings settings_;
   mutable std::unique_ptr<VinputConfig> ui_config_;
+  int commit_write_count_ = 0;
 };
 
 class VinputEngineFactory : public fcitx::AddonFactory {

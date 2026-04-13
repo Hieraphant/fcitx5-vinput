@@ -10,6 +10,8 @@ constexpr int kMinCandidateCount = 0;
 constexpr int kMaxCandidateCount = 9;
 constexpr int kDefaultCandidateCount = 1;
 constexpr int kDefaultTimeoutMs = 4000;
+constexpr int kDefaultContextLines = 0;
+constexpr int kMaxContextLines = 50;
 constexpr std::string_view kRawSceneId = "__raw__";
 constexpr std::string_view kCommandSceneId = "__command__";
 constexpr std::string_view kRawSceneLabelKey = "__label_raw__";
@@ -23,6 +25,7 @@ struct Definition {
   std::string model;
   int candidate_count = kDefaultCandidateCount;
   int timeout_ms = kDefaultTimeoutMs;
+  int context_lines = kDefaultContextLines;
   bool builtin = false;
 };
 

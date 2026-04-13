@@ -73,6 +73,11 @@ void NormalizeDefinition(Definition *scene) {
   if (scene->timeout_ms <= 0) {
     scene->timeout_ms = kDefaultTimeoutMs;
   }
+  if (scene->context_lines < 0) {
+    scene->context_lines = 0;
+  } else if (scene->context_lines > kMaxContextLines) {
+    scene->context_lines = kMaxContextLines;
+  }
 }
 
 bool ValidateDefinition(const Definition &scene, std::string *error,

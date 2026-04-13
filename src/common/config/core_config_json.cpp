@@ -182,6 +182,9 @@ void to_json(json &j, const Definition &d) {
   if (d.timeout_ms != vinput::scene::kDefaultTimeoutMs) {
     j["timeout_ms"] = d.timeout_ms;
   }
+  if (d.context_lines != vinput::scene::kDefaultContextLines) {
+    j["context_lines"] = d.context_lines;
+  }
 }
 
 void from_json(const json &j, Definition &d) {
@@ -193,6 +196,8 @@ void from_json(const json &j, Definition &d) {
   d.candidate_count =
       j.value("candidate_count", vinput::scene::kDefaultCandidateCount);
   d.timeout_ms = j.value("timeout_ms", vinput::scene::kDefaultTimeoutMs);
+  d.context_lines =
+      j.value("context_lines", vinput::scene::kDefaultContextLines);
   d.builtin = j.value("builtin", false);
 }
 

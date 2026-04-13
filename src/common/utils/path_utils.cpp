@@ -169,4 +169,12 @@ std::filesystem::path AdapterRuntimeDir() {
   return base / "vinput" / "adapters";
 }
 
+std::filesystem::path ContextCachePath() {
+  return VinputCacheDir() / "context.jsonl";
+}
+
+std::filesystem::path ReadNotificationsPath() {
+  return VinputCacheDir() / "read_notifications";
+}
+
 } // namespace vinput::path
