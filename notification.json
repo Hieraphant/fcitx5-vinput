@@ -2,11 +2,11 @@
   "id": 1,
   "timestamp": 1744531200,
   "title": {
-    "en": "New: Adaptive ASR correction via input context",
+    "en_US": "New: Adaptive ASR correction via input context",
     "zh_CN": "新功能：输入上下文自适应纠错"
   },
   "text": {
-    "en": "New context_lines field in scene config. When enabled, LLM uses your recent input history to auto-correct ASR errors.",
+    "en_US": "New context_lines field in scene config. When enabled, LLM uses your recent input history to auto-correct ASR errors.",
     "zh_CN": "场景配置新增 context_lines 字段，开启后 LLM 会利用最近的输入历史自动纠正 ASR 错误。"
   },
   "url": "https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.2.0"

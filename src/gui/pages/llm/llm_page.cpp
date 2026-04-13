@@ -611,6 +611,9 @@ void LlmPage::onSceneAdd() {
   auto *spinCandidates = new QSpinBox();
   spinCandidates->setRange(kMinCandidateCount, kMaxCandidateCount);
   spinCandidates->setValue(kDefaultCandidateCount);
+  auto *spinContextLines = new QSpinBox();
+  spinContextLines->setRange(0, vinput::scene::kMaxContextLines);
+  spinContextLines->setValue(vinput::scene::kDefaultContextLines);
 
   SetupProviderModelCombos(comboProvider, comboModel);
 
@@ -619,6 +622,7 @@ void LlmPage::onSceneAdd() {
   form->addRow(tr("Prompt:"), editPrompt);
   form->addRow(tr("Provider:"), comboProvider);
   form->addRow(tr("Model:"), comboModel);
+  form->addRow(tr("Context Lines:"), spinContextLines);
   form->addRow(tr("Candidate Count:"), spinCandidates);
   form->addRow(tr("Timeout (ms):"), spinTimeout);
 
@@ -640,6 +644,7 @@ void LlmPage::onSceneAdd() {
   def.prompt = editPrompt->toPlainText().toStdString();
   def.provider_id = comboProvider->currentText().toStdString();
   def.model = comboModel->currentText().trimmed().toStdString();
+  def.context_lines = spinContextLines->value();
   def.candidate_count = spinCandidates->value();
   def.timeout_ms = spinTimeout->value();
 
@@ -691,6 +696,9 @@ void LlmPage::onSceneEdit() {
   auto *spinCandidates = new QSpinBox();
   spinCandidates->setRange(kMinCandidateCount, kMaxCandidateCount);
   spinCandidates->setValue(found->candidate_count);
+  auto *spinContextLines = new QSpinBox();
+  spinContextLines->setRange(0, vinput::scene::kMaxContextLines);
+  spinContextLines->setValue(found->context_lines);
 
   SetupProviderModelCombos(comboProvider, comboModel,
                            QString::fromStdString(found->provider_id),
@@ -701,6 +709,7 @@ void LlmPage::onSceneEdit() {
   form->addRow(tr("Prompt:"), editPrompt);
   form->addRow(tr("Provider:"), comboProvider);
   form->addRow(tr("Model:"), comboModel);
+  form->addRow(tr("Context Lines:"), spinContextLines);
   form->addRow(tr("Candidate Count:"), spinCandidates);
   form->addRow(tr("Timeout (ms):"), spinTimeout);
 
@@ -721,6 +730,7 @@ void LlmPage::onSceneEdit() {
   def.prompt = editPrompt->toPlainText().toStdString();
   def.provider_id = comboProvider->currentText().toStdString();
   def.model = comboModel->currentText().trimmed().toStdString();
+  def.context_lines = spinContextLines->value();
   def.candidate_count = spinCandidates->value();
   def.timeout_ms = spinTimeout->value();
 

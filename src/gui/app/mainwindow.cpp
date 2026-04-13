@@ -137,6 +137,30 @@ void MainWindow::onOpenConfigClicked() {
 }
 
 namespace {
+std::string NormalizeNotificationLocale(std::string locale) {
+  const auto colon = locale.find(':');
+  if (colon != std::string::npos) {
+    locale = locale.substr(0, colon);
+  }
+  const auto dot = locale.find('.');
+  if (dot != std::string::npos) {
+    locale = locale.substr(0, dot);
+  }
+  const auto at = locale.find('@');
+  if (at != std::string::npos) {
+    locale = locale.substr(0, at);
+  }
+  for (char &ch : locale) {
+    if (ch == '-') {
+      ch = '_';
+    }
+  }
+  if (locale.empty() || locale == "C" || locale == "POSIX") {
+    return {};
+  }
+  return locale;
+}
+
 QString localizedString(const nlohmann::json &obj) {
   if (obj.is_string()) {
     return QString::fromStdString(obj.get<std::string>());
@@ -144,7 +168,8 @@ QString localizedString(const nlohmann::json &obj) {
   if (!obj.is_object()) {
     return {};
   }
-  const std::string locale = QLocale::system().name().toStdString();
+  const std::string locale =
+      NormalizeNotificationLocale(QLocale::system().name().toStdString());
   if (obj.contains(locale)) {
     return QString::fromStdString(obj[locale].get<std::string>());
   }

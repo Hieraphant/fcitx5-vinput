@@ -163,6 +163,7 @@ bool UpdateScene(Config *config, const std::string &id, const Definition &def,
       updated.prompt = def.prompt;
       updated.provider_id = def.provider_id;
       updated.model = def.model;
+      updated.context_lines = def.context_lines;
       updated.candidate_count = def.candidate_count;
       updated.timeout_ms = def.timeout_ms;
       NormalizeDefinition(&updated);
