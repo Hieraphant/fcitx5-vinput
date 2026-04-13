@@ -87,10 +87,8 @@ flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.A
 ```bash
 flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
 flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
+flatpak override --user --filesystem=xdg-cache org.fcitx.Fcitx5
 flatpak kill org.fcitx.Fcitx5
-```
-
-### 其他发行版
 
 从 [GitHub Releases](https://github.com/xifan2333/fcitx5-vinput/releases/latest) 下载对应安装包：
 

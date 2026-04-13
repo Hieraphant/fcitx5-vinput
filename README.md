@@ -87,10 +87,8 @@ After installation, grant the extra permissions and restart Fcitx5:
 ```bash
 flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
 flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
+flatpak override --user --filesystem=xdg-cache org.fcitx.Fcitx5
 flatpak kill org.fcitx.Fcitx5
-```
-
-### Other distributions
 
 Download the package for your system from [GitHub Releases](https://github.com/xifan2333/fcitx5-vinput/releases/latest):
 

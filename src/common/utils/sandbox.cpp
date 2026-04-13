@@ -54,6 +54,8 @@ std::vector<std::string> MissingSandboxPermissions() {
     missing.emplace_back("pipewire");
   if (info.find("xdg-config/systemd") == std::string::npos)
     missing.emplace_back("xdg-config/systemd");
+  if (info.find("xdg-cache") == std::string::npos)
+    missing.emplace_back("xdg-cache");
 
   return missing;
 }

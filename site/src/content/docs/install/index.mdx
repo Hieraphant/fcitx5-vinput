@@ -117,6 +117,7 @@ After installation, grant additional permissions and restart Fcitx5:
 ```bash
 flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
 flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
+flatpak override --user --filesystem=xdg-cache org.fcitx.Fcitx5
 flatpak kill org.fcitx.Fcitx5
 ```
 
