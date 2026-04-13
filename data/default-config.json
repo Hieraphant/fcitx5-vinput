@@ -36,14 +36,12 @@
       {
         "id": "__raw__",
         "label": "__label_raw__",
-        "candidate_count": 0,
-        "builtin": true
+        "candidate_count": 0
       },
       {
         "id": "__command__",
         "label": "__label_command__",
-        "prompt": "# Command Mode Prompt\n\n## Role\n\nYou are an assistant that applies a spoken command to the user-provided text.\n\n## Context\n\n- The user message is the source text to operate on.\n- The spoken command may contain ASR errors.\n- The spoken command is appended at runtime in the `## Task` section.\n\n## Task\n",
-        "builtin": true
+        "prompt": "# Command Mode Prompt\n\n## Role\n\nYou are an assistant that applies a spoken command to the user-provided text.\n\n## Context\n\n- The user message is the source text to operate on.\n- The spoken command may contain ASR errors.\n- The spoken command is appended at runtime in the `## Task` section.\n\n## Task\n"
       }
     ]
   }
