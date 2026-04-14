@@ -239,11 +239,6 @@ jobs:
   nix-cachix:
     if: ${{ inputs.platform == 'all' || inputs.platform == 'nix' }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        system:
-          - x86_64-linux
-          - aarch64-linux
     steps:
       - uses: actions/checkout@v6
         with:
@@ -261,4 +256,4 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
       - name: Build and push to Cachix
-        run: nix build .#packages.${{ matrix.system }}.fcitx5-vinput --no-link
+        run: nix build .#fcitx5-vinput --no-link
