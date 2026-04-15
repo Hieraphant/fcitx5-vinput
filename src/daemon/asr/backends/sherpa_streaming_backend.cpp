@@ -418,6 +418,12 @@ private:
       config.model_config.nemo_ctc.model = f_model.c_str();
     } else if (model_info_.family == "t_one_ctc") {
       config.model_config.t_one_ctc.model = f_model.c_str();
+    } else if (model_info_.family == "moonshine") {
+      if (error) {
+        *error =
+            "Moonshine models are currently supported only by sherpa-offline";
+      }
+      return false;
     } else {
       if (error) {
         *error = "Unsupported sherpa-streaming model family '" +

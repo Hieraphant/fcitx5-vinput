@@ -220,7 +220,7 @@ Model entries in `models.json` describe downloadable sherpa-onnx model archives.
 |-------|-------------|
 | `backend` | `sherpa-offline` or `sherpa-streaming` |
 | `runtime` | `offline` or `online` |
-| `family` | sherpa-onnx C API family: `dolphin`, `sense_voice`, `paraformer`, `transducer`, `qwen3_asr` |
+| `family` | sherpa-onnx C API family: `dolphin`, `sense_voice`, `paraformer`, `transducer`, `moonshine`, `qwen3_asr` |
 | `language` | Language code |
 | `size_bytes` | Model size |
 | `supports_hotwords` | Whether hotword boosting is supported |
@@ -228,6 +228,48 @@ Model entries in `models.json` describe downloadable sherpa-onnx model archives.
 | `model` | sherpa-onnx model config (tokens file, family-specific model paths) |
 
 Field naming follows sherpa-onnx C API conventions.
+
+### Moonshine local model notes
+
+Moonshine local ASR models do not require a special app-side provider. In the
+main `fcitx5-vinput` repo, Moonshine already runs through the existing offline
+sherpa backend selected by `family: "moonshine"`.
+
+For registry maintainers, the important part is the `vinput_model` payload that
+gets written into `vinput-model.json` during install. That payload should use:
+
+- `backend: "sherpa-offline"`
+- `runtime: "offline"`
+- `family: "moonshine"`
+- `model.tokens`
+- `model.moonshine.preprocessor`
+- `model.moonshine.encoder`
+- `model.moonshine.uncached_decoder`
+- `model.moonshine.cached_decoder`
+
+`model.moonshine.merged_decoder` may be included when the packaged model has
+it, but it is not required by Vinput.
+
+Minimal `vinput_model` example:
+
+```json
+{
+  "backend": "sherpa-offline",
+  "runtime": "offline",
+  "family": "moonshine",
+  "language": "en",
+  "model": {
+    "tokens": "tokens.txt",
+    "provider": "cpu",
+    "moonshine": {
+      "preprocessor": "preprocess.onnx",
+      "encoder": "encode.int8.onnx",
+      "uncached_decoder": "uncached_decode.int8.onnx",
+      "cached_decoder": "cached_decode.int8.onnx"
+    }
+  }
+}
+```
 
 ## Contributing a resource
 

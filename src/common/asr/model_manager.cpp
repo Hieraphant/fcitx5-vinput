@@ -267,6 +267,44 @@ bool HasTokenizer(const ModelInfo &info) {
   return !info.File("tokenizer").empty() && fs::exists(info.File("tokenizer"));
 }
 
+bool HasRequiredMoonshineFiles(const ModelInfo &info,
+                               std::vector<std::string> *missing_keys = nullptr) {
+  if (info.family != "moonshine") {
+    return true;
+  }
+
+  static constexpr const char *kMoonshineRequiredKeys[] = {
+      "preprocessor",
+      "encoder",
+      "uncached_decoder",
+      "cached_decoder",
+  };
+
+  bool ok = true;
+  for (const char *key : kMoonshineRequiredKeys) {
+    const auto path = info.File(key);
+    if (path.empty() || !fs::exists(path)) {
+      ok = false;
+      if (missing_keys) {
+        missing_keys->emplace_back(key);
+      }
+    }
+  }
+
+  return ok;
+}
+
+std::string JoinFieldNames(const std::vector<std::string> &fields) {
+  std::string joined;
+  for (size_t i = 0; i < fields.size(); ++i) {
+    if (i > 0) {
+      joined += ", ";
+    }
+    joined += fields[i];
+  }
+  return joined;
+}
+
 bool HasRequiredTextAsset(const ModelInfo &info) {
   return FamilyUsesTokenizerAsset(info.family) ? HasTokenizer(info)
                                                : HasTokens(info);
@@ -426,6 +464,15 @@ bool ModelManager::EnsureModels(std::string *error) {
     if (error) {
       *error = RequiredTextAssetPathKey(info) +
                " file not found for model '" + model_id_ + "'";
+    }
+    return false;
+  }
+
+  std::vector<std::string> missing_moonshine_files;
+  if (!HasRequiredMoonshineFiles(info, &missing_moonshine_files)) {
+    if (error) {
+      *error = "missing required Moonshine files for model '" + model_id_ +
+               "': " + JoinFieldNames(missing_moonshine_files);
     }
     return false;
   }
@@ -598,6 +645,15 @@ bool ModelManager::Validate(const std::string &model_id,
             RequiredTextAssetField(info);
     } else {
       if (error) *error = path_key + " file not found: " + asset_path;
+    }
+    return false;
+  }
+
+  std::vector<std::string> missing_moonshine_files;
+  if (!HasRequiredMoonshineFiles(info, &missing_moonshine_files)) {
+    if (error) {
+      *error = "vinput-model.json is missing required Moonshine files: " +
+               JoinFieldNames(missing_moonshine_files);
     }
     return false;
   }

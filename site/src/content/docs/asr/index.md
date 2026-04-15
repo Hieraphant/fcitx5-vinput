@@ -60,6 +60,53 @@ vinput model remove <name>      # Uninstall
 vinput model info <name>        # View details
 ```
 
+### Moonshine
+
+Moonshine uses the existing `sherpa-offline` local ASR path. There is no
+separate daemon backend or GUI code path for it inside Vinput. Once a
+Moonshine package is installed with a valid `vinput-model.json`, it behaves
+like any other local model in **Resources → Models** and in the `vinput model`
+CLI.
+
+For Moonshine, `vinput-model.json` should use:
+
+- `backend: "sherpa-offline"`
+- `runtime: "offline"`
+- `family: "moonshine"`
+- `model.tokens`
+- `model.moonshine.preprocessor`
+- `model.moonshine.encoder`
+- `model.moonshine.uncached_decoder`
+- `model.moonshine.cached_decoder`
+
+`model.moonshine.merged_decoder` is optional.
+
+Example:
+
+```json
+{
+  "backend": "sherpa-offline",
+  "runtime": "offline",
+  "family": "moonshine",
+  "language": "en",
+  "model": {
+    "tokens": "tokens.txt",
+    "provider": "cpu",
+    "num_threads": 2,
+    "moonshine": {
+      "preprocessor": "preprocess.onnx",
+      "encoder": "encode.int8.onnx",
+      "uncached_decoder": "uncached_decode.int8.onnx",
+      "cached_decoder": "cached_decode.int8.onnx"
+    }
+  }
+}
+```
+
+Moonshine is currently offline-only in Vinput. Selecting a Moonshine package
+for the streaming sherpa backend will fail with a clear error instead of
+falling through as an unknown model family.
+
 ## Cloud providers
 
 ### Concept

@@ -19,6 +19,8 @@ endif()
 
 include(GNUInstallDirs)
 
+option(VINPUT_BUILD_TESTS "Build fcitx5-vinput unit tests" OFF)
+
 set(VINPUT_PACKAGE_RELEASE "1"
     CACHE STRING "Package release revision for distro packages")
 set(VINPUT_PACKAGE_CONTACT "fcitx5-vinput maintainers <noreply@github.com>"
@@ -90,6 +92,11 @@ add_subdirectory(src/addon)
 add_subdirectory(src/cli)
 add_subdirectory(src/gui)
 add_subdirectory(po)
+
+if(VINPUT_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 string(REPLACE "-" "~" VINPUT_DEBIAN_UPSTREAM_VERSION "${PROJECT_VERSION}")
 
