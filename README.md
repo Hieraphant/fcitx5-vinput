@@ -1,151 +1,38 @@
-<div align="center">
-
 # fcitx5-vinput
 
-**Voice input for Fcitx5 — local and cloud ASR, LLM rewriting, cross-distro packages**
+A simpler Moonshine-focused fork of `fcitx5-vinput`.
 
-[![License](https://img.shields.io/github/license/xifan2333/fcitx5-vinput)](LICENSE)
-[![CI](https://github.com/xifan2333/fcitx5-vinput/actions/workflows/release.yml/badge.svg)](https://github.com/xifan2333/fcitx5-vinput/actions/workflows/release.yml)
-[![Release](https://img.shields.io/github/v/release/xifan2333/fcitx5-vinput)](https://github.com/xifan2333/fcitx5-vinput/releases)
-[![AUR](https://img.shields.io/aur/version/fcitx5-vinput-bin)](https://aur.archlinux.org/packages/fcitx5-vinput-bin)
-[![Downloads](https://img.shields.io/github/downloads/xifan2333/fcitx5-vinput/total)](https://github.com/xifan2333/fcitx5-vinput/releases)
+## What is different in this version
 
-[English](README.md) | [中文](README_zh.md) | [Documentation](https://xifan2333.github.io/fcitx5-vinput/)
+This fork is focused on getting Moonshine local ASR working cleanly and making that path easier to understand and review.
 
-https://github.com/user-attachments/assets/5a548a68-153c-4842-bab6-926f30bb720e
+Changes in this fork:
+- adds Moonshine local model validation
+- adds a clear offline-only error for Moonshine on the streaming backend
+- documents the expected Moonshine `vinput-model.json` layout
+- adds a small regression test for Moonshine model validation
 
-</div>
+## What this fork is trying to do
 
-## Features
+The upstream project supports a broader set of providers, models, and workflows.
+This version keeps the focus on a compact Moonshine path for local Linux voice input.
 
-- **Two trigger modes** — tap to toggle recording, or hold to push-to-talk
-- **Local & cloud ASR** — offline [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) models or cloud providers (Doubao, Aliyun Bailian, ElevenLabs, OpenAI-compatible), switchable at runtime with `F8`
-- **LLM post-processing** — error correction, formatting, translation via scenes
-- **Command mode** — select text, speak an instruction, release to apply
-- **GUI & CLI** — `vinput-gui` for quick setup, `vinput` CLI for full control
-- **Cross-distro** — Arch, Fedora, Ubuntu/Debian, Nix, Flatpak
+## Current status
 
-## Installation
+- builds successfully
+- Moonshine local models can be discovered and activated
+- the daemon initializes Moonshine offline ASR correctly
+- speech-to-text works end to end with a local Moonshine model
 
-### Arch Linux (AUR)
+## Upstream and fork
 
-```bash
-yay -S fcitx5-vinput-bin
-```
+Upstream project:
+- `xifan2333/fcitx5-vinput`
 
-### Fedora (COPR)
+This fork:
+- `Hieraphant/fcitx5-vinput`
 
-```bash
-sudo dnf copr enable xifan/fcitx5-vinput-bin
-sudo dnf install fcitx5-vinput
-```
+## Notes
 
-### Ubuntu 24.04 (PPA)
-
-```bash
-sudo add-apt-repository ppa:xifan233/ppa
-sudo apt update
-sudo apt install fcitx5-vinput
-```
-
-### Ubuntu / Debian (manual)
-
-```bash
-# Download latest .deb from GitHub Releases
-sudo dpkg -i fcitx5-vinput_*.deb
-sudo apt-get install -f
-```
-
-### Nix (flake)
-
-Supports `x86_64-linux` and `aarch64-linux`.
-
-```nix
-inputs.fcitx5-vinput.url = "github:xifan2333/fcitx5-vinput";
-```
-
-Binary cache via [Cachix](https://fcitx5-vinput.cachix.org):
-
-```nix
-nixConfig = {
-  extra-substituters = [ "https://fcitx5-vinput.cachix.org" ];
-  extra-trusted-public-keys = [ "fcitx5-vinput.cachix.org-1:XpX3AA6+dDIX4qJhb1QM7sbTwX6/qSlGvW8Z5NK6XdU=" ];
-};
-```
-
-Full Home Manager example in the [install docs](https://xifan2333.github.io/fcitx5-vinput/install/).
-
-### Flatpak
-
-```bash
-flatpak remote-add --if-not-exists xifan https://xifan2333.github.io/flatpak-auto/xifan.flatpakrepo
-flatpak install https://xifan2333.github.io/flatpak-auto/refs/org.fcitx.Fcitx5.Addon.Vinput.flatpakref
-```
-
-After installation, grant the extra permissions and restart Fcitx5:
-
-```bash
-flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
-flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
-flatpak override --user --filesystem=xdg-cache org.fcitx.Fcitx5
-flatpak kill org.fcitx.Fcitx5
-
-Download the package for your system from [GitHub Releases](https://github.com/xifan2333/fcitx5-vinput/releases/latest):
-
-- **Debian / Linux Mint / Ubuntu (other)**: `.deb`
-- **openSUSE / Fedora (other)**: `.rpm`
-- **Arch-based**: `.pkg.tar.zst`
-- **Flatpak**: `.flatpak`
-- **Generic Linux**: `_bundled.tar.gz`
-
-### Build from source
-
-**Dependencies:** cmake, fcitx5, pipewire, libcurl, nlohmann-json, CLI11, Qt6
-
-```bash
-sudo bash scripts/build-sherpa-onnx.sh
-cmake --preset release-clang-mold
-cmake --build --preset release-clang-mold
-sudo cmake --install build
-```
-
-## Quick start
-
-```bash
-systemctl --user enable --now vinput-daemon.service
-fcitx5 -r
-```
-
-Open **Vinput GUI** → **Resources → Models** → download and activate a model. Then:
-
-- **Tap** `Alt_R` — start/stop recording
-- **Hold** `Alt_R` — push-to-talk
-
-## Key bindings
-
-| Key | Default | Function |
-|-----|---------|----------|
-| Trigger Key | `Alt_R` | Tap to toggle recording; hold to push-to-talk |
-| Command Key | `Control_R` | Hold after selecting text to modify with voice |
-| ASR Menu Key | `F8` | Open ASR provider / model switcher |
-| Scene Menu Key | `Shift_R` | Open scene switcher |
-
-All keys can be customized in Fcitx5 configuration.
-
-## Documentation
-
-For ASR configuration, scenes & LLM setup, CLI reference, and registry contribution guide, see the [documentation site](https://xifan2333.github.io/fcitx5-vinput/).
-
-## License
-
-[GPL-3.0](LICENSE)
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=xifan2333/fcitx5-vinput&type=Date)](https://star-history.com/#xifan2333/fcitx5-vinput&Date)
-
-## Sponsor
-
-If this project has been helpful to you, feel free to support it.
-
-<img src="https://raw.githubusercontent.com/xifan2333/xifan2333/main/assets/donate.png" alt="Donate" width="300" />
+This repo is intended to keep the Moonshine-related changes easier to follow.
+The separate registry follow-up can be done after the main runtime patch.
