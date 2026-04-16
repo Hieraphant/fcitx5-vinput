@@ -1,38 +1,30 @@
 # fcitx5-vinput
 
-A simpler Moonshine-focused fork of `fcitx5-vinput`.
+This fork was used to investigate and prototype Moonshine support.
 
-## What is different in this version
+## Use the main software
 
-This fork is focused on getting Moonshine local ASR working cleanly and making that path easier to understand and review.
+The main project is here:
 
-Changes in this fork:
-- adds Moonshine local model validation
-- adds a clear offline-only error for Moonshine on the streaming backend
-- documents the expected Moonshine `vinput-model.json` layout
-- adds a small regression test for Moonshine model validation
+- https://github.com/xifan2333/fcitx5-vinput
 
-## What this fork is trying to do
+If you want the current upstream software, use that repository.
 
-The upstream project supports a broader set of providers, models, and workflows.
-This version keeps the focus on a compact Moonshine path for local Linux voice input.
+## What is in this fork
 
-## Current status
+This fork keeps my Moonshine investigation branch and related work.
 
-- builds successfully
-- Moonshine local models can be discovered and activated
-- the daemon initializes Moonshine offline ASR correctly
-- speech-to-text works end to end with a local Moonshine model
+Feature branch:
+- `feat/moonshine-v1`
 
-## Upstream and fork
+That branch is kept for reference.
 
-Upstream project:
-- `xifan2333/fcitx5-vinput`
+## Install
 
-This fork:
-- `Hieraphant/fcitx5-vinput`
+For the main software and current install instructions, use the upstream repository:
 
-## Notes
+- https://github.com/xifan2333/fcitx5-vinput
 
-This repo is intended to keep the Moonshine-related changes easier to follow.
-The separate registry follow-up can be done after the main runtime patch.
+## License
+
+This fork contains GPL-3.0 licensed code. See [LICENSE](LICENSE).
